@@ -1,0 +1,96 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="11762" systemVersion="16C67" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="gbW-TK-POg">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11762"/>
+        <capability name="box content view" minToolsVersion="7.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Keyboard-->
+        <scene sceneID="3oE-MH-4lW">
+            <objects>
+                <viewController title="Keyboard" id="gbW-TK-POg" userLabel="Keyboard" customClass="NCKeyboardViewController" sceneMemberID="viewController">
+                    <box key="view" autoresizesSubviews="NO" boxType="custom" borderType="none" title="Keyboard" id="Btc-zE-Xwd" userLabel="Keyboard Info View" customClass="NCDragBox">
+                        <rect key="frame" x="0.0" y="0.0" width="650" height="190"/>
+                        <autoresizingMask key="autoresizingMask" widthSizable="YES" flexibleMinY="YES"/>
+                        <view key="contentView" id="D7E-jE-pwW">
+                            <rect key="frame" x="0.0" y="0.0" width="650" height="190"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <customView autoresizesSubviews="NO" focusRingType="none" translatesAutoresizingMaskIntoConstraints="NO" id="IZM-JO-r7l" customClass="NCPassthruView">
+                                    <rect key="frame" x="0.0" y="0.0" width="650" height="190"/>
+                                    <constraints>
+                                        <constraint firstAttribute="height" constant="190" id="1bd-3H-1eq"/>
+                                        <constraint firstAttribute="width" constant="650" id="Do5-W8-0O9"/>
+                                    </constraints>
+                                    <connections>
+                                        <outlet property="target" destination="gbW-TK-POg" id="g3S-ju-xsd"/>
+                                    </connections>
+                                </customView>
+                                <box autoresizesSubviews="NO" boxType="custom" borderType="line" title="Keyboard Passthrough" titlePosition="aboveTop" translatesAutoresizingMaskIntoConstraints="NO" id="TD4-QX-q0V" customClass="NRBox">
+                                    <rect key="frame" x="40" y="30" width="580" height="144"/>
+                                    <view key="contentView" id="S63-FI-6Uo">
+                                        <rect key="frame" x="1" y="1" width="578" height="142"/>
+                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                        <subviews>
+                                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="hzl-bH-VPY">
+                                                <rect key="frame" x="170" y="40" width="393" height="38"/>
+                                                <textFieldCell key="cell" enabled="NO" allowsUndo="NO" sendsActionOnEndEditing="YES" alignment="left" title="Set an insertion point on your Newton device and start typing." id="t5p-5D-JYW">
+                                                    <font key="font" metaFont="system"/>
+                                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                    <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                </textFieldCell>
+                                                <connections>
+                                                    <binding destination="gbW-TK-POg" name="value" keyPath="instructions" id="XIU-5v-adU"/>
+                                                </connections>
+                                            </textField>
+                                            <imageView translatesAutoresizingMaskIntoConstraints="NO" id="qF7-kJ-uzz">
+                                                <rect key="frame" x="18" y="25" width="140" height="69"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="69" id="aUk-Km-02R"/>
+                                                    <constraint firstAttribute="width" constant="140" id="hJH-Ze-Tf4"/>
+                                                </constraints>
+                                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" image="keyboard-dim" id="esb-ku-39p"/>
+                                                <connections>
+                                                    <binding destination="gbW-TK-POg" name="value" keyPath="icon" id="a25-Ua-bY9"/>
+                                                </connections>
+                                            </imageView>
+                                        </subviews>
+                                    </view>
+                                    <constraints>
+                                        <constraint firstItem="qF7-kJ-uzz" firstAttribute="top" secondItem="TD4-QX-q0V" secondAttribute="top" constant="49" id="8ds-Bd-GBb"/>
+                                        <constraint firstAttribute="width" constant="580" id="9hS-3d-5yt"/>
+                                        <constraint firstItem="hzl-bH-VPY" firstAttribute="leading" secondItem="qF7-kJ-uzz" secondAttribute="trailing" constant="14" id="I8N-H0-PTf"/>
+                                        <constraint firstAttribute="trailing" secondItem="hzl-bH-VPY" secondAttribute="trailing" constant="18" id="QOj-Lo-G8t"/>
+                                        <constraint firstItem="qF7-kJ-uzz" firstAttribute="leading" secondItem="TD4-QX-q0V" secondAttribute="leading" constant="19" id="hZe-QY-DT1"/>
+                                        <constraint firstAttribute="bottom" secondItem="hzl-bH-VPY" secondAttribute="bottom" constant="41" id="jBk-2m-49m"/>
+                                        <constraint firstItem="hzl-bH-VPY" firstAttribute="top" secondItem="TD4-QX-q0V" secondAttribute="top" constant="65" id="m1w-Ag-X5z"/>
+                                        <constraint firstAttribute="height" constant="144" id="xZS-Y1-HV7"/>
+                                    </constraints>
+                                    <color key="borderColor" red="0.7019608021" green="0.7019608021" blue="0.7019608021" alpha="1" colorSpace="calibratedRGB"/>
+                                    <color key="fillColor" white="0.95999999999999996" alpha="1" colorSpace="calibratedWhite"/>
+                                </box>
+                            </subviews>
+                        </view>
+                        <constraints>
+                            <constraint firstItem="IZM-JO-r7l" firstAttribute="leading" secondItem="Btc-zE-Xwd" secondAttribute="leading" id="BR9-4l-Yqb"/>
+                            <constraint firstItem="TD4-QX-q0V" firstAttribute="top" secondItem="Btc-zE-Xwd" secondAttribute="top" constant="16" id="bCs-JK-VPw"/>
+                            <constraint firstItem="TD4-QX-q0V" firstAttribute="leading" secondItem="Btc-zE-Xwd" secondAttribute="leading" constant="40" id="dHW-QX-Wgq"/>
+                            <constraint firstItem="IZM-JO-r7l" firstAttribute="top" secondItem="Btc-zE-Xwd" secondAttribute="top" id="ocR-pM-EKa"/>
+                        </constraints>
+                        <color key="fillColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                    </box>
+                    <connections>
+                        <outlet property="passthruView" destination="IZM-JO-r7l" id="3YX-DK-2zO"/>
+                    </connections>
+                </viewController>
+                <customObject id="QyK-lo-WBe" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="68" y="24"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="keyboard-dim" width="140" height="80"/>
+    </resources>
+</document>

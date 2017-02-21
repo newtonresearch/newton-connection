@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>calendar</key>
+	<string>Dates</string>
+	<key>calendar notes</key>
+	<string>Dates</string>
+	<key>repeat meetings</key>
+	<string>Dates</string>
+	<key>repeat notes</key>
+	<string>Dates</string>
+	<key>to do</key>
+	<string>Dates</string>
+	<key>to do list</key>
+	<string>Dates</string>
+	<key>inbox</key>
+	<string>InOut Box</string>
+	<key>outbox</key>
+	<string>InOut Box</string>
+	<key>system</key>
+	<string>System Information</string>
+	<key>directory</key>
+	<string>System Information</string>
+	<key>library</key>
+	<string>System Information</string>
+</dict>
+</plist>

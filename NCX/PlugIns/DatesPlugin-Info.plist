@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>20</string>
+	<key>NCApplication</key>
+	<string>Dates</string>
+	<key>NCExportFormats</key>
+	<dict>
+		<key>meeting</key>
+		<dict>
+			<key>exporter</key>
+			<string>DateToICal</string>
+			<key>type</key>
+			<string>com.apple.ical.ics</string>
+		</dict>
+	</dict>
+	<key>NCFileTypes</key>
+	<dict>
+		<key>ics</key>
+		<string>iCal</string>
+	</dict>
+	<key>NCImportFormats</key>
+	<dict>
+		<key>com.apple.ical.ics</key>
+		<dict>
+			<key>importer</key>
+			<string>DateFromICal</string>
+			<key>soup</key>
+			<string>Calendar</string>
+		</dict>
+	</dict>
+</dict>
+</plist>

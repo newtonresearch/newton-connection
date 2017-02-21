@@ -1,0 +1,112 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="11762" systemVersion="16C67" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="wol-Rw-sLp">
+    <dependencies>
+        <deployment identifier="macosx"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11762"/>
+        <capability name="box content view" minToolsVersion="7.0"/>
+        <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
+    </dependencies>
+    <scenes>
+        <!--Screenshot-->
+        <scene sceneID="PIt-x2-nbd">
+            <objects>
+                <viewController title="Screenshot" id="wol-Rw-sLp" customClass="NCScreenshotViewController" sceneMemberID="viewController">
+                    <box key="view" autoresizesSubviews="NO" boxType="custom" borderType="none" title="Screen" id="CFl-yT-18Z" userLabel="Screenshot Info View">
+                        <rect key="frame" x="0.0" y="0.0" width="638" height="519"/>
+                        <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
+                        <view key="contentView" id="Jyu-Ze-OGE">
+                            <rect key="frame" x="0.0" y="0.0" width="638" height="519"/>
+                            <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                            <subviews>
+                                <box autoresizesSubviews="NO" boxType="custom" borderType="line" title="Screen Capture" titlePosition="aboveTop" translatesAutoresizingMaskIntoConstraints="NO" id="VB3-E1-HeE" customClass="NRBox">
+                                    <rect key="frame" x="40" y="27" width="568" height="476"/>
+                                    <view key="contentView" id="1Kk-85-DzO">
+                                        <rect key="frame" x="1" y="1" width="566" height="474"/>
+                                        <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
+                                        <subviews>
+                                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="q0z-I7-LZz">
+                                                <rect key="frame" x="128" y="396" width="397" height="34"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="height" constant="34" id="7vM-NQ-oST"/>
+                                                </constraints>
+                                                <textFieldCell key="cell" enabled="NO" sendsActionOnEndEditing="YES" alignment="left" title="Please wait…" id="jd9-VT-eNH">
+                                                    <font key="font" metaFont="system"/>
+                                                    <color key="textColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
+                                                    <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
+                                                </textFieldCell>
+                                                <connections>
+                                                    <binding destination="wol-Rw-sLp" name="value" keyPath="instructions" id="J1g-Fa-AR4"/>
+                                                </connections>
+                                            </textField>
+                                            <imageView translatesAutoresizingMaskIntoConstraints="NO" id="FHm-9g-1g7">
+                                                <rect key="frame" x="40" y="384" width="60" height="50"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="60" id="5AL-42-5ZH"/>
+                                                    <constraint firstAttribute="height" constant="50" id="NT0-9L-cgC"/>
+                                                </constraints>
+                                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageScaling="proportionallyDown" image="imageCapture-dim" id="Q24-TU-otS"/>
+                                                <connections>
+                                                    <binding destination="wol-Rw-sLp" name="value" keyPath="icon" id="1wv-1c-0AB"/>
+                                                </connections>
+                                            </imageView>
+                                            <imageView placeholderIntrinsicWidth="480" placeholderIntrinsicHeight="320" translatesAutoresizingMaskIntoConstraints="NO" id="cbV-Qy-Jn8" customClass="NCScreenshotView">
+                                                <rect key="frame" x="40" y="40" width="486" height="326"/>
+                                                <imageCell key="cell" refusesFirstResponder="YES" alignment="left" imageFrameStyle="photo" id="Ogv-Ha-uLs"/>
+                                                <connections>
+                                                    <binding destination="wol-Rw-sLp" name="value" keyPath="self.document.screenshot" id="SsD-JA-KyO"/>
+                                                </connections>
+                                            </imageView>
+                                            <button verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="2Ei-VT-RC8">
+                                                <rect key="frame" x="405" y="371" width="118" height="25"/>
+                                                <constraints>
+                                                    <constraint firstAttribute="width" constant="118" id="Spd-c2-SoD"/>
+                                                </constraints>
+                                                <buttonCell key="cell" type="roundTextured" title="Take Screenshot" bezelStyle="texturedRounded" alignment="center" enabled="NO" state="on" borderStyle="border" imageScaling="proportionallyDown" sound="click" inset="2" id="8Gw-tr-ElZ">
+                                                    <behavior key="behavior" pushIn="YES" lightByBackground="YES" lightByGray="YES"/>
+                                                    <font key="font" metaFont="system"/>
+                                                </buttonCell>
+                                                <connections>
+                                                    <action selector="sayCheese:" target="wol-Rw-sLp" id="2wP-PY-R7T"/>
+                                                    <binding destination="wol-Rw-sLp" name="enabled" keyPath="self.canTakeTheShot" id="q7m-aS-KET"/>
+                                                </connections>
+                                            </button>
+                                        </subviews>
+                                    </view>
+                                    <constraints>
+                                        <constraint firstAttribute="bottom" secondItem="cbV-Qy-Jn8" secondAttribute="bottom" constant="44" id="3vn-DB-GHg"/>
+                                        <constraint firstItem="FHm-9g-1g7" firstAttribute="top" secondItem="VB3-E1-HeE" secondAttribute="top" constant="41" id="5JZ-XP-Dgy"/>
+                                        <constraint firstItem="cbV-Qy-Jn8" firstAttribute="top" secondItem="2Ei-VT-RC8" secondAttribute="bottom" constant="10" id="6Ub-PT-QNB"/>
+                                        <constraint firstItem="q0z-I7-LZz" firstAttribute="leading" secondItem="FHm-9g-1g7" secondAttribute="trailing" constant="30" id="DHx-CD-VtC"/>
+                                        <constraint firstItem="cbV-Qy-Jn8" firstAttribute="top" secondItem="VB3-E1-HeE" secondAttribute="top" constant="112" id="JA3-l5-p3M"/>
+                                        <constraint firstItem="cbV-Qy-Jn8" firstAttribute="trailing" secondItem="2Ei-VT-RC8" secondAttribute="trailing" id="JCr-LC-4Lu"/>
+                                        <constraint firstItem="FHm-9g-1g7" firstAttribute="leading" secondItem="VB3-E1-HeE" secondAttribute="leading" constant="41" id="lU7-Bm-y0e"/>
+                                        <constraint firstItem="q0z-I7-LZz" firstAttribute="trailing" secondItem="cbV-Qy-Jn8" secondAttribute="trailing" id="vNe-vB-Pcr"/>
+                                        <constraint firstItem="cbV-Qy-Jn8" firstAttribute="leading" secondItem="VB3-E1-HeE" secondAttribute="leading" constant="44" id="xcb-RZ-JiF"/>
+                                        <constraint firstItem="q0z-I7-LZz" firstAttribute="top" secondItem="VB3-E1-HeE" secondAttribute="top" constant="45" id="y8U-3S-qgx"/>
+                                        <constraint firstAttribute="trailing" secondItem="cbV-Qy-Jn8" secondAttribute="trailing" constant="44" id="zaD-RA-7DN"/>
+                                    </constraints>
+                                    <color key="borderColor" red="0.7019608021" green="0.7019608021" blue="0.7019608021" alpha="1" colorSpace="calibratedRGB"/>
+                                    <color key="fillColor" white="0.95999999999999996" alpha="1" colorSpace="calibratedWhite"/>
+                                </box>
+                            </subviews>
+                            <constraints>
+                                <constraint firstItem="VB3-E1-HeE" firstAttribute="top" secondItem="Jyu-Ze-OGE" secondAttribute="top" constant="16" id="4XC-fe-JRL"/>
+                                <constraint firstItem="VB3-E1-HeE" firstAttribute="leading" secondItem="Jyu-Ze-OGE" secondAttribute="leading" constant="40" id="lBY-kz-HQ0"/>
+                            </constraints>
+                        </view>
+                        <color key="fillColor" red="1" green="1" blue="1" alpha="1" colorSpace="calibratedRGB"/>
+                    </box>
+                    <connections>
+                        <outlet property="screenImage" destination="cbV-Qy-Jn8" id="CV1-BS-nrC"/>
+                    </connections>
+                </viewController>
+                <customObject id="fQe-3o-WSp" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
+            </objects>
+            <point key="canvasLocation" x="47" y="40.5"/>
+        </scene>
+    </scenes>
+    <resources>
+        <image name="imageCapture-dim" width="100" height="80"/>
+        <sound name="click"/>
+    </resources>
+</document>

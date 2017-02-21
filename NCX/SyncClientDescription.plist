@@ -1,0 +1,78 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple Computer//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Type</key>
+	<string>device</string>
+	<key>DisplayName</key>
+	<string>Newton</string>
+	<key>ImagePath</key>
+	<string>device.icns</string>
+	<key>Entities</key>
+	<dict>
+		<key>com.apple.contacts.Contact</key>
+		<array>
+			<string>com.apple.syncservices.RecordEntityName</string>
+			<string>first name</string>
+			<string>last name</string>
+			<string>title</string>
+			<string>suffix</string>
+			<string>display as company</string>
+			<string>company name</string>
+			<string>job title</string>
+			<string>birthday</string>
+			<string>notes</string>
+			<string>dates</string>
+			<string>email addresses</string>
+			<string>phone numbers</string>
+			<string>related names</string>
+			<string>street addresses</string>
+			<string>URLs</string>
+		</array>
+		<key>com.apple.contacts.Date</key>
+		<array>
+			<string>com.apple.syncservices.RecordEntityName</string>
+			<string>contact</string>
+			<string>type</string>
+			<string>value</string>
+		</array>
+		<key>com.apple.contacts.Email Address</key>
+		<array>
+			<string>com.apple.syncservices.RecordEntityName</string>
+			<string>contact</string>
+			<string>value</string>
+		</array>
+		<key>com.apple.contacts.Phone Number</key>
+		<array>
+			<string>com.apple.syncservices.RecordEntityName</string>
+			<string>contact</string>
+			<string>type</string>
+			<string>value</string>
+		</array>
+		<key>com.apple.contacts.Related Name</key>
+		<array>
+			<string>com.apple.syncservices.RecordEntityName</string>
+			<string>contact</string>
+			<string>type</string>
+			<string>label</string>
+			<string>value</string>
+		</array>
+		<key>com.apple.contacts.Street Address</key>
+		<array>
+			<string>com.apple.syncservices.RecordEntityName</string>
+			<string>contact</string>
+			<string>city</string>
+			<string>country</string>
+			<string>postal code</string>
+			<string>state</string>
+			<string>street</string>
+		</array>
+		<key>com.apple.contacts.URL</key>
+		<array>
+			<string>com.apple.syncservices.RecordEntityName</string>
+			<string>contact</string>
+			<string>value</string>
+		</array>
+	</dict>
+</dict>
+</plist>

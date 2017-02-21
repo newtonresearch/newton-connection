@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>English</string>
+	<key>CFBundleExecutable</key>
+	<string>${EXECUTABLE_NAME}</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundlePackageType</key>
+	<string>BNDL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>2.0</string>
+	<key>CFBundleSignature</key>
+	<string>????</string>
+	<key>CFBundleVersion</key>
+	<string>20</string>
+	<key>NCApplication</key>
+	<string>Newton Works</string>
+	<key>NCExportFormats</key>
+	<dict>
+		<key>drawpaper</key>
+		<dict>
+			<key>exporter</key>
+			<string>WorksToRTF</string>
+			<key>type</key>
+			<string>public.tiff</string>
+		</dict>
+		<key>paper</key>
+		<dict>
+			<key>exporter</key>
+			<string>WorksToRTF</string>
+			<key>type</key>
+			<string>public.rtf</string>
+		</dict>
+		<key>qfnewt:donv</key>
+		<dict>
+			<key>exporter</key>
+			<string>WorksToRTF</string>
+			<key>type</key>
+			<string>public.comma-separated-values-text</string>
+		</dict>
+	</dict>
+	<key>NCFileTypes</key>
+	<dict>
+		<key>csv</key>
+		<string>Spreadsheet (CSV)</string>
+		<key>rtf</key>
+		<string>Rich Text (RTF)</string>
+		<key>tiff</key>
+		<string>TIFF Image</string>
+		<key>txt</key>
+		<string>Text</string>
+	</dict>
+	<key>NCImportFormats</key>
+	<dict>
+		<key>public.plain-text</key>
+		<dict>
+			<key>importer</key>
+			<string>WorksFromText</string>
+			<key>soup</key>
+			<string>NewtWorks</string>
+		</dict>
+		<key>public.rtf</key>
+		<dict>
+			<key>importer</key>
+			<string>WorksFromRTF</string>
+			<key>soup</key>
+			<string>NewtWorks</string>
+		</dict>
+	</dict>
+</dict>
+</plist>
