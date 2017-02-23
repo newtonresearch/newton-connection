@@ -17,15 +17,13 @@
 
 @implementation NRBox
 
-- (void) awakeFromNib
-{
+- (void) awakeFromNib {
 	self.titleFont = [NSFont systemFontOfSize:18.0];	// could try [NSFont fontWithName:@"HelveticaNeue-Light" size:18.0] ?
 	[self.titleCell setTextColor:NSColor.blackColor];
 }
 
 
-- (void) drawRect: (NSRect) inRect
-{
+- (void) drawRect: (NSRect) inRect {
 	if (self.boxType == NSBoxCustom && self.borderType == NSLineBorder) {
 		NSRect boxRect = self.borderRect;
 		CGFloat wd = [self borderWidth];
