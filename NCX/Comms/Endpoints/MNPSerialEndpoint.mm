@@ -160,7 +160,6 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 }
 
 
-
 /* -----------------------------------------------------------------------------
 	Return array of strings for names and corresponding /dev paths
 	of all known serial ports.
@@ -200,7 +199,7 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 	IOObjectRelease(serialPortIterator);
 
 	if (result == noErr) {
-		*outPorts = [NSArray arrayWithArray: ports];
+		*outPorts = [NSArray arrayWithArray:ports];
 	}
 	return result;
 }
@@ -282,12 +281,6 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 
 // --> this block defines whether serial works!
 #if forAdriano
-#if 0
-		if (doHandshaking)
-			REPprintf("c_cflag = (CREAD | CLOCAL | CS8 | CCTS_OFLOW | CRTS_IFLOW);\n");
-		else
-			REPprintf("c_cflag = (CREAD | CLOCAL | CS8);\n");
-#endif
 		cfsetspeed(&options, baudRate);
 
 		options.c_cc[VMIN] = 1;
@@ -301,12 +294,6 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 			options.c_cflag |= (CCTS_OFLOW | CRTS_IFLOW);
 
 #else
-#if 0
-		if (doHandshaking)
-			REPprintf("c_cflag |= (CREAD | CLOCAL | CS8 | CCTS_OFLOW | CRTS_IFLOW);\n");
-		else
-			REPprintf("c_cflag |= (CREAD | CLOCAL | CS8);\n");
-#endif
 		options = originalAttrs;
 		cfmakeraw(&options);
 		options.c_cc[VMIN] = 0;
@@ -324,16 +311,6 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 																				// could also use CDSR_OFLOW | CDTR_IFLOW
 																				// but nobody uses CRTSCTS
 #endif
-#if 0
-		// This doesn’t work -- confirmed in AMSerialPort -setSpeed: source.
-		// Starting with Tiger, the IOSSIOSPEED ioctl can be used to set arbitrary baud rates
-		// other than those specified by POSIX. The driver for the underlying serial hardware
-		// ultimately determines which baud rates can be used. This ioctl sets both the input
-		// and output speed. 
-		speed_t speed = baudRate;
-		XFAILIF(ioctl(self.rfd, IOSSIOSPEED, &speed) == -1,
-					REPprintf("Error calling ioctl(..., IOSSIOSPEED, %d) %s - %s (%d).\n", baudRate, dev, strerror(errno), errno); )
-#endif
 // <--
 
 		// Set the options now
@@ -344,6 +321,7 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 		XFAILIF(ioctl(self.rfd, TIOCMGET, &modem) == -1,
 					REPprintf("\nError getting modem signals %s - %s (%d).\n", dev, strerror(errno), errno); )
 
+MINIMUM_LOG {
 		REPprintf("Serial port: %s, %d bps,  ", dev,baudRate);
 		const char * sDCD = (modem & TIOCM_CD) ? "DCD" : "dcd";
 		const char * sDTR = (modem & TIOCM_DTR)? "DTR" : "dtr";
@@ -351,7 +329,7 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 		const char * sRTS = (modem & TIOCM_RTS)? "RTS" : "rts";
 		const char * sCTS = (modem & TIOCM_CTS)? "CTS" : "cts";
 		REPprintf("%s %s %s %s %s\n", sDCD, sDTR, sDSR, sRTS, sCTS);
-
+}
 #if 0
 		modem |= TIOCM_DTR;
 		ioctl(self.rfd, TIOCMSET, &modem);

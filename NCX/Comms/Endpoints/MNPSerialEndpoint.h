@@ -96,7 +96,7 @@
 	BOOL					isLive;
 	BOOL					isACKPending;
 }
-+ (NCError)getSerialPorts:(NSArray *__strong*)outPorts;
++ (NCError)getSerialPorts:(NSArray *__strong *)outPorts;
 
 - (NCError)unframePacket:(NCBuffer *)inFrameBuf;
 - (NCError)processPacket:(CChunkBuffer *)inDataBuf;
