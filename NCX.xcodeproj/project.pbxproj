@@ -317,7 +317,7 @@
 		F4055F801E2021BF004ABB55 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		F4055F871E20229E004ABB55 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		F4055F911E202561004ABB55 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
-		F4079F411B3ACDFF0071A48B /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Sparkle.framework; sourceTree = SOURCE_ROOT; };
+		F4079F411B3ACDFF0071A48B /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = "../Sparkle-master/Sparkle-1.16.0/Sparkle.framework"; sourceTree = SOURCE_ROOT; };
 		F40C2A0A0D30F18B0046583E /* MP3.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MP3.mm; sourceTree = "<group>"; };
 		F40C2A0B0D30F18B0046583E /* AudioPlugIn-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "AudioPlugIn-Info.plist"; sourceTree = "<group>"; };
 		F40C2A350D32A5E20046583E /* Audio.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Audio.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -933,6 +933,8 @@
 		F450C16D13FE5D8700D35BA0 /* Endpoints */ = {
 			isa = PBXGroup;
 			children = (
+				F450C19613FE5E1800D35BA0 /* Endpoint.h */,
+				F450C19513FE5E1800D35BA0 /* Endpoint.mm */,
 				F450C16E13FE5D8700D35BA0 /* BluetoothService.plist */,
 				F450C16F13FE5D8700D35BA0 /* BluetoothEndpoint.h */,
 				F450C17013FE5D8700D35BA0 /* BluetoothEndpoint.mm */,
@@ -1129,8 +1131,6 @@
 			isa = PBXGroup;
 			children = (
 				F450C1B413FE795300D35BA0 /* Comms.h */,
-				F450C19613FE5E1800D35BA0 /* Endpoint.h */,
-				F450C19513FE5E1800D35BA0 /* Endpoint.mm */,
 				F450C16D13FE5D8700D35BA0 /* Endpoints */,
 				F438136E142B7013007ACD37 /* DockEvent.h */,
 				F438136F142B7013007ACD37 /* DockEvent.mm */,
@@ -1329,7 +1329,7 @@
 				ORGANIZATIONNAME = "Newton Research";
 				TargetAttributes = {
 					F4A9275E0945EC6400F746B2 = {
-						ProvisioningStyle = Automatic;
+						ProvisioningStyle = Manual;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 0;
@@ -2003,12 +2003,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEVELOPMENT_TEAM = "";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(FRAMEWORK_SEARCH_PATHS)",
-					"$(SRCROOT)/../Sparkle",
-					"$(BUILT_PRODUCTS_DIR)",
-					"$(USER_LIBRARY_DIR)/Developer/Xcode/DerivedData/Sparkle-favzqkdjraknhjcibjvsshbyitsg/Build/Products/Debug",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle-master/Sparkle-1.16.0";
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR = NO;
@@ -2029,12 +2024,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEVELOPMENT_TEAM = "";
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(FRAMEWORK_SEARCH_PATHS)",
-					"$(SRCROOT)/../Sparkle",
-					"$(BUILT_PRODUCTS_DIR)",
-					"$(USER_LIBRARY_DIR)/Developer/Xcode/DerivedData/Sparkle-favzqkdjraknhjcibjvsshbyitsg/Build/Products/Debug",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle-master/Sparkle-1.16.0";
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
