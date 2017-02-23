@@ -443,15 +443,14 @@ MINIMUM_LOG {
 			// we’re listening…
 			FD_ZERO(&rfds);
 			maxfd = 0;
-			for (NCEndpoint * epi in listeners)
-			{
+			for (NCEndpoint * epi in listeners) {
 				FD_SET(epi.rfd, &rfds);
 				maxfd = MAX(epi.rfd, maxfd);
 			}
 			nfds = select(maxfd+1, &rfds, NULL, NULL, NULL);
 
 		} else {
-			tv.tv_sec = [ep timeout];
+			tv.tv_sec = ep.timeout;
 			tv.tv_usec = 0;
 
 			FD_ZERO(&rfds);
