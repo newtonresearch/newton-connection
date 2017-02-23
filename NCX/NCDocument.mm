@@ -1031,7 +1031,7 @@ FULL_LOG {
 		if (NOTNIL(item))
 			store.storePassword = MakeNSString(item);
 
-//		[self savePersistentStore];	// really need to do that now?
+		[self savePersistentStore];	// need to do this now so that we can find the store later
 
 		[self.deviceObj addTetheredStore:store];
 	}
