@@ -498,6 +498,7 @@ FULL_LOG {
 													self.progress.localizedDescription = [NSString stringWithFormat:NSLocalizedString(@"backing up package", nil), storeObjName, pkgName];
 
 													[soupObj addEntry:entry withNSOFData:evt.data length:evt.dataLength];
+													[document savePersistentStore];	// save now so if anything goes wrong we don’t have to sit through a long backup again
 												}
 											}
 											else
