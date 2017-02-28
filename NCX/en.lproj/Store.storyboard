@@ -197,8 +197,18 @@
                                                     <font key="font" metaFont="system"/>
                                                 </levelIndicatorCell>
                                                 <connections>
+                                                    <binding destination="wMZ-UM-j41" name="criticalValue" keyPath="representedObject.totalSize" id="r6N-IZ-doN">
+                                                        <dictionary key="options">
+                                                            <string key="NSValueTransformerName">NCCriticalValueTransformer</string>
+                                                        </dictionary>
+                                                    </binding>
                                                     <binding destination="wMZ-UM-j41" name="maxValue" keyPath="representedObject.totalSize" id="5bb-Sv-2Ad"/>
                                                     <binding destination="wMZ-UM-j41" name="value" keyPath="representedObject.usedSize" previousBinding="5bb-Sv-2Ad" id="Sus-ne-BGu"/>
+                                                    <binding destination="wMZ-UM-j41" name="warningValue" keyPath="representedObject.totalSize" previousBinding="r6N-IZ-doN" id="tkm-wZ-ucP">
+                                                        <dictionary key="options">
+                                                            <string key="NSValueTransformerName">NCWarningValueTransformer</string>
+                                                        </dictionary>
+                                                    </binding>
                                                 </connections>
                                             </levelIndicator>
                                         </subviews>
