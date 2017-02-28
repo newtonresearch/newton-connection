@@ -372,17 +372,15 @@ MINIMUM_LOG {
 - (NCError) readPage: (NCBuffer *) inFrameBuf into: (CChunkBuffer *) inDataBuf
 {
 	NCError err;
-	for (err = noErr; err == noErr; )
-	{
+	for (err = noErr; err == noErr; ) {
 		// strip packet framing
 		if ((err = [self unframePacket:inFrameBuf]) == noErr)	// this drains the inFrameBuf, but might not build a whole packet
 			// despatch to packet handler
 			err = [self processPacket: inDataBuf];
 	}
-	if (err == kCommsPartialData)
+	if (err == kCommsPartialData) {
 		err = noErr;
-	else if (err == kSerErrCRCError)
-	{
+	} else if (err == kSerErrCRCError) {
 		err = noErr;
 		[self sendAck: NO];
 	}
@@ -775,9 +773,6 @@ MINIMUM_LOG {
 
 	// remember state in case we need to refill on NAK
 	[wFrameBuf mark];
-
-	// write it; by passing zero length we are saying this is a raw write
-//	[self write:wFrameBuf.ptr length:0];
 }
 
 
