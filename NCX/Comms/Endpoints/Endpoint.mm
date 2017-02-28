@@ -123,7 +123,7 @@ BOOL gTraceIO = NO;
 //int cnt = rPageBuf.count;
 //if (rPageBuf.freeSpace == 0) REPprintf("-[NCEndpoint readDispatchSource] rPageBuf.freeSpace == 0\n");
 	// read() into a 1K buffer, and pass it to the transport for unframing/packetising
-	int count = (int)read(_rfd, rPageBuf.ptr, rPageBuf.freeSpace);
+	int count = (int)read(self.rfd, rPageBuf.ptr, rPageBuf.freeSpace);
 	if (count > 0) {
 
 MINIMUM_LOG {
