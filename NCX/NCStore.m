@@ -59,14 +59,6 @@ extern NSNumberFormatter * gNumberFormatter;
 	return [[[NSBundle mainBundle] resourcePath] stringByAppendingPathComponent: iconStr];
 }
 
-/* experiment -- the source list object knows its own view controller
-- (NCInfoController *) viewController
-{
-	if (viewController == nil)
-		viewController = [[NCStoreInfoController alloc] initWithNibName: @"StoreInfo" bundle: nil];
-	return viewController;
-}
-*/
 
 - (NSString *)status {
 	NSString * statusStr = nil;
