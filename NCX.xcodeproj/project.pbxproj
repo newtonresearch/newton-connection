@@ -317,7 +317,7 @@
 		F4055F801E2021BF004ABB55 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		F4055F871E20229E004ABB55 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		F4055F911E202561004ABB55 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
-		F4079F411B3ACDFF0071A48B /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = "../Sparkle-master/Sparkle-1.16.0/Sparkle.framework"; sourceTree = SOURCE_ROOT; };
+		F4079F411B3ACDFF0071A48B /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = "../Sparkle/Sparkle-1.16.0/Sparkle.framework"; sourceTree = SOURCE_ROOT; };
 		F40C2A0A0D30F18B0046583E /* MP3.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MP3.mm; sourceTree = "<group>"; };
 		F40C2A0B0D30F18B0046583E /* AudioPlugIn-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "AudioPlugIn-Info.plist"; sourceTree = "<group>"; };
 		F40C2A350D32A5E20046583E /* Audio.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Audio.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -479,7 +479,7 @@
 		F47537E10F6EBD0600517710 /* PassthruComponent.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = PassthruComponent.mm; sourceTree = "<group>"; };
 		F47537E20F6EBD0600517710 /* PackageComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = PackageComponent.h; sourceTree = "<group>"; };
 		F475384A0F6ED5BF00517710 /* Component.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Component.h; sourceTree = "<group>"; };
-		F4755A2911F839F600215298 /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = dsa_pub.pem; path = Extras/dsa_pub.pem; sourceTree = "<group>"; };
+		F4755A2911F839F600215298 /* dsa_pub.pem */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text; name = dsa_pub.pem; path = ../../Sparkle/Certificates/dsa_pub.pem; sourceTree = "<group>"; };
 		F47566CF0F718D1500517710 /* BackupComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = BackupComponent.h; sourceTree = "<group>"; };
 		F47566D10F718D1500517710 /* ScreenshotComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = ScreenshotComponent.h; sourceTree = "<group>"; };
 		F47566D20F718D1500517710 /* SyncComponent.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = SyncComponent.h; sourceTree = "<group>"; };
@@ -1329,7 +1329,8 @@
 				ORGANIZATIONNAME = "Newton Research";
 				TargetAttributes = {
 					F4A9275E0945EC6400F746B2 = {
-						ProvisioningStyle = Manual;
+						DevelopmentTeam = SH44Z8RDF2;
+						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 0;
@@ -2002,8 +2003,8 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = "";
-				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle-master/Sparkle-1.16.0";
+				DEVELOPMENT_TEAM = SH44Z8RDF2;
+				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle/Sparkle-1.16.0";
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR = NO;
@@ -2023,8 +2024,8 @@
 				CODE_SIGN_IDENTITY = "Mac Developer";
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = "";
-				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle-master/Sparkle-1.16.0";
+				DEVELOPMENT_TEAM = SH44Z8RDF2;
+				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle/Sparkle-1.16.0";
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
