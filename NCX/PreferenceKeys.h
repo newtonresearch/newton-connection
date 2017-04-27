@@ -16,7 +16,7 @@
 
 // Preference Panes
 // General
-#define kSetNewtonTimePref		@"SetNewtonClock"
+#define kSetNewtonTimePref		@"SetNewtonTime"
 #define kAutoBackupPref			@"BackUpOnAutoDock"
 #define kSelectiveBackupPref	@"SelectiveBackup"
 #define kAutoSyncPref			@"SyncOnAutoDock"
