@@ -145,7 +145,7 @@
 	NSInteger i = ((NSPopUpButton *)sender).indexOfSelectedItem;
 	if (i >= 0) {
 		NSString * port = ports[i][@"path"];
-		[self.sharedUserDefaults setObject:port forKey:kSerialPortPref];
+		[NSUserDefaults.standardUserDefaults setObject:port forKey:kSerialPortPref];
 	}
 }
 

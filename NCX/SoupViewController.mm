@@ -102,7 +102,7 @@ extern NSString *	MakeNSString(RefArg inStr);
 //		sorting - is ascending / is selected
 
 //	NSString * colmKey = [NSString stringWithFormat:@"NSTableView Columns %@-soup", self.soup.name];
-//	NSArray * colmDefs = [[NSUserDefaults standardUserDefaults] arrayForKey: colmKey];
+//	NSArray * colmDefs = [NSUserDefaults.standardUserDefaults arrayForKey: colmKey];
 
 	// add columns for this soup
 	for (NSDictionary * colDef in allColms)
@@ -193,7 +193,7 @@ extern NSString *	MakeNSString(RefArg inStr);
 	NSIndexSet * selection = [entries selectionIndexes];
 	if (selection.count > 0) {
 		// we actually have selected some entries
-		NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+		NSUserDefaults * defaults = NSUserDefaults.standardUserDefaults;
 		if (!gNCNub.isTethered && ![defaults boolForKey: kNoDeleteWarningPref])
 		{
 			// user still wants to see this reminder
@@ -259,7 +259,7 @@ NSLog(@"will delete %@",nameList);
 	if ([self.document isKindOfClass:[NBDocument class]])
 		return;
 
-	NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+	NSUserDefaults * defaults = NSUserDefaults.standardUserDefaults;
 	if (!gNCNub.isTethered && ![defaults boolForKey:kNoAddWarningPref]) {
 		// user still wants to see this reminder
 		NSAlert * alert = [[NSAlert alloc] init];

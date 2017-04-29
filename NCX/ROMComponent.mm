@@ -66,7 +66,7 @@
 ------------------------------------------------------------------------------*/
 
 - (NSProgress *)setupProgress {
-	self.progress = [NSProgress progressWithTotalUnitCount:[[NSUserDefaults standardUserDefaults] integerForKey:kROMSizePref]];
+	self.progress = [NSProgress progressWithTotalUnitCount:[NSUserDefaults.standardUserDefaults integerForKey:kROMSizePref]];
 	self.progress.localizedDescription = @"Dumping Newton ROM…";
 	return self.progress;
 }
@@ -83,7 +83,7 @@
 	[self.dock setDesktopControl:YES];
 	[self installROMDumpExtensions];
 
-	NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+	NSUserDefaults * defaults = NSUserDefaults.standardUserDefaults;
 	dumpAddr = (uint32_t)[defaults integerForKey:kROMAddrPref];
 	dumpSize = (uint32_t)[defaults integerForKey:kROMSizePref];
 
