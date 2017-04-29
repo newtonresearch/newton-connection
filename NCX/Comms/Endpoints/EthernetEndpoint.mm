@@ -60,7 +60,7 @@ extern BOOL gTraceIO;
 	NCError err = noErr;
 	int fd;
 
-	NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+	NSUserDefaults * defaults = NSUserDefaults.standardUserDefaults;
 	NSInteger portNumber = [defaults integerForKey: kTCPIPPortPref];
 	if (portNumber == 0)
 		portNumber = kNewtonDockServicePort;

@@ -117,7 +117,7 @@ NSDateFormatter * gDateFormatter;
 
 - (void) applicationDidFinishLaunching: (NSNotification *) inNotification
 {
-	NSUserDefaults * userDefaults = [NSUserDefaults standardUserDefaults];
+	NSUserDefaults * userDefaults = NSUserDefaults.standardUserDefaults;
 	[userDefaults registerDefaults:@{
 	//	General
 		kLogLevelPref: @"1",
