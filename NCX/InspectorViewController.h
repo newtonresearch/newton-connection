@@ -30,7 +30,6 @@
 @interface NCInspectorViewController : NSViewController
 @property(strong) NSArrayController * info;
 @property(strong) NSAttributedString * text;
-@property(strong) NSURL * qlFolder;
 @property(strong) NSURL * url;
 @end
 

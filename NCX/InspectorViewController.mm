@@ -46,10 +46,16 @@ extern void	RedirectStdioOutTranslator(FILE * inFRef);
 	NSArrayController * _ac;
 	NSDictionary * txAttrs;
 }
+@property(readonly) NSURL * qlFolder;
 @end
 
 
 @implementation NCInspectorViewController
+
+- (NSURL *)qlFolder {
+	return [ApplicationSupportFolder() URLByAppendingPathComponent:@"QuickLook" isDirectory:YES];
+}
+
 
 - (void)viewDidLoad {
 	[super viewDidLoad];
@@ -73,7 +79,6 @@ extern void	RedirectStdioOutTranslator(FILE * inFRef);
 		NCWindowController * wc = self.view.window.windowController;
 		wc.inspector = self;
 		NSFileManager * fileManager = NSFileManager.defaultManager;
-		self.qlFolder = [ApplicationSupportFolder() URLByAppendingPathComponent:@"QuickLook" isDirectory:YES];
 		if ([fileManager createDirectoryAtURL:self.qlFolder withIntermediateDirectories:YES attributes:nil error:nil]) {
 			NSDirectoryEnumerator * iter = [fileManager enumeratorAtURL:self.qlFolder includingPropertiesForKeys:nil options:0 errorHandler:nil];
 			for (NSURL * fileURL in iter) {
@@ -193,7 +198,7 @@ extern void	RedirectStdioOutTranslator(FILE * inFRef);
 	} else {
 		NSString * filename, * finalFilename;
 		NCXPlugInController * pluginController = NCXPlugInController.sharedController;
-		[pluginController beginExport:NULL context:self.view.window.windowController.document destination:self.qlFolder];
+		[pluginController beginExport:entry.soup.app context:self.view.window.windowController.document destination:self.qlFolder];
 		filename = [pluginController export:entry];
 		finalFilename = [pluginController endExport];
 		if (filename == NULL) {
