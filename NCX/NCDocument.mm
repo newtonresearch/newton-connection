@@ -859,11 +859,7 @@ FULL_LOG {
 	NSDateFormatter * formatter = [[NSDateFormatter alloc] init];
 	NSString * backedUpStr = NSLocalizedString(@"backedup", @"last time we backed up");
 
-	if (dayDiff == 0) { // today: show time only
-		[formatter setDateStyle:NSDateFormatterNoStyle];
-		[formatter setTimeStyle:NSDateFormatterShortStyle];
-		backedUpStr = NSLocalizedString(@"backedup at", @"last time we backed up today");
-	} else if (dayDiff == 1 || dayDiff == -1) {	// yesterday or tomorrow(sic!)
+	if (-1 <= dayDiff && dayDiff <= 1) {	// yesterday, today or tomorrow(sic!)
 		[formatter setDoesRelativeDateFormatting:YES];
 		[formatter setDateStyle:NSDateFormatterMediumStyle];
 		[formatter setTimeStyle:NSDateFormatterShortStyle];
@@ -1266,7 +1262,7 @@ FULL_LOG {
 
 - (NSFont *)userFont {
 	if (self.deviceObj.user.font == nil) {
-		NSUserDefaults * defaults = [NSUserDefaults standardUserDefaults];
+		NSUserDefaults * defaults = NSUserDefaults.standardUserDefaults;
 		NSString * userFontName = [defaults stringForKey: kUserFontName];
 		float userFontSize = [defaults floatForKey: kUserFontSize];
 		if (userFontName)
