@@ -110,7 +110,7 @@ NSDateFormatter * gTxDateFormatter;
 		NSURL * docURL = [theURL URLByAppendingPathComponent:filename];
 		if ([inData writeToURL:docURL options:NSDataWritingWithoutOverwriting error:&err]) {
 			NSDictionary * fileAttrs = @{ NSFileExtensionHidden:[NSNumber numberWithBool:YES] };
-			[[NSFileManager defaultManager] setAttributes:fileAttrs ofItemAtPath:docURL.path error:&err];
+			[NSFileManager.defaultManager setAttributes:fileAttrs ofItemAtPath:docURL.path error:&err];
 			break;
 		}
 		// try next filename
