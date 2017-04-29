@@ -351,12 +351,6 @@ MINIMUM_LOG {
 	if (self.isActive) {
 		write(pipefd[1], "Z", 1);
 	}
-	if (_endpoint) {
-		[_endpoint close];
-		_endpoint = nil;
-	} else {
-		[self useEndpoint:nil];
-	}
 }
 
 
@@ -418,6 +412,13 @@ MINIMUM_LOG {
 	NCEndpointController *__weak weakself = self;
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
 		[weakself doIOEventLoop];
+		// no more I/O, dispose the endpoint
+		if (_endpoint) {
+			[_endpoint close];
+			_endpoint = nil;
+		} else {
+			[self useEndpoint:nil];
+		}
 	});
 
 	return err;
