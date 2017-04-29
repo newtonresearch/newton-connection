@@ -31,6 +31,7 @@
 		F40C2A560D32A6660046583E /* MP3.mm in Sources */ = {isa = PBXBuildFile; fileRef = F40C2A0A0D30F18B0046583E /* MP3.mm */; };
 		F40C2A620D32A8AF0046583E /* Audio.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = F40C2A350D32A5E20046583E /* Audio.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F40D9DC915E7B91500784459 /* NCRestoreInfo.m in Sources */ = {isa = PBXBuildFile; fileRef = F40D9DC715E7B91500784459 /* NCRestoreInfo.m */; };
+		F40E8B4D1EB398B400C66881 /* click.aiff in Resources */ = {isa = PBXBuildFile; fileRef = F40E8B4C1EB398B400C66881 /* click.aiff */; };
 		F4135E1C0A90C91500B1F970 /* Names.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4135DE60A90C4EB00B1F970 /* Names.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F4135FAB0A90CD7000B1F970 /* Dates.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4135DDB0A90C32C00B1F970 /* Dates.mm */; };
 		F413609C0A90EC5F00B1F970 /* Dates.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4135FA20A90CC7900B1F970 /* Dates.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -95,6 +96,7 @@
 		F450C1AF13FE656D00D35BA0 /* Cursor.mm in Sources */ = {isa = PBXBuildFile; fileRef = F450C16613FE5D6A00D35BA0 /* Cursor.mm */; };
 		F450C1B113FE657300D35BA0 /* Session.mm in Sources */ = {isa = PBXBuildFile; fileRef = F450C16C13FE5D6A00D35BA0 /* Session.mm */; };
 		F450C1B313FE658100D35BA0 /* DES.c in Sources */ = {isa = PBXBuildFile; fileRef = F450C18213FE5DD200D35BA0 /* DES.c */; };
+		F45C22D71EB3A85700026E44 /* NCPrefsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F4D15C1E1E48D6B00065F3B5 /* NCPrefsViewController.m */; };
 		F45C6943113898990025CE32 /* ConnectionHelp in Resources */ = {isa = PBXBuildFile; fileRef = F45C68EF113898990025CE32 /* ConnectionHelp */; };
 		F461162E0A87A6B1006CEC0A /* Notes.mm in Sources */ = {isa = PBXBuildFile; fileRef = F461162D0A87A6B1006CEC0A /* Notes.mm */; };
 		F46116320A87AB31006CEC0A /* Notes.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = F46116200A879D6E006CEC0A /* Notes.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -152,7 +154,6 @@
 		F4C4C1D11A28D17E002B8821 /* NRBox.m in Sources */ = {isa = PBXBuildFile; fileRef = F4C4C1CD1A28D17E002B8821 /* NRBox.m */; };
 		F4C4C1D31A28D17E002B8821 /* NRProgressBox.m in Sources */ = {isa = PBXBuildFile; fileRef = F4C4C1CF1A28D17E002B8821 /* NRProgressBox.m */; };
 		F4D15C1C1E448CC90065F3B5 /* DockEventQueue.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4D15C1A1E448CC90065F3B5 /* DockEventQueue.mm */; };
-		F4D15C1F1E48D9F50065F3B5 /* NCPrefsViewController.m in Sources */ = {isa = PBXBuildFile; fileRef = F4D15C1E1E48D6B00065F3B5 /* NCPrefsViewController.m */; };
 		F4D45C1814A2691B00FD52A1 /* Store.xcdatamodel in Sources */ = {isa = PBXBuildFile; fileRef = F4D45C1714A2691B00FD52A1 /* Store.xcdatamodel */; };
 		F4D45C7E14B5C15100FD52A1 /* NCSoup.m in Sources */ = {isa = PBXBuildFile; fileRef = F4D45C7614B5C15100FD52A1 /* NCSoup.m */; };
 		F4D45C8014B5C15100FD52A1 /* NCEntry.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4D45C7814B5C15100FD52A1 /* NCEntry.mm */; };
@@ -187,7 +188,6 @@
 		F4E68F0614DFDEEE00C05DFE /* NCDragBox.m in Sources */ = {isa = PBXBuildFile; fileRef = F4E68F0414DFDEEE00C05DFE /* NCDragBox.m */; };
 		F4E8E325145AA9A600DCE07E /* DockEvent.mm in Sources */ = {isa = PBXBuildFile; fileRef = F438136F142B7013007ACD37 /* DockEvent.mm */; };
 		F4EFB9AA0C736CE7005319F8 /* snap.stream in Resources */ = {isa = PBXBuildFile; fileRef = F4EFB9A90C736CE7005319F8 /* snap.stream */; };
-		F4EFBA460C738896005319F8 /* Sounds in Resources */ = {isa = PBXBuildFile; fileRef = F4EFBA450C738896005319F8 /* Sounds */; };
 		F4F56E4E0A9C4B5400A57788 /* Works.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4F56E410A9C4A5F00A57788 /* Works.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F4F56E4F0A9C4B9000A57788 /* Works.mm in Sources */ = {isa = PBXBuildFile; fileRef = F413609A0A90E9BE00B1F970 /* Works.mm */; };
 		F4F56FDC0AA5CDB300A57788 /* NCXPlugIn.mm in Sources */ = {isa = PBXBuildFile; fileRef = F46117DB0A8902BD006CEC0A /* NCXPlugIn.mm */; };
@@ -323,6 +323,7 @@
 		F40C2A350D32A5E20046583E /* Audio.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Audio.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		F40D9DC615E7B91500784459 /* NCRestoreInfo.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = NCRestoreInfo.h; sourceTree = "<group>"; };
 		F40D9DC715E7B91500784459 /* NCRestoreInfo.m */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.objc; path = NCRestoreInfo.m; sourceTree = "<group>"; };
+		F40E8B4C1EB398B400C66881 /* click.aiff */ = {isa = PBXFileReference; lastKnownFileType = audio.aiff; name = click.aiff; path = Extras/Sounds/click.aiff; sourceTree = "<group>"; };
 		F4135DDA0A90C32C00B1F970 /* DatesPlugIn-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "DatesPlugIn-Info.plist"; sourceTree = "<group>"; };
 		F4135DDB0A90C32C00B1F970 /* Dates.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Dates.mm; sourceTree = "<group>"; };
 		F4135DDD0A90C32C00B1F970 /* NamesPlugIn-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "NamesPlugIn-Info.plist"; sourceTree = "<group>"; };
@@ -587,7 +588,6 @@
 		F4E905AE098283B800247A7E /* Utilities.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Utilities.mm; sourceTree = "<group>"; };
 		F4ED8C7D19B5FE6A00C9AEB0 /* NCSlot.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = NCSlot.h; sourceTree = "<group>"; };
 		F4EFB9A90C736CE7005319F8 /* snap.stream */ = {isa = PBXFileReference; lastKnownFileType = file; name = snap.stream; path = NTK/snap.stream; sourceTree = "<group>"; };
-		F4EFBA450C738896005319F8 /* Sounds */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Sounds; path = Extras/Sounds; sourceTree = "<group>"; };
 		F4F56E410A9C4A5F00A57788 /* Works.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Works.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4FA679709A0C53600B62DDB /* appIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = appIcon.icns; sourceTree = "<group>"; };
 		F4FD5E711E34F11100F4E7B1 /* Newton.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Newton.framework; path = "../../../Library/Developer/Xcode/DerivedData/newton-connection-herymooqyhwxedggcayyarpzjnzl/Build/Products/Debug/Newton.framework"; sourceTree = "<group>"; };
@@ -818,7 +818,7 @@
 				F4755A2911F839F600215298 /* dsa_pub.pem */,
 				F4D47FB80AD2DAC0008C2669 /* SyncClientDescription.plist */,
 				F4F8A2F10732441600128776 /* icons */,
-				F4EFBA450C738896005319F8 /* Sounds */,
+				F40E8B4C1EB398B400C66881 /* click.aiff */,
 				F4A3571B171D69490074BA7E /* Toolkit.newtonpkg */,
 			);
 			name = Resources;
@@ -1405,6 +1405,7 @@
 				F4D851551E09AAFD0021D442 /* Device.storyboard in Resources */,
 				F4A927610945EC6400F746B2 /* InfoPlist.strings in Resources */,
 				F4A927750945EC6400F746B2 /* dates.tiff in Resources */,
+				F40E8B4D1EB398B400C66881 /* click.aiff in Resources */,
 				F4A927760945EC6400F746B2 /* names.tiff in Resources */,
 				F4A927770945EC6400F746B2 /* notes.tiff in Resources */,
 				F4A927780945EC6400F746B2 /* todos.tiff in Resources */,
@@ -1428,7 +1429,6 @@
 				F43B547D0B8CFE4000805A26 /* gent.stream in Resources */,
 				F4D89DD90C57BD0A002620D7 /* scrn.stream in Resources */,
 				F4EFB9AA0C736CE7005319F8 /* snap.stream in Resources */,
-				F4EFBA460C738896005319F8 /* Sounds in Resources */,
 				F4D851631E09ADA10021D442 /* Soup.storyboard in Resources */,
 				F4C21E110D041DA300A46B34 /* fold.stream in Resources */,
 				F4055F6B1E1699DD004ABB55 /* source-app.png in Resources */,
@@ -1564,7 +1564,7 @@
 				F47567040F7253CF00517710 /* PackageComponent.mm in Sources */,
 				F47567050F7253D500517710 /* PassthruComponent.mm in Sources */,
 				F4D15C1C1E448CC90065F3B5 /* DockEventQueue.mm in Sources */,
-				F4D15C1F1E48D9F50065F3B5 /* NCPrefsViewController.m in Sources */,
+				F45C22D71EB3A85700026E44 /* NCPrefsViewController.m in Sources */,
 				F47567180F72718F00517710 /* Component.mm in Sources */,
 				F4756C9E0FB75A1E00517710 /* ScreenshotComponent.mm in Sources */,
 				F401F0271B21B4190043710A /* StoreViewController.mm in Sources */,
