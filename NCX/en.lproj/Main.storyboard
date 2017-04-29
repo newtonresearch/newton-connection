@@ -1,8 +1,8 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="11762" systemVersion="16D32" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="12120" systemVersion="16E195" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES">
     <dependencies>
         <deployment identifier="macosx"/>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="11762"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="12120"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -282,10 +282,10 @@ CA
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
                                 <connections>
-                                    <binding destination="6ql-d5-V07" name="value" keyPath="self.sharedUserDefaults.BackUpOnAutoDock" id="OdA-u2-Fpj"/>
+                                    <binding destination="6ql-d5-V07" name="value" keyPath="sharedUserDefaults.BackUpOnAutoDock" id="M87-60-mBl"/>
                                 </connections>
                             </button>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mZu-gS-2t1">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="mZu-gS-2t1">
                                 <rect key="frame" x="13" y="26" width="142" height="17"/>
                                 <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="On Auto Dock:" id="Awg-XJ-kxG">
                                     <font key="font" metaFont="system"/>
@@ -303,10 +303,10 @@ CA
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
                                 <connections>
-                                    <binding destination="6ql-d5-V07" name="value" keyPath="self.sharedUserDefaults.SetNewtonTime" id="EQT-Ei-0Xa"/>
+                                    <binding destination="6ql-d5-V07" name="value" keyPath="sharedUserDefaults.SetNewtonTime" id="7nv-3V-1BF"/>
                                 </connections>
                             </button>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="I60-VF-2Z8">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="I60-VF-2Z8">
                                 <rect key="frame" x="13" y="63" width="142" height="17"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="138" id="EPD-R3-grT"/>
@@ -418,7 +418,7 @@ CA
                         <rect key="frame" x="0.0" y="0.0" width="450" height="100"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="02D-9C-QcB">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="02D-9C-QcB">
                                 <rect key="frame" x="32" y="44" width="107" height="17"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="103" id="1y5-gf-30n"/>
@@ -429,7 +429,7 @@ CA
                                     <color key="backgroundColor" name="controlColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                             </textField>
-                            <textField verticalHuggingPriority="750" translatesAutoresizingMaskIntoConstraints="NO" id="Yhp-Cp-tTk" customClass="NSSecureTextField">
+                            <textField verticalHuggingPriority="750" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="Yhp-Cp-tTk" customClass="NSSecureTextField">
                                 <rect key="frame" x="144" y="41" width="187" height="22"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="187" id="r5C-cA-Lm7"/>
@@ -440,7 +440,7 @@ CA
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
                                 </textFieldCell>
                                 <connections>
-                                    <binding destination="PEk-9R-Yh0" name="value" keyPath="self.sharedUserDefaults.Password" id="O0y-2I-e3Y"/>
+                                    <binding destination="PEk-9R-Yh0" name="value" keyPath="sharedUserDefaults.Password" id="7LO-RE-kux"/>
                                 </connections>
                             </textField>
                         </subviews>
@@ -474,10 +474,10 @@ CA
                                     <font key="font" metaFont="system"/>
                                 </buttonCell>
                                 <connections>
-                                    <binding destination="6qF-w3-Li5" name="value" keyPath="self.sharedUserDefaults.LogToFile" id="YC1-Ke-dp4"/>
+                                    <binding destination="6qF-w3-Li5" name="value" keyPath="sharedUserDefaults.LogToFile" id="SNp-aX-Qxb"/>
                                 </connections>
                             </button>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qCd-4E-Uqe">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="qCd-4E-Uqe">
                                 <rect key="frame" x="17" y="63" width="113" height="17"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="109" id="pDh-O0-h0p"/>
@@ -505,10 +505,10 @@ CA
                                     </menu>
                                 </popUpButtonCell>
                                 <connections>
-                                    <binding destination="6qF-w3-Li5" name="selectedTag" keyPath="self.sharedUserDefaults.LogLevel" id="aFa-PP-0oh"/>
+                                    <binding destination="6qF-w3-Li5" name="selectedTag" keyPath="sharedUserDefaults.LogLevel" id="bJw-mq-oPD"/>
                                 </connections>
                             </popUpButton>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="g5H-dm-FPs">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="g5H-dm-FPs">
                                 <rect key="frame" x="134" y="0.0" width="285" height="28"/>
                                 <constraints>
                                     <constraint firstAttribute="height" constant="28" id="Deu-yT-A6a"/>
@@ -534,7 +534,6 @@ CA
                     </customView>
                 </viewController>
                 <customObject id="ezH-Bz-dka" userLabel="First Responder" customClass="NSResponder" sceneMemberID="firstResponder"/>
-                <userDefaultsController representsSharedInstance="YES" id="Too-kD-iUX"/>
             </objects>
             <point key="canvasLocation" x="1277" y="523.5"/>
         </scene>
@@ -546,7 +545,7 @@ CA
                         <rect key="frame" x="0.0" y="0.0" width="450" height="100"/>
                         <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                         <subviews>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ULi-1o-Vei">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ULi-1o-Vei">
                                 <rect key="frame" x="132" y="5" width="285" height="20"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="281" id="HHy-8D-9Ad"/>
@@ -576,7 +575,7 @@ CA
                                     <action selector="updateSerialPort:" target="4OJ-GH-EDW" id="Zja-Ss-Ehj"/>
                                 </connections>
                             </popUpButton>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ayZ-T9-Mok">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="ayZ-T9-Mok">
                                 <rect key="frame" x="17" y="62" width="113" height="17"/>
                                 <constraints>
                                     <constraint firstAttribute="width" constant="109" id="CKJ-d2-UQc"/>
@@ -605,10 +604,10 @@ CA
                                     </menu>
                                 </popUpButtonCell>
                                 <connections>
-                                    <binding destination="4OJ-GH-EDW" name="selectedTag" keyPath="self.sharedUserDefaults.BaudRate" id="3hv-H7-5J1"/>
+                                    <binding destination="4OJ-GH-EDW" name="selectedTag" keyPath="sharedUserDefaults.BaudRate" id="hnA-ld-QFo"/>
                                 </connections>
                             </popUpButton>
-                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PI4-dj-hS1">
+                            <textField verticalHuggingPriority="750" horizontalCompressionResistancePriority="250" setsMaxLayoutWidthAtFirstLayout="YES" allowsCharacterPickerTouchBarItem="YES" translatesAutoresizingMaskIntoConstraints="NO" id="PI4-dj-hS1">
                                 <rect key="frame" x="17" y="35" width="113" height="17"/>
                                 <textFieldCell key="cell" sendsActionOnEndEditing="YES" alignment="right" title="Serial Speed:" id="iQh-wp-OG1">
                                     <font key="font" metaFont="system"/>
