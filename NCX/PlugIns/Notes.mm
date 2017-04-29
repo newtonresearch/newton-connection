@@ -66,7 +66,7 @@ IsEmptyRect(const Rect * rect)
 	{
 		if (hasImages)
 		{
-			NSData * rtfdData = [noteText RTFDFromRange: NSMakeRange(0, noteText.length) documentAttributes:nil];
+			NSData * rtfdData = [noteText RTFDFromRange:NSMakeRange(0, noteText.length) documentAttributes:@{NSDocumentTypeDocumentAttribute:NSRTFDTextDocumentType}];
 			fileWritten = [self write:rtfdData toFile:[self makeFilename:inEntry] extension:@"rtfd"];
 //	Could draw into PDF...
 //			NSView * renderView;		// needs to be declared somewhere
@@ -76,7 +76,7 @@ IsEmptyRect(const Rect * rect)
 		else
 		{
 		//	could do something with documentAttributes
-			NSData * rtfData = [noteText RTFFromRange: NSMakeRange(0, noteText.length) documentAttributes:nil];
+			NSData * rtfData = [noteText RTFFromRange:NSMakeRange(0, noteText.length) documentAttributes:@{NSDocumentTypeDocumentAttribute:NSRTFTextDocumentType}];
 			fileWritten = [self write:rtfData toFile:[self makeFilename:inEntry] extension:@"rtf"];
 		}
 	}
