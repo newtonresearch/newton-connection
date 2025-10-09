@@ -7,6 +7,22 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		C915FD312E9473D900C881EC /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C915FD302E9473D900C881EC /* Sparkle.framework */; };
+		C915FD322E9473D900C881EC /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = C915FD302E9473D900C881EC /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C915FD332E94742700C881EC /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C915FD342E94742700C881EC /* Newton.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C954530B2E9466C800C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C954530C2E9466C800C1DA70 /* Newton.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C954530E2E94685300C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C954530F2E94685300C1DA70 /* Newton.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C95453112E94691900C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C95453122E94691900C1DA70 /* Newton.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C95453142E94696700C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C95453152E94696700C1DA70 /* Newton.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C95453172E9469A400C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C95453182E9469A400C1DA70 /* Newton.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C954531A2E946B1600C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C954531B2E946B1600C1DA70 /* Newton.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F401F0251B21AF3D0043710A /* DeviceViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F401F0241B21AF3D0043710A /* DeviceViewController.mm */; };
 		F401F0271B21B4190043710A /* StoreViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F401F0261B21B4190043710A /* StoreViewController.mm */; };
 		F401F0291B21B5BE0043710A /* SoupViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F401F0281B21B5BE0043710A /* SoupViewController.mm */; };
@@ -25,8 +41,6 @@
 		F4055F8D1E202366004ABB55 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4055F7E1E202179004ABB55 /* Cocoa.framework */; };
 		F4055F8E1E20236E004ABB55 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4055F7E1E202179004ABB55 /* Cocoa.framework */; };
 		F4055F921E202561004ABB55 /* Quartz.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4055F911E202561004ABB55 /* Quartz.framework */; };
-		F4079F421B3ACDFF0071A48B /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4079F411B3ACDFF0071A48B /* Sparkle.framework */; };
-		F4079F431B3ACE120071A48B /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4079F411B3ACDFF0071A48B /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		F40C2A300D32A5E20046583E /* Utilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4C21E540D042C1E00A46B34 /* Utilities.framework */; };
 		F40C2A560D32A6660046583E /* MP3.mm in Sources */ = {isa = PBXBuildFile; fileRef = F40C2A0A0D30F18B0046583E /* MP3.mm */; };
 		F40C2A620D32A8AF0046583E /* Audio.plugin in CopyFiles */ = {isa = PBXBuildFile; fileRef = F40C2A350D32A5E20046583E /* Audio.plugin */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -55,8 +69,6 @@
 		F4305B9C149A045900DFDBC3 /* keyboard.tiff in Resources */ = {isa = PBXBuildFile; fileRef = F4305B9A149A045900DFDBC3 /* keyboard.tiff */; };
 		F4305BB3149A10BE00DFDBC3 /* imageCapture-dim.tiff in Resources */ = {isa = PBXBuildFile; fileRef = F4305BB2149A10BE00DFDBC3 /* imageCapture-dim.tiff */; };
 		F43B547D0B8CFE4000805A26 /* gent.stream in Resources */ = {isa = PBXBuildFile; fileRef = F43B547C0B8CFE4000805A26 /* gent.stream */; };
-		F43E1DC21E53606800EFADB2 /* Newton.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
-		F43E1DC41E538CAD00EFADB2 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; };
 		F43E1DCD1E59D15400EFADB2 /* EinsteinEndpoint.mm in Sources */ = {isa = PBXBuildFile; fileRef = F43E1DCC1E59D01500EFADB2 /* EinsteinEndpoint.mm */; };
 		F43FE6F40B6FBE0A00953C66 /* eNsp.stream in Resources */ = {isa = PBXBuildFile; fileRef = F43FE6F30B6FBE0A00953C66 /* eNsp.stream */; };
 		F446FF250B14D6B4002EF3B9 /* libical.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = F446FEFD0B14D59A002EF3B9 /* libical.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
@@ -192,12 +204,6 @@
 		F4F56E4F0A9C4B9000A57788 /* Works.mm in Sources */ = {isa = PBXBuildFile; fileRef = F413609A0A90E9BE00B1F970 /* Works.mm */; };
 		F4F56FDC0AA5CDB300A57788 /* NCXPlugIn.mm in Sources */ = {isa = PBXBuildFile; fileRef = F46117DB0A8902BD006CEC0A /* NCXPlugIn.mm */; };
 		F4FA679809A0C53600B62DDB /* appIcon.icns in Resources */ = {isa = PBXBuildFile; fileRef = F4FA679709A0C53600B62DDB /* appIcon.icns */; };
-		F4FD5E731E34F11100F4E7B1 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; };
-		F4FD5E741E34F11100F4E7B1 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; };
-		F4FD5E751E34F11100F4E7B1 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; };
-		F4FD5E761E34F11100F4E7B1 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; };
-		F4FD5E771E34F11100F4E7B1 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; };
-		F4FD5E781E34F11100F4E7B1 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4FD5E711E34F11100F4E7B1 /* Newton.framework */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -260,6 +266,72 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
+		C954530D2E9466C800C1DA70 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C954530C2E9466C800C1DA70 /* Newton.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C95453102E94685300C1DA70 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C954530F2E94685300C1DA70 /* Newton.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C95453132E94691900C1DA70 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C95453122E94691900C1DA70 /* Newton.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C95453162E94696700C1DA70 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C95453152E94696700C1DA70 /* Newton.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C95453192E9469A500C1DA70 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C95453182E9469A400C1DA70 /* Newton.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C954531C2E946B1600C1DA70 /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				C954531B2E946B1600C1DA70 /* Newton.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		F446FF230B14D64C002EF3B9 /* CopyFiles */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
@@ -290,9 +362,9 @@
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				F4079F431B3ACE120071A48B /* Sparkle.framework in CopyFiles */,
 				F4C21E9B0D04318E00A46B34 /* Utilities.framework in CopyFiles */,
-				F43E1DC21E53606800EFADB2 /* Newton.framework in CopyFiles */,
+				C915FD322E9473D900C881EC /* Sparkle.framework in CopyFiles */,
+				C915FD342E94742700C881EC /* Newton.framework in CopyFiles */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -303,6 +375,10 @@
 		29B97316FDCFA39411CA2CEA /* main.m */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.objc; path = main.m; sourceTree = "<group>"; };
 		660F3E0C028177E0007CB514 /* AppDelegate.h */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.c.h; path = AppDelegate.h; sourceTree = "<group>"; };
 		660F3E0D028177E0007CB514 /* AppDelegate.mm */ = {isa = PBXFileReference; fileEncoding = 30; lastKnownFileType = sourcecode.cpp.objcpp; lineEnding = 0; path = AppDelegate.mm; sourceTree = "<group>"; };
+		C915FD2A2E9471DB00C881EC /* Sparkle */ = {isa = PBXFileReference; lastKnownFileType = folder; name = Sparkle; path = ../../Sparkle; sourceTree = "<group>"; };
+		C915FD2B2E9471EE00C881EC /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = ../../Sparkle/Sparkle.framework; sourceTree = "<group>"; };
+		C915FD302E9473D900C881EC /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = "../../Sparkle/Sparkle-1.16.0/Sparkle.framework"; sourceTree = "<group>"; };
+		C954530A2E9466C800C1DA70 /* Newton.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Newton.framework; sourceTree = SOURCE_ROOT; };
 		F401F0231B206AF30043710A /* Logging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Logging.h; sourceTree = "<group>"; };
 		F401F0241B21AF3D0043710A /* DeviceViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DeviceViewController.mm; sourceTree = "<group>"; };
 		F401F0261B21B4190043710A /* StoreViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = StoreViewController.mm; sourceTree = "<group>"; };
@@ -317,7 +393,6 @@
 		F4055F801E2021BF004ABB55 /* IOKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = IOKit.framework; path = System/Library/Frameworks/IOKit.framework; sourceTree = SDKROOT; };
 		F4055F871E20229E004ABB55 /* SystemConfiguration.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = SystemConfiguration.framework; path = System/Library/Frameworks/SystemConfiguration.framework; sourceTree = SDKROOT; };
 		F4055F911E202561004ABB55 /* Quartz.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Quartz.framework; path = System/Library/Frameworks/Quartz.framework; sourceTree = SDKROOT; };
-		F4079F411B3ACDFF0071A48B /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = "../Sparkle/Sparkle-1.16.0/Sparkle.framework"; sourceTree = SOURCE_ROOT; };
 		F40C2A0A0D30F18B0046583E /* MP3.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = MP3.mm; sourceTree = "<group>"; };
 		F40C2A0B0D30F18B0046583E /* AudioPlugIn-Info.plist */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = text.plist.xml; path = "AudioPlugIn-Info.plist"; sourceTree = "<group>"; };
 		F40C2A350D32A5E20046583E /* Audio.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Audio.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -590,7 +665,6 @@
 		F4EFB9A90C736CE7005319F8 /* snap.stream */ = {isa = PBXFileReference; lastKnownFileType = file; name = snap.stream; path = NTK/snap.stream; sourceTree = "<group>"; };
 		F4F56E410A9C4A5F00A57788 /* Works.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Works.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
 		F4FA679709A0C53600B62DDB /* appIcon.icns */ = {isa = PBXFileReference; lastKnownFileType = image.icns; path = appIcon.icns; sourceTree = "<group>"; };
-		F4FD5E711E34F11100F4E7B1 /* Newton.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Newton.framework; path = "../../../Library/Developer/Xcode/DerivedData/newton-connection-herymooqyhwxedggcayyarpzjnzl/Build/Products/Debug/Newton.framework"; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -598,10 +672,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F4FD5E781E34F11100F4E7B1 /* Newton.framework in Frameworks */,
 				F47005B21E24FCAA00F97023 /* AudioToolbox.framework in Frameworks */,
 				F4055F8E1E20236E004ABB55 /* Cocoa.framework in Frameworks */,
 				F40C2A300D32A5E20046583E /* Utilities.framework in Frameworks */,
+				C954531A2E946B1600C1DA70 /* Newton.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -612,7 +686,7 @@
 				F47005B01E23D12400F97023 /* Contacts.framework in Frameworks */,
 				F4055F8B1E202353004ABB55 /* Cocoa.framework in Frameworks */,
 				F4C21E8D0D042FD600A46B34 /* Utilities.framework in Frameworks */,
-				F4FD5E751E34F11100F4E7B1 /* Newton.framework in Frameworks */,
+				C95453112E94691900C1DA70 /* Newton.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -620,10 +694,10 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				F4FD5E761E34F11100F4E7B1 /* Newton.framework in Frameworks */,
 				F4055F8C1E20235C004ABB55 /* Cocoa.framework in Frameworks */,
 				F446FFCB0B15CF4F002EF3B9 /* libical.dylib in Frameworks */,
 				F4C21E8E0D042FDB00A46B34 /* Utilities.framework in Frameworks */,
+				C95453172E9469A400C1DA70 /* Newton.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -640,7 +714,7 @@
 			files = (
 				F4055F8A1E20234B004ABB55 /* Cocoa.framework in Frameworks */,
 				F4C21E8C0D042FD200A46B34 /* Utilities.framework in Frameworks */,
-				F4FD5E741E34F11100F4E7B1 /* Newton.framework in Frameworks */,
+				C95453142E94696700C1DA70 /* Newton.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -650,13 +724,13 @@
 			files = (
 				F4055F841E202202004ABB55 /* CoreServices.framework in Frameworks */,
 				F4055F881E20229E004ABB55 /* SystemConfiguration.framework in Frameworks */,
+				C915FD332E94742700C881EC /* Newton.framework in Frameworks */,
 				F4055F7F1E202179004ABB55 /* Cocoa.framework in Frameworks */,
 				F4055F7D1E202122004ABB55 /* AppKit.framework in Frameworks */,
 				F4055F921E202561004ABB55 /* Quartz.framework in Frameworks */,
-				F4079F421B3ACDFF0071A48B /* Sparkle.framework in Frameworks */,
+				C915FD312E9473D900C881EC /* Sparkle.framework in Frameworks */,
 				F4C21E900D042FE900A46B34 /* Utilities.framework in Frameworks */,
 				F4055F811E2021BF004ABB55 /* IOKit.framework in Frameworks */,
-				F43E1DC41E538CAD00EFADB2 /* Newton.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -665,7 +739,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				F4055F891E202317004ABB55 /* Cocoa.framework in Frameworks */,
-				F4FD5E731E34F11100F4E7B1 /* Newton.framework in Frameworks */,
+				C954530B2E9466C800C1DA70 /* Newton.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -675,7 +749,7 @@
 			files = (
 				F4055F8D1E202366004ABB55 /* Cocoa.framework in Frameworks */,
 				F4C21E8F0D042FE200A46B34 /* Utilities.framework in Frameworks */,
-				F4FD5E771E34F11100F4E7B1 /* Newton.framework in Frameworks */,
+				C954530E2E94685300C1DA70 /* Newton.framework in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -780,6 +854,10 @@
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
 			isa = PBXGroup;
 			children = (
+				C915FD2B2E9471EE00C881EC /* Sparkle.framework */,
+				C915FD302E9473D900C881EC /* Sparkle.framework */,
+				C915FD2A2E9471DB00C881EC /* Sparkle */,
+				C954530A2E9466C800C1DA70 /* Newton.framework */,
 				F47005B11E24FCAA00F97023 /* AudioToolbox.framework */,
 				F4055F7E1E202179004ABB55 /* Cocoa.framework */,
 				F4055F7C1E202122004ABB55 /* AppKit.framework */,
@@ -788,8 +866,6 @@
 				F4055F801E2021BF004ABB55 /* IOKit.framework */,
 				F4055F911E202561004ABB55 /* Quartz.framework */,
 				F4055F7A1E2020AB004ABB55 /* Contacts.framework */,
-				F4FD5E711E34F11100F4E7B1 /* Newton.framework */,
-				F4079F411B3ACDFF0071A48B /* Sparkle.framework */,
 			);
 			name = Frameworks;
 			sourceTree = "<group>";
@@ -1177,6 +1253,7 @@
 				F40C2A290D32A5E20046583E /* Resources */,
 				F40C2A2A0D32A5E20046583E /* Sources */,
 				F40C2A2D0D32A5E20046583E /* Frameworks */,
+				C954531C2E946B1600C1DA70 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1194,6 +1271,7 @@
 				F4135DE20A90C4EB00B1F970 /* Resources */,
 				F4135DE30A90C4EB00B1F970 /* Sources */,
 				F4135DE40A90C4EB00B1F970 /* Frameworks */,
+				C95453132E94691900C1DA70 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1211,6 +1289,7 @@
 				F4135F9E0A90CC7900B1F970 /* Resources */,
 				F4135F9F0A90CC7900B1F970 /* Sources */,
 				F4135FA00A90CC7900B1F970 /* Frameworks */,
+				C95453192E9469A500C1DA70 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1246,6 +1325,7 @@
 				F461161C0A879D6E006CEC0A /* Resources */,
 				F461161D0A879D6E006CEC0A /* Sources */,
 				F461161E0A879D6E006CEC0A /* Frameworks */,
+				C95453162E94696700C1DA70 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1292,6 +1372,7 @@
 				F4C21E500D042C1E00A46B34 /* Resources */,
 				F4C21E510D042C1E00A46B34 /* Sources */,
 				F4C21E520D042C1E00A46B34 /* Frameworks */,
+				C954530D2E9466C800C1DA70 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1309,6 +1390,7 @@
 				F4F56E3D0A9C4A5F00A57788 /* Resources */,
 				F4F56E3E0A9C4A5F00A57788 /* Sources */,
 				F4F56E3F0A9C4A5F00A57788 /* Frameworks */,
+				C95453102E94685300C1DA70 /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
@@ -1329,7 +1411,7 @@
 				ORGANIZATIONNAME = "Newton Research";
 				TargetAttributes = {
 					F4A9275E0945EC6400F746B2 = {
-						DevelopmentTeam = SH44Z8RDF2;
+						DevelopmentTeam = BK4ST6N599;
 						ProvisioningStyle = Automatic;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
@@ -1778,11 +1860,13 @@
 		F40C2A320D32A5E20046583E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x68_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/AudioPlugIn-Info.plist";
@@ -1795,10 +1879,12 @@
 		F40C2A330D32A5E20046583E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x68_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/AudioPlugIn-Info.plist";
@@ -1811,11 +1897,13 @@
 		F4135DE90A90C4ED00B1F970 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x68_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NamesPlugIn-Info.plist";
@@ -1828,10 +1916,12 @@
 		F4135DEA0A90C4ED00B1F970 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x68_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NamesPlugIn-Info.plist";
@@ -1844,11 +1934,13 @@
 		F4135FA50A90CC7B00B1F970 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = "NCX/PlugIns/DatesPlugin-Info.plist";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.dates;
@@ -1860,10 +1952,12 @@
 		F4135FA60A90CC7B00B1F970 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = "NCX/PlugIns/DatesPlugin-Info.plist";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.dates;
@@ -1875,6 +1969,7 @@
 		F446FF1E0B14D5EB002EF3B9 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -1888,6 +1983,7 @@
 		F446FF1F0B14D5EB002EF3B9 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
@@ -1964,11 +2060,13 @@
 		F46116230A879D72006CEC0A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x68_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NotesPlugIn-Info.plist";
@@ -1981,10 +2079,12 @@
 		F46116240A879D72006CEC0A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x68_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NotesPlugIn-Info.plist";
@@ -1998,19 +2098,25 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = NCX/NCX.entitlements;
-				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = SH44Z8RDF2;
-				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle/Sparkle-1.16.0";
+				DEVELOPMENT_TEAM = BK4ST6N599;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SRCROOT)/../Sparkle/Sparkle-1.16.0",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR = NO;
 				PRIVATE_HEADERS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/PrivateHeaders";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
 				PRODUCT_NAME = NCX;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				SHARED_PRECOMPS_DIR = "$(CACHE_ROOT)/SharedPrecompiledHeaders";
 			};
 			name = Debug;
@@ -2019,23 +2125,30 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ALWAYS_SEARCH_USER_PATHS = NO;
+				ARCHS = x86_64;
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = NCX/NCX.entitlements;
-				CODE_SIGN_IDENTITY = "Mac Developer";
+				CODE_SIGN_IDENTITY = "Apple Development";
+				CODE_SIGN_STYLE = Automatic;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = SH44Z8RDF2;
-				FRAMEWORK_SEARCH_PATHS = "$(SRCROOT)/../Sparkle/Sparkle-1.16.0";
+				DEVELOPMENT_TEAM = BK4ST6N599;
+				FRAMEWORK_SEARCH_PATHS = (
+					"$(SRCROOT)/../Sparkle/Sparkle-1.16.0",
+					"$(PROJECT_DIR)",
+				);
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
 				PRODUCT_NAME = NCX;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
 		F4C21E570D042C2300A46B34 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DYLIB_COMPATIBILITY_VERSION = 1;
@@ -2043,6 +2156,7 @@
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "NCX/Utilities-Info.plist";
@@ -2055,12 +2169,14 @@
 		F4C21E580D042C2300A46B34 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(inherited)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "NCX/Utilities-Info.plist";
@@ -2073,11 +2189,13 @@
 		F4F56E440A9C4A6300A57788 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_DYNAMIC_NO_PIC = NO;
 				GCC_ENABLE_PASCAL_STRINGS = NO;
@@ -2097,10 +2215,12 @@
 		F4F56E450A9C4A6300A57788 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
+					"$(PROJECT_DIR)",
 				);
 				GCC_GENERATE_DEBUGGING_SYMBOLS = NO;
 				GCC_MODEL_TUNING = "";
