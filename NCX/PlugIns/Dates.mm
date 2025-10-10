@@ -1210,16 +1210,17 @@ IsMeeting(icalcomponent * inEvent)
 			RefVar name(AllocateFrame());
 			SetFrameSlot(name, SYMA(class), MakeSymbol("person"));
 //			SetFrameSlot(name, SYMA(title), NILREF);
-			char * lastNameStr = strrchr(nameStr, ' ');
+			const char * lastNameStr = strrchr(nameStr, ' ');
 			if (lastNameStr == NULL)
 				SetFrameSlot(name, SYMA(first), MakeStringFromUTF8String(nameStr));
 			else
 			{
-				char c = *lastNameStr;
-				*lastNameStr = 0;
-				SetFrameSlot(name, SYMA(first), MakeStringFromUTF8String(nameStr));
+        size_t nameSize = lastNameStr-nameStr;
+        char *nameOnly = (char*)malloc(nameSize+1);
+        memcpy(nameOnly, nameStr, nameSize);
+        nameOnly[nameSize] = 0;
+				SetFrameSlot(name, SYMA(first), MakeStringFromUTF8String(nameOnly));
 				SetFrameSlot(name, MakeSymbol("last"), MakeStringFromUTF8String(lastNameStr+1));
-				*lastNameStr = c;
 			}
 //			SetFrameSlot(name, SYMA(honorific), NILREF);
 			AddArraySlot(invitees, name);

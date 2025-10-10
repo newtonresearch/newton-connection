@@ -166,8 +166,10 @@ MINIMUM_LOG { REPprintf("\nProgress: %s", progress.localizedDescription.UTF8Stri
 	[self.overallProgress resignCurrent];
 
 	self.overallProgress.cancellable = YES;
-	self.progressBox.canCancel = YES;
-	self.progressBox.needsDisplay = YES;
+  dispatch_async(dispatch_get_main_queue(), ^(void){
+    self.progressBox.canCancel = YES;
+    self.progressBox.needsDisplay = YES;
+  });
 }
 
 
@@ -182,18 +184,22 @@ MINIMUM_LOG { REPprintf("\nProgress: %s", progress.localizedDescription.UTF8Stri
 	}
 	self.progressBox.statusText = nil;
 	self.progressBox.barValue = -1.0;
-	self.progressBox.canCancel = NO;
-	self.progressBox.needsDisplay = YES;
+  dispatch_async(dispatch_get_main_queue(), ^(void){
+    self.progressBox.canCancel = NO;
+    self.progressBox.needsDisplay = YES;
+  });
 }
 
 
 - (void)setProgressText:(NSString *)progressText {
-	self.progressBox.statusText = progressText;
-	if (progressText == nil) {
-		self.progressBox.barValue = -1.0;
-		self.progressBox.canCancel = NO;
-	}
-	self.progressBox.needsDisplay = YES;
+  dispatch_async(dispatch_get_main_queue(), ^(void){
+    self.progressBox.statusText = progressText;
+    if (progressText == nil) {
+      self.progressBox.barValue = -1.0;
+      self.progressBox.canCancel = NO;
+    }
+    self.progressBox.needsDisplay = YES;
+  });
 }
 
 - (NSString *)progressText {

@@ -700,10 +700,10 @@ MakeFontStyle(NSFont * inStyle)
 			case NSFontFreeformSerifsClass:
 				fontFamily = tsFancy;
 				break;
-			case NSFontSansSerifClass:
+			case (uint32_t)NSFontSansSerifClass:
 				fontFamily = tsSimple;
 				break;
-			case NSFontScriptsClass:
+			case (uint32_t)NSFontScriptsClass:
 				fontFamily = tsCasual;
 				break;
 		}
