@@ -12,10 +12,10 @@
 	named pipes to connect to Einstein running on the same machine.
 
 	NCEndpoint
-	+-- BluetoothEndpoint (commented out)
-	+-- TCPIPEndpoint
-	+-- MNPSerialEndpoint
-			+-- EinsteinEndpoint
+	+- BluetoothEndpoint (commented out)
+	+- TCPIPEndpoint
+	+- MNPSerialEndpoint
+		+- EinsteinEndpoint
 
 	Endpoints are created in NCEndpointController::startListening.
 
@@ -436,20 +436,40 @@ MINIMUM_LOG {
 	XENDTRY;
 
 	// start I/O event loop in a parallel dispatch queue
-	NCEndpointController *__weak weakself = self;
+	__weak NCEndpointController *weakself = self;
 	dispatch_async(dispatch_get_global_queue(DISPATCH_QUEUE_PRIORITY_DEFAULT, 0), ^{
-		[weakself doIOEventLoop];
-		// no more I/O, dispose the endpoint
-		if (_endpoint) {
-			[_endpoint close];
-			_endpoint = nil;
-		} else {
-			[self useEndpoint:nil];
+		// ensure that we don't allocate this interface while this block is running
+		__strong NCEndpointController *strongself = weakself;
+		if (strongself) {
+			[strongself doIOEventLoop];
+			// no more I/O, dispose the endpoint
+			if (_endpoint) {
+				[_endpoint close];
+				_endpoint = nil;
+			} else {
+				[strongself useEndpoint:nil];
+			}
 		}
 	});
 
 	return err;
 }
+
+/*
+ - (void)startAsyncWork {
+    __weak typeof(self) weakSelf = self;
+    
+    dispatch_async(_myQueue, ^{
+        __strong typeof(weakSelf) strongSelf = weakSelf;
+        if (!strongSelf) {
+            return; // Object was deallocated, exit safely
+        }
+        
+        [strongSelf doSomeWork];
+    });
+}
+
+ */
 
 
 - (void)doIOEventLoop {

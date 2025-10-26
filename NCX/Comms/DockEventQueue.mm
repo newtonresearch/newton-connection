@@ -16,7 +16,7 @@
 ----------------------------------------------------------------------------- */
 @interface NCDockEventQueue ()
 {
-	NCEndpointController * ep;
+	NCEndpointController * endpointController;
 
 	NCDockEvent * eventUnderConstruction;
 	NSMutableArray * eventQueue;
@@ -51,7 +51,7 @@
 		eventQueue = [[NSMutableArray alloc] initWithCapacity:2];
 		eventUnderConstruction = [[NCDockEvent alloc] init];
 		accessQueue = dispatch_queue_create("com.newton.connection.event", NULL);
-		ep = [[NCEndpointController alloc] init];
+		endpointController = [[NCEndpointController alloc] init];
 	}
 	return self;
 }
@@ -74,8 +74,8 @@
 
 - (void)open {
 	eventReady = dispatch_semaphore_create(0);
-	[ep startListening];
-	[ep addObserver:self forKeyPath:@"error" options:NSKeyValueObservingOptionNew context:nil];
+	[endpointController startListening];
+	[endpointController addObserver:self forKeyPath:@"error" options:NSKeyValueObservingOptionNew context:nil];
 }
 
 
@@ -86,10 +86,10 @@
 ------------------------------------------------------------------------------*/
 
 - (void)close {
-	if (ep.isActive) {
-		[ep stop];
-		ep.error = kDockErrAccessDenied;
-		[ep removeObserver:self forKeyPath:@"error"];
+	if (endpointController.isActive) {
+		[endpointController stop];
+		endpointController.error = kDockErrAccessDenied;
+		[endpointController removeObserver:self forKeyPath:@"error"];
 	}
 }
 
@@ -102,7 +102,7 @@
 
 - (void)dealloc {
 	[self close];
-	ep = nil;
+	endpointController = nil;
 	eventQueue = nil;
 	eventUnderConstruction = nil;
 	eventReady = nil;
@@ -111,7 +111,7 @@
 
 
 - (void)suppressEndpointTimeout:(BOOL)inDoSuppress {
-	[ep suppressTimeout:inDoSuppress];
+	[endpointController suppressTimeout:inDoSuppress];
 }
 
 
@@ -162,7 +162,7 @@
 
 - (NCDockEvent *)getNextEvent {
 	NCDockEvent *__block evt = nil;
-	if (ep.error == noErr) {
+	if (endpointController.error == noErr) {
 		dispatch_semaphore_wait(eventReady, DISPATCH_TIME_FOREVER);
 	}
 	dispatch_sync(accessQueue, ^{
@@ -175,7 +175,7 @@
 }
 
 - (BOOL)isEventReady {
-	if (ep.error) {
+	if (endpointController.error) {
 		return YES;
 	}
 
@@ -197,38 +197,38 @@
 ------------------------------------------------------------------------------*/
 
 - (NewtonErr)sendEvent:(EventType)inCmd {
-	NewtonErr err = ep.error;
-	return err ? err : [[NCDockEvent makeEvent:inCmd] send:ep.endpoint];
+	NewtonErr err = endpointController.error;
+	return err ? err : [[NCDockEvent makeEvent:inCmd] send:endpointController.endpoint];
 }
 
 
 - (NewtonErr)sendEvent:(EventType)inCmd value:(int)inValue {
-	NewtonErr err = ep.error;
-	return err ? err : [[NCDockEvent makeEvent:inCmd value:inValue] send:ep.endpoint];
+	NewtonErr err = endpointController.error;
+	return err ? err : [[NCDockEvent makeEvent:inCmd value:inValue] send:endpointController.endpoint];
 }
 
 
 - (NewtonErr)sendEvent:(EventType)inCmd ref:(RefArg)inRef {
-	NewtonErr err = ep.error;
-	return err ? err : [[NCDockEvent makeEvent:inCmd ref:inRef] send:ep.endpoint];
+	NewtonErr err = endpointController.error;
+	return err ? err : [[NCDockEvent makeEvent:inCmd ref:inRef] send:endpointController.endpoint];
 }
 
 
 - (NewtonErr)sendEvent:(EventType)inCmd file:(NSURL *)inURL callback:(NCProgressCallback)inCallback frequency:(unsigned int)inFrequency {
-	NewtonErr err = ep.error;
-	return err ? err : [[NCDockEvent makeEvent:inCmd file:inURL] send:ep.endpoint callback:inCallback frequency:inFrequency];
+	NewtonErr err = endpointController.error;
+	return err ? err : [[NCDockEvent makeEvent:inCmd file:inURL] send:endpointController.endpoint callback:inCallback frequency:inFrequency];
 }
 
 
 - (NewtonErr)sendEvent:(EventType)inCmd length:(unsigned int)inLength data:(const void *)inData length:(unsigned int)inDataLength {
-	NewtonErr err = ep.error;
-	return err ? err : [[NCDockEvent makeEvent:inCmd length:inLength data:inData length:inDataLength] send:ep.endpoint];
+	NewtonErr err = endpointController.error;
+	return err ? err : [[NCDockEvent makeEvent:inCmd length:inLength data:inData length:inDataLength] send:endpointController.endpoint];
 }
 
 
 - (NewtonErr)sendEvent:(EventType)inCmd data:(const void *)inData length:(unsigned int)inLength callback:(NCProgressCallback)inCallback frequency:(unsigned int)inFrequency {
-	NewtonErr err = ep.error;
-	return err ? err : [[NCDockEvent makeEvent:inCmd length:inLength data:inData length:inLength] send:ep.endpoint callback:inCallback frequency:inFrequency];
+	NewtonErr err = endpointController.error;
+	return err ? err : [[NCDockEvent makeEvent:inCmd length:inLength data:inData length:inLength] send:endpointController.endpoint callback:inCallback frequency:inFrequency];
 }
 
 @end

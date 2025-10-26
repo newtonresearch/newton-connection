@@ -540,7 +540,7 @@
 		F450C18213FE5DD200D35BA0 /* DES.c */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.c; name = DES.c; path = ../DES.c; sourceTree = "<group>"; };
 		F450C18313FE5DD200D35BA0 /* DES.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; name = DES.h; path = ../DES.h; sourceTree = "<group>"; };
 		F450C19513FE5E1800D35BA0 /* Endpoint.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Endpoint.mm; sourceTree = "<group>"; };
-		F450C19613FE5E1800D35BA0 /* Endpoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Endpoint.h; sourceTree = "<group>"; };
+		F450C19613FE5E1800D35BA0 /* Endpoint.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Endpoint.h; sourceTree = "<group>"; tabWidth = 3; };
 		F450C1B413FE795300D35BA0 /* Comms.h */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.c.h; path = Comms.h; sourceTree = "<group>"; };
 		F45C68F0113898990025CE32 /* en */ = {isa = PBXFileReference; lastKnownFileType = folder; name = en; path = en.lproj/ConnectionHelp; sourceTree = "<group>"; };
 		F46116200A879D6E006CEC0A /* Notes.plugin */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = Notes.plugin; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -848,8 +848,10 @@
 				1058C7A0FEA54F0111CA2CBB /* Libraries */,
 				19C28FACFE9D520D11CA2CBB /* Products */,
 			);
+			indentWidth = 3;
 			path = NCX;
 			sourceTree = "<group>";
+			tabWidth = 3;
 			usesTabs = 1;
 		};
 		29B97323FDCFA39411CA2CEA /* Frameworks */ = {
@@ -1861,7 +1863,7 @@
 		F40C2A320D32A5E20046583E /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = x68_64;
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1880,7 +1882,7 @@
 		F40C2A330D32A5E20046583E /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = x68_64;
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
@@ -1898,7 +1900,7 @@
 		F4135DE90A90C4ED00B1F970 /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = x68_64;
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -1917,7 +1919,7 @@
 		F4135DEA0A90C4ED00B1F970 /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = x68_64;
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
@@ -2061,7 +2063,7 @@
 		F46116230A879D72006CEC0A /* Debug */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = x68_64;
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -2080,7 +2082,7 @@
 		F46116240A879D72006CEC0A /* Release */ = {
 			isa = XCBuildConfiguration;
 			buildSettings = {
-				ARCHS = x68_64;
+				ARCHS = x86_64;
 				COMBINE_HIDPI_IMAGES = YES;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",

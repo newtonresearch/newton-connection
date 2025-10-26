@@ -79,7 +79,7 @@
 - (BOOL)willWrite;
 - (void)writeDone;
 
-// subclass repsonsibility
+// subclass responsibility
 - (NCError)listen;
 - (NCError)accept;
 - (NCError)readPage:(NCBuffer *)inFrameBuf into:(CChunkBuffer *)inDataBuf;

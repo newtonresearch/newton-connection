@@ -140,7 +140,7 @@ FindSerialPorts(io_iterator_t * matchingServices) {
 @implementation MNPSerialEndpoint
 
 /* -----------------------------------------------------------------------------
-	Check availablilty of MNP Serial endpoint.
+	Check availability of MNP Serial endpoint.
 	Available if IOKit can find any serial ports.
 ----------------------------------------------------------------------------- */
 
