@@ -6,6 +6,33 @@
 	Written by:	Newton Research Group, 2011.
 */
 
+/*
+	NCEndpoint is the base class for various kinds of communication channels.
+	We have a TCP/IP endpoint, one for serial ports, and one using fifo style
+	named pipes to connect to Einstein running on the same machine.
+
+	NCEndpoint
+	+-- BluetoothEndpoint (commented out)
+	+-- TCPIPEndpoint
+	+-- MNPSerialEndpoint
+			+-- EinsteinEndpoint
+
+	Endpoints are created in NCEndpointController::startListening.
+
+	The NCEndpointController is created and owned by the NCDockEventQueue.
+
+	NCDockEventQueue is a singleton created by the Session class (sharedQueue).
+
+	Session in turn is allocated and owned by NCDockProtocolController.
+
+	NCDockProtocolController is again a singleton, accessible through the global
+	gNCNub. It's initiated by binding it to an NCDocument
+	(NCDockProtocolController::bind).
+
+	NCDocument is derived from NSPersistentDocument, so it is mostly automatically
+	managed by NSDocumentController and then NSApplicationMain.
+ */
+
 #import "DockEventQueue.h"
 #import "DockErrors.h"
 #import "Logging.h"
@@ -476,7 +503,7 @@ MINIMUM_LOG {
 					if (FD_ISSET(epi.rfd, &rfds)) {
 						// accept this connection, cancel other listener transports
 						ep = epi;
-						[self useEndpoint:ep];
+						[self useEndpoint:ep]; // This connects ep and closes all others.
 						break;
 					}
 				}
@@ -492,9 +519,12 @@ MINIMUM_LOG {
 			}
 
 			if (FD_ISSET(pipefd[0], &rfds)) {
-				// endpoint signalled write
+				// endpoint signaled write
 				char	x[2];
 				count = (int)read(pipefd[0], x, 1);
+				// Endpoint::write sends 'X' if it wants so send more data
+				// Endpoint::writeSync sends 'Y' if it wants so send data and wait for it to be sent
+				// NCEndpointController sends 'Z' to end this event loop and close all endpoints
 				if (x[0] == 'Z') {
 					err = kDockErrDisconnected;
 				}
@@ -515,7 +545,13 @@ MINIMUM_LOG {
 		} else {	// nfds < 0: error
 //REPprintf("select(): %d, errno = %d\n", nfds, errno);
 			if (nfds == -1 && errno == EINTR)
-				continue;	// we were interrupted -- ignore it
+				continue;	// we were interrupted by a Unix signal-- ignore it
+			// If we end up here, one of these errors occurred:
+			// [EAGAIN]: The kernel was unable to allocate the requested number of file descriptors.
+			// [EBADF]: One of the descriptor sets specified an invalid descriptor.
+			// [EINVAL]: The specified time limit is invalid
+			// [EINVAL]: ndfs is greater than FD_SETSIZE
+			REPprintf("select(): %d, errno = %d, %s\n", nfds, errno, strerror(errno));
 			err = kDockErrDisconnected;	// because there are no comms after we break
 		}
 	}
