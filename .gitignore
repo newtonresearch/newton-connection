@@ -9,5 +9,5 @@
 **/.DS_Store
 
 /NCX.xcodeproj/xcuserdata
-/NCX.xcodeproj/xcsgareddata
+/NCX.xcodeproj/xcshareddata
 /Newton.framework/Versions/A/_CodeSignature
