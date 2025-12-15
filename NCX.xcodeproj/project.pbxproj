@@ -1410,14 +1410,38 @@
 				LastUpgradeCheck = 0820;
 				ORGANIZATIONNAME = "Newton Research";
 				TargetAttributes = {
+					F40C2A280D32A5E20046583E = {
+						DevelopmentTeam = BK4ST6N599;
+						ProvisioningStyle = Manual;
+					};
+					F4135DE50A90C4EB00B1F970 = {
+						DevelopmentTeam = BK4ST6N599;
+						ProvisioningStyle = Manual;
+					};
+					F4135FA10A90CC7900B1F970 = {
+						DevelopmentTeam = BK4ST6N599;
+						ProvisioningStyle = Manual;
+					};
+					F461161F0A879D6E006CEC0A = {
+						DevelopmentTeam = BK4ST6N599;
+						ProvisioningStyle = Manual;
+					};
 					F4A9275E0945EC6400F746B2 = {
 						DevelopmentTeam = BK4ST6N599;
-						ProvisioningStyle = Automatic;
+						ProvisioningStyle = Manual;
 						SystemCapabilities = {
 							com.apple.Sandbox = {
 								enabled = 0;
 							};
 						};
+					};
+					F4C21E530D042C1E00A46B34 = {
+						DevelopmentTeam = BK4ST6N599;
+						ProvisioningStyle = Manual;
+					};
+					F4F56E400A9C4A5F00A57788 = {
+						DevelopmentTeam = BK4ST6N599;
+						ProvisioningStyle = Manual;
 					};
 				};
 			};
@@ -1861,8 +1885,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x68_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -1870,8 +1899,10 @@
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/AudioPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.audio;
 				PRODUCT_NAME = Audio;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = plugin;
 			};
 			name = Debug;
@@ -1880,7 +1911,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x68_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -1888,8 +1924,10 @@
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/AudioPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.audio;
 				PRODUCT_NAME = Audio;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = plugin;
 			};
 			name = Release;
@@ -1898,8 +1936,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x68_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -1907,8 +1950,10 @@
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NamesPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.names;
 				PRODUCT_NAME = Names;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = plugin;
 			};
 			name = Debug;
@@ -1917,7 +1962,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x68_64;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Distribution";
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -1925,6 +1972,7 @@
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NamesPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.names;
 				PRODUCT_NAME = Names;
 				WRAPPER_EXTENSION = plugin;
@@ -1935,16 +1983,23 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x86_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
 					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = "NCX/PlugIns/DatesPlugin-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.dates;
 				PRODUCT_NAME = Dates;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = plugin;
 			};
 			name = Debug;
@@ -1953,13 +2008,16 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x86_64;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Distribution";
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
 					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = "NCX/PlugIns/DatesPlugin-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.dates;
 				PRODUCT_NAME = Dates;
 				WRAPPER_EXTENSION = plugin;
@@ -1976,6 +2034,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				GCC_MODEL_TUNING = "";
 				INSTALL_PATH = "@executable_path/../Libraries";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_NAME = libical;
 			};
 			name = Debug;
@@ -1989,6 +2048,7 @@
 				DYLIB_CURRENT_VERSION = 1;
 				GCC_MODEL_TUNING = "";
 				INSTALL_PATH = "@executable_path/../Libraries";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_NAME = libical;
 			};
 			name = Release;
@@ -2061,8 +2121,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x68_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -2070,8 +2135,10 @@
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NotesPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.notes;
 				PRODUCT_NAME = Notes;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = plugin;
 			};
 			name = Debug;
@@ -2080,7 +2147,9 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x68_64;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Distribution";
 				COMBINE_HIDPI_IMAGES = YES;
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -2088,6 +2157,7 @@
 				);
 				GCC_MODEL_TUNING = "";
 				INFOPLIST_FILE = "NCX/PlugIns/NotesPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.notes;
 				PRODUCT_NAME = Notes;
 				WRAPPER_EXTENSION = plugin;
@@ -2102,21 +2172,25 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = NCX/NCX.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = BK4ST6N599;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SRCROOT)/../Sparkle/Sparkle-1.16.0",
 					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR = NO;
 				PRIVATE_HEADERS_FOLDER_PATH = "$(CONTENTS_FOLDER_PATH)/PrivateHeaders";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
 				PRODUCT_NAME = NCX;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 				SHARED_PRECOMPS_DIR = "$(CACHE_ROOT)/SharedPrecompiledHeaders";
 			};
 			name = Debug;
@@ -2129,19 +2203,23 @@
 				CLANG_ENABLE_MODULES = YES;
 				CODE_SIGN_ENTITLEMENTS = NCX/NCX.entitlements;
 				CODE_SIGN_IDENTITY = "Apple Development";
-				CODE_SIGN_STYLE = Automatic;
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
-				DEVELOPMENT_TEAM = BK4ST6N599;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(SRCROOT)/../Sparkle/Sparkle-1.16.0",
 					"$(PROJECT_DIR)",
 				);
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
 				PRODUCT_NAME = NCX;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				"PROVISIONING_PROFILE_SPECIFIER[sdk=macosx*]" = "";
 			};
 			name = Release;
 		};
@@ -2149,8 +2227,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x86_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -2161,8 +2244,10 @@
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "NCX/Utilities-Info.plist";
 				INSTALL_PATH = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.utilities;
 				PRODUCT_NAME = Utilities;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Debug;
 		};
@@ -2170,7 +2255,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x86_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				DYLIB_COMPATIBILITY_VERSION = 1;
 				DYLIB_CURRENT_VERSION = 1;
 				FRAMEWORK_SEARCH_PATHS = (
@@ -2181,8 +2271,10 @@
 				FRAMEWORK_VERSION = A;
 				INFOPLIST_FILE = "NCX/Utilities-Info.plist";
 				INSTALL_PATH = "@executable_path/../Frameworks";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.utilities;
 				PRODUCT_NAME = Utilities;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 			};
 			name = Release;
 		};
@@ -2190,8 +2282,13 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x86_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Developer ID Application";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -2205,8 +2302,10 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
 				INFOPLIST_FILE = "NCX/PlugIns/WorksPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.works;
 				PRODUCT_NAME = Works;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				STRIP_INSTALLED_PRODUCT = NO;
 				WRAPPER_EXTENSION = plugin;
 			};
@@ -2216,7 +2315,12 @@
 			isa = XCBuildConfiguration;
 			buildSettings = {
 				ARCHS = x86_64;
+				CODE_SIGN_IDENTITY = "Apple Development";
+				"CODE_SIGN_IDENTITY[sdk=macosx*]" = "Apple Distribution";
+				CODE_SIGN_STYLE = Manual;
 				COMBINE_HIDPI_IMAGES = YES;
+				DEVELOPMENT_TEAM = "";
+				"DEVELOPMENT_TEAM[sdk=macosx*]" = BK4ST6N599;
 				FRAMEWORK_SEARCH_PATHS = (
 					"$(FRAMEWORK_SEARCH_PATHS)",
 					"$(BUILT_PRODUCTS_DIR)",
@@ -2227,8 +2331,10 @@
 				GCC_PRECOMPILE_PREFIX_HEADER = YES;
 				GCC_PREFIX_HEADER = "$(SYSTEM_LIBRARY_DIR)/Frameworks/AppKit.framework/Headers/AppKit.h";
 				INFOPLIST_FILE = "NCX/PlugIns/WorksPlugIn-Info.plist";
+				MACOSX_DEPLOYMENT_TARGET = 12.4;
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection.plugin.works;
 				PRODUCT_NAME = Works;
+				PROVISIONING_PROFILE_SPECIFIER = "";
 				WRAPPER_EXTENSION = plugin;
 			};
 			name = Release;

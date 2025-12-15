@@ -1,0 +1,13 @@
+# Files to be ignored by Git (do not commit)
+#
+
+# Ignore everywhere, also in subdirectories
+
+*.bck
+*.exe
+*.o
+**/.DS_Store
+
+/NCX.xcodeproj/xcuserdata
+/NCX.xcodeproj/xcsgareddata
+/Newton.framework/Versions/A/_CodeSignature

@@ -8633,3 +8633,23 @@ extern Ref* RSSYMcompilerCompatibility;
 extern Ref* RSSYMclosed;
 extern Ref* RSSYMDebugHashToName;
 extern Ref* RSSYMdbg1;
+
+/*-- for NTK --*/
+extern Ref* RSSYMGetKeyHandler;
+extern Ref* RSSYMRemoveScript;
+extern Ref* RSSYMpartData;
+extern Ref* RSSYMcontrol;
+extern Ref* RSSYM__origFunctions;
+extern Ref* RSSYM__origVars;
+extern Ref* RSSYM__platform;
+extern Ref* RSSYMplatformFunctions;
+extern Ref* RSSYMplatformWeakFunctions;
+extern Ref* RSSYMplatformVariables;
+extern Ref* RSSYMplatformConstants;
+extern Ref* RSSYMSetPartFrameSlot;
+extern Ref* RSSYMGetPartFrameSlot;
+extern Ref* RSSYMthisView;
+extern Ref* RSSYMbeforeScript;
+extern Ref* RSSYMafterScript;
+extern Ref* RSSYMprotoEditor;
+extern Ref* RSSYMprotoProtoEditor;
