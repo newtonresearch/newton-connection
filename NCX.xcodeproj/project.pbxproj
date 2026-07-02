@@ -7,22 +7,20 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		C915FD312E9473D900C881EC /* Sparkle.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C915FD302E9473D900C881EC /* Sparkle.framework */; };
-		C915FD322E9473D900C881EC /* Sparkle.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = C915FD302E9473D900C881EC /* Sparkle.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C915FD332E94742700C881EC /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
-		C915FD342E94742700C881EC /* Newton.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
+		C915FD342E94742700C881EC /* Newton.framework in Copy Files */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		C954530B2E9466C800C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
 		C954530E2E94685300C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
 		C95453112E94691900C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
 		C95453142E94696700C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
 		C95453172E9469A400C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
 		C954531A2E946B1600C1DA70 /* Newton.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = C954530A2E9466C800C1DA70 /* Newton.framework */; };
+		C997F80F2FF719AC0049B0F2 /* Package.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = C997F80D2FF719AC0049B0F2 /* Package.storyboard */; };
 		F401F0251B21AF3D0043710A /* DeviceViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F401F0241B21AF3D0043710A /* DeviceViewController.mm */; };
 		F401F0271B21B4190043710A /* StoreViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F401F0261B21B4190043710A /* StoreViewController.mm */; };
 		F401F0291B21B5BE0043710A /* SoupViewController.mm in Sources */ = {isa = PBXBuildFile; fileRef = F401F0281B21B5BE0043710A /* SoupViewController.mm */; };
 		F4055F6B1E1699DD004ABB55 /* source-app.png in Resources */ = {isa = PBXBuildFile; fileRef = F4055F691E1699DD004ABB55 /* source-app.png */; };
 		F4055F6C1E1699DD004ABB55 /* source-soup.png in Resources */ = {isa = PBXBuildFile; fileRef = F4055F6A1E1699DD004ABB55 /* source-soup.png */; };
-		F4055F701E1D1F54004ABB55 /* Package.storyboard in Resources */ = {isa = PBXBuildFile; fileRef = F4055F6E1E1D1F54004ABB55 /* Package.storyboard */; };
 		F4055F7D1E202122004ABB55 /* AppKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4055F7C1E202122004ABB55 /* AppKit.framework */; };
 		F4055F7F1E202179004ABB55 /* Cocoa.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4055F7E1E202179004ABB55 /* Cocoa.framework */; };
 		F4055F811E2021BF004ABB55 /* IOKit.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4055F801E2021BF004ABB55 /* IOKit.framework */; };
@@ -65,7 +63,7 @@
 		F43B547D0B8CFE4000805A26 /* gent.stream in Resources */ = {isa = PBXBuildFile; fileRef = F43B547C0B8CFE4000805A26 /* gent.stream */; };
 		F43E1DCD1E59D15400EFADB2 /* EinsteinEndpoint.mm in Sources */ = {isa = PBXBuildFile; fileRef = F43E1DCC1E59D01500EFADB2 /* EinsteinEndpoint.mm */; };
 		F43FE6F40B6FBE0A00953C66 /* eNsp.stream in Resources */ = {isa = PBXBuildFile; fileRef = F43FE6F30B6FBE0A00953C66 /* eNsp.stream */; };
-		F446FF250B14D6B4002EF3B9 /* libical.dylib in CopyFiles */ = {isa = PBXBuildFile; fileRef = F446FEFD0B14D59A002EF3B9 /* libical.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		F446FF250B14D6B4002EF3B9 /* libical.dylib in Copy Files */ = {isa = PBXBuildFile; fileRef = F446FEFD0B14D59A002EF3B9 /* libical.dylib */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F446FF2E0B14D78E002EF3B9 /* icalattendee.c in Sources */ = {isa = PBXBuildFile; fileRef = F446FEBB0B14D574002EF3B9 /* icalattendee.c */; };
 		F446FF2F0B14D790002EF3B9 /* icalcomponent.c in Sources */ = {isa = PBXBuildFile; fileRef = F446FEBD0B14D574002EF3B9 /* icalcomponent.c */; };
 		F446FF300B14D791002EF3B9 /* icalderivedparameter.c in Sources */ = {isa = PBXBuildFile; fileRef = F446FEBF0B14D574002EF3B9 /* icalderivedparameter.c */; };
@@ -110,7 +108,6 @@
 		F47005AF1E23B07900F97023 /* Names.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4055F761E1FCF65004ABB55 /* Names.mm */; };
 		F47005B01E23D12400F97023 /* Contacts.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4055F7A1E2020AB004ABB55 /* Contacts.framework */; };
 		F47005B21E24FCAA00F97023 /* AudioToolbox.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F47005B11E24FCAA00F97023 /* AudioToolbox.framework */; };
-		F4755A2A11F839F600215298 /* dsa_pub.pem in Resources */ = {isa = PBXBuildFile; fileRef = F4755A2911F839F600215298 /* dsa_pub.pem */; };
 		F47567040F7253CF00517710 /* PackageComponent.mm in Sources */ = {isa = PBXBuildFile; fileRef = F47537DF0F6EBD0600517710 /* PackageComponent.mm */; };
 		F47567050F7253D500517710 /* PassthruComponent.mm in Sources */ = {isa = PBXBuildFile; fileRef = F47537E10F6EBD0600517710 /* PassthruComponent.mm */; };
 		F47567180F72718F00517710 /* Component.mm in Sources */ = {isa = PBXBuildFile; fileRef = F47567170F72718F00517710 /* Component.mm */; };
@@ -156,7 +153,7 @@
 		F4C21E8E0D042FDB00A46B34 /* Utilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4C21E540D042C1E00A46B34 /* Utilities.framework */; };
 		F4C21E8F0D042FE200A46B34 /* Utilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4C21E540D042C1E00A46B34 /* Utilities.framework */; };
 		F4C21E900D042FE900A46B34 /* Utilities.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = F4C21E540D042C1E00A46B34 /* Utilities.framework */; };
-		F4C21E9B0D04318E00A46B34 /* Utilities.framework in CopyFiles */ = {isa = PBXBuildFile; fileRef = F4C21E540D042C1E00A46B34 /* Utilities.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
+		F4C21E9B0D04318E00A46B34 /* Utilities.framework in Copy Files */ = {isa = PBXBuildFile; fileRef = F4C21E540D042C1E00A46B34 /* Utilities.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, ); }; };
 		F4C4C1D11A28D17E002B8821 /* NRBox.m in Sources */ = {isa = PBXBuildFile; fileRef = F4C4C1CD1A28D17E002B8821 /* NRBox.m */; };
 		F4C4C1D31A28D17E002B8821 /* NRProgressBox.m in Sources */ = {isa = PBXBuildFile; fileRef = F4C4C1CF1A28D17E002B8821 /* NRProgressBox.m */; };
 		F4D15C1C1E448CC90065F3B5 /* DockEventQueue.mm in Sources */ = {isa = PBXBuildFile; fileRef = F4D15C1A1E448CC90065F3B5 /* DockEventQueue.mm */; };
@@ -260,14 +257,15 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXCopyFilesBuildPhase section */
-		F446FF230B14D64C002EF3B9 /* CopyFiles */ = {
+		F446FF230B14D64C002EF3B9 /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = ../Libraries;
 			dstSubfolderSpec = 6;
 			files = (
-				F446FF250B14D6B4002EF3B9 /* libical.dylib in CopyFiles */,
+				F446FF250B14D6B4002EF3B9 /* libical.dylib in Copy Files */,
 			);
+			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 		F46117970A87B0EC006CEC0A /* CopyFiles */ = {
@@ -284,16 +282,16 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
-		F4FA703309A2034600B62DDB /* CopyFiles */ = {
+		F4FA703309A2034600B62DDB /* Copy Files */ = {
 			isa = PBXCopyFilesBuildPhase;
 			buildActionMask = 2147483647;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
-				F4C21E9B0D04318E00A46B34 /* Utilities.framework in CopyFiles */,
-				C915FD322E9473D900C881EC /* Sparkle.framework in CopyFiles */,
-				C915FD342E94742700C881EC /* Newton.framework in CopyFiles */,
+				F4C21E9B0D04318E00A46B34 /* Utilities.framework in Copy Files */,
+				C915FD342E94742700C881EC /* Newton.framework in Copy Files */,
 			);
+			name = "Copy Files";
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXCopyFilesBuildPhase section */
@@ -307,13 +305,13 @@
 		C915FD2B2E9471EE00C881EC /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = ../../Sparkle/Sparkle.framework; sourceTree = "<group>"; };
 		C915FD302E9473D900C881EC /* Sparkle.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Sparkle.framework; path = "../../Sparkle/Sparkle-1.16.0/Sparkle.framework"; sourceTree = "<group>"; };
 		C954530A2E9466C800C1DA70 /* Newton.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; path = Newton.framework; sourceTree = SOURCE_ROOT; };
+		C997F80E2FF719AC0049B0F2 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = Base.lproj/Package.storyboard; sourceTree = "<group>"; };
 		F401F0231B206AF30043710A /* Logging.h */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.c.h; path = Logging.h; sourceTree = "<group>"; };
 		F401F0241B21AF3D0043710A /* DeviceViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = DeviceViewController.mm; sourceTree = "<group>"; };
 		F401F0261B21B4190043710A /* StoreViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = StoreViewController.mm; sourceTree = "<group>"; };
 		F401F0281B21B5BE0043710A /* SoupViewController.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = SoupViewController.mm; sourceTree = "<group>"; };
 		F4055F691E1699DD004ABB55 /* source-app.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "source-app.png"; sourceTree = "<group>"; };
 		F4055F6A1E1699DD004ABB55 /* source-soup.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = "source-soup.png"; sourceTree = "<group>"; };
-		F4055F6F1E1D1F54004ABB55 /* Base */ = {isa = PBXFileReference; lastKnownFileType = file.storyboard; name = Base; path = "../../newton-toolkit/NTX/Base.lproj/Package.storyboard"; sourceTree = "<group>"; };
 		F4055F761E1FCF65004ABB55 /* Names.mm */ = {isa = PBXFileReference; fileEncoding = 4; lastKnownFileType = sourcecode.cpp.objcpp; path = Names.mm; sourceTree = "<group>"; };
 		F4055F7A1E2020AB004ABB55 /* Contacts.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = Contacts.framework; path = System/Library/Frameworks/Contacts.framework; sourceTree = SDKROOT; };
 		F4055F7C1E202122004ABB55 /* AppKit.framework */ = {isa = PBXFileReference; lastKnownFileType = wrapper.framework; name = AppKit.framework; path = System/Library/Frameworks/AppKit.framework; sourceTree = SDKROOT; };
@@ -656,7 +654,6 @@
 				F4055F7F1E202179004ABB55 /* Cocoa.framework in Frameworks */,
 				F4055F7D1E202122004ABB55 /* AppKit.framework in Frameworks */,
 				F4055F921E202561004ABB55 /* Quartz.framework in Frameworks */,
-				C915FD312E9473D900C881EC /* Sparkle.framework in Frameworks */,
 				F4C21E900D042FE900A46B34 /* Utilities.framework in Frameworks */,
 				F4055F811E2021BF004ABB55 /* IOKit.framework in Frameworks */,
 			);
@@ -809,7 +806,7 @@
 				F4D8A4E10C674619002620D7 /* Localizable.strings */,
 				F4A07E661B1222D800D0794A /* Main.storyboard */,
 				F4D851441E0993AC0021D442 /* MainWindow.storyboard */,
-				F4055F6E1E1D1F54004ABB55 /* Package.storyboard */,
+				C997F80D2FF719AC0049B0F2 /* Package.storyboard */,
 				F4D851531E09AAFD0021D442 /* Device.storyboard */,
 				F4D851561E09AC570021D442 /* Keyboard.storyboard */,
 				F4D851591E09AC720021D442 /* Screenshot.storyboard */,
@@ -1271,8 +1268,8 @@
 				F4A927600945EC6400F746B2 /* Resources */,
 				F4A927840945EC6400F746B2 /* Sources */,
 				F4A9278A0945EC6400F746B2 /* Frameworks */,
-				F446FF230B14D64C002EF3B9 /* CopyFiles */,
-				F4FA703309A2034600B62DDB /* CopyFiles */,
+				F446FF230B14D64C002EF3B9 /* Copy Files */,
+				F4FA703309A2034600B62DDB /* Copy Files */,
 				F46117970A87B0EC006CEC0A /* CopyFiles */,
 			);
 			buildRules = (
@@ -1441,7 +1438,6 @@
 				F4055F6B1E1699DD004ABB55 /* source-app.png in Resources */,
 				F4D935B41A8120FF0018D949 /* reqp.stream in Resources */,
 				F45C6943113898990025CE32 /* ConnectionHelp in Resources */,
-				F4755A2A11F839F600215298 /* dsa_pub.pem in Resources */,
 				F4D851491E0994DC0021D442 /* DVTViewDebugArea_10_10.pdf in Resources */,
 				F4B35033147159CB00954569 /* eMate.tiff in Resources */,
 				F4B35034147159CB00954569 /* MP100.tiff in Resources */,
@@ -1458,10 +1454,10 @@
 				F47F09CC1577962100321DF1 /* source-display.png in Resources */,
 				F47F09CD1577962100321DF1 /* source-keyboard.png in Resources */,
 				F47F09CE1577962100321DF1 /* source-store.png in Resources */,
-				F4055F701E1D1F54004ABB55 /* Package.storyboard in Resources */,
 				F4055F6C1E1699DD004ABB55 /* source-soup.png in Resources */,
 				F47F0AA21577F5F700321DF1 /* source-internal.png in Resources */,
 				F4A226CA162D70F000CC47EF /* book.png in Resources */,
+				C997F80F2FF719AC0049B0F2 /* Package.storyboard in Resources */,
 				F4D8515B1E09AC720021D442 /* Screenshot.storyboard in Resources */,
 				F41D388C165E6F9D00D4DEE1 /* cardStore.png in Resources */,
 				F41D388D165E6F9D00D4DEE1 /* internalStore.png in Resources */,
@@ -1691,10 +1687,10 @@
 			name = InfoPlist.strings;
 			sourceTree = "<group>";
 		};
-		F4055F6E1E1D1F54004ABB55 /* Package.storyboard */ = {
+		C997F80D2FF719AC0049B0F2 /* Package.storyboard */ = {
 			isa = PBXVariantGroup;
 			children = (
-				F4055F6F1E1D1F54004ABB55 /* Base */,
+				C997F80E2FF719AC0049B0F2 /* Base */,
 			);
 			name = Package.storyboard;
 			sourceTree = "<group>";
@@ -2031,10 +2027,7 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEVELOPMENT_TEAM = BK4ST6N599;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SRCROOT)/../Sparkle/Sparkle-1.16.0",
-					"$(PROJECT_DIR)",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)";
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRECOMPS_INCLUDE_HEADERS_FROM_BUILT_PRODUCTS_DIR = NO;
@@ -2042,7 +2035,7 @@
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
 				PRODUCT_NAME = NCX;
 				PROVISIONING_PROFILE_SPECIFIER = "";
-				SHARED_PRECOMPS_DIR = "$(CACHE_ROOT)/SharedPrecompiledHeaders";
+				SHARED_PRECOMPS_DIR = "$(OBJROOT)/SharedPrecompiledHeaders";
 			};
 			name = Debug;
 		};
@@ -2058,15 +2051,13 @@
 				COMBINE_HIDPI_IMAGES = YES;
 				COPY_PHASE_STRIP = NO;
 				DEVELOPMENT_TEAM = BK4ST6N599;
-				FRAMEWORK_SEARCH_PATHS = (
-					"$(SRCROOT)/../Sparkle/Sparkle-1.16.0",
-					"$(PROJECT_DIR)",
-				);
+				FRAMEWORK_SEARCH_PATHS = "$(PROJECT_DIR)";
 				INFOPLIST_FILE = "NCX/NCX-Info.plist";
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited) @executable_path/../Frameworks";
 				PRODUCT_BUNDLE_IDENTIFIER = com.newton.connection;
 				PRODUCT_NAME = NCX;
 				PROVISIONING_PROFILE_SPECIFIER = "";
+				SHARED_PRECOMPS_DIR = "$(OBJROOT)/SharedPrecompiledHeaders";
 			};
 			name = Release;
 		};

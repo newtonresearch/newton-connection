@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="23727" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="inJ-cq-jtf">
+<document type="com.apple.InterfaceBuilder3.Cocoa.Storyboard.XIB" version="3.0" toolsVersion="24506" targetRuntime="MacOSX.Cocoa" propertyAccessControl="none" useAutolayout="YES" initialViewController="inJ-cq-jtf">
     <dependencies>
-        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="23727"/>
+        <plugIn identifier="com.apple.InterfaceBuilder.CocoaPlugin" version="24506"/>
         <capability name="documents saved in the Xcode 8 format" minToolsVersion="8.0"/>
     </dependencies>
     <scenes>
@@ -391,15 +391,15 @@
                         <rect key="frame" x="0.0" y="0.0" width="340" height="80"/>
                         <autoresizingMask key="autoresizingMask" flexibleMaxX="YES" flexibleMinY="YES"/>
                         <clipView key="contentView" focusRingType="none" drawsBackground="NO" id="wK7-vY-vUO">
-                            <rect key="frame" x="0.0" y="0.0" width="325" height="80"/>
+                            <rect key="frame" x="0.0" y="0.0" width="340" height="80"/>
                             <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                             <subviews>
                                 <textView focusRingType="none" editable="NO" importsGraphics="NO" richText="NO" verticallyResizable="YES" findStyle="panel" spellingCorrection="YES" id="m4x-kv-W8j">
-                                    <rect key="frame" x="0.0" y="0.0" width="325" height="80"/>
+                                    <rect key="frame" x="0.0" y="0.0" width="340" height="80"/>
                                     <autoresizingMask key="autoresizingMask" widthSizable="YES" heightSizable="YES"/>
                                     <color key="textColor" name="textColor" catalog="System" colorSpace="catalog"/>
                                     <color key="backgroundColor" name="textBackgroundColor" catalog="System" colorSpace="catalog"/>
-                                    <size key="minSize" width="325" height="80"/>
+                                    <size key="minSize" width="340" height="80"/>
                                     <size key="maxSize" width="463" height="10000000"/>
                                     <color key="insertionPointColor" name="controlTextColor" catalog="System" colorSpace="catalog"/>
                                     <connections>
@@ -414,7 +414,7 @@
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                         <scroller key="verticalScroller" wantsLayer="YES" verticalHuggingPriority="750" doubleValue="1" horizontal="NO" id="i49-gc-Kj3">
-                            <rect key="frame" x="325" y="0.0" width="15" height="80"/>
+                            <rect key="frame" x="323" y="0.0" width="17" height="80"/>
                             <autoresizingMask key="autoresizingMask"/>
                         </scroller>
                     </scrollView>
