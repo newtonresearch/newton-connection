@@ -22,3 +22,7 @@ Project dependencies include the following frameworks:
 * [Newton.framework](https://github.com/newtonresearch/newton-framework). This provides a NewtonScript environment for data imported from a tethered Newton device. You can use the framework included here, or build your own and link against that. Make an Xcode workspace that includes NCX and the Newton framework for an easier debug life.
 * [Sparkle](https://github.com/sparkle-project/Sparkle) for automatically updating the app. You should download that separately and link against the framework that project builds.
 * [libical](https://github.com/libical/libical) library for help translating Newton Dates to ical entries. The source is included here; it has been modified to work in an ARC world.
+
+## Roadmap 2026
+
+Matt: NCX is based heaily on the Newton Framework which currently compiles for Intel CPUs only. Apple will stop support for Intel application in fall 2027, but already macOS Tahoe warns users that Intel support will run out. So my plan for 2026 is porting Newton Framework to pure C++, making it compile on any 32 or 64 bit CPU. After that, I plan to port NCX, hopefully in time to avoid a gap in macOS support.
