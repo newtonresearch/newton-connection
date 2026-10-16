@@ -664,7 +664,8 @@ clean under ThreadSanitizer and ASan/UBSan.
   stopped at MSVC's run-time check for variables read before they are set
   (B75: 49 in the framework, found with clang's uninitialized warnings;
   NCX's own sources have none). CI builds RelWithDebInfo, which doesn't
-  check. All fixed.
+  check. All fixed: on Windows 11 all 31 ctests pass in a Debug build
+  (Matt, 2026-10-16).
 
 ### Phase 5: dock controller and components (no GUI)
 
