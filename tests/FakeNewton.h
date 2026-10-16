@@ -11,7 +11,7 @@
  The fixture:
    store    {name: "Internal", kind: "Internal", signature: 1234567,
              totalSize: 1048576, usedSize: 262144}
-   soups    "Names" (signature 11), "Notes" (12)
+   soups    "Names" (signature 11), "Notes" (12), "System" (13), "Packages" (14)
    entries  Names: 100 {_uniqueId: 100, cardType: 0, name: {first: "Ada",
             last: "Lovelace"}}, 101 (Charles Babbage)
    GetUserConfig('userFont) -> 12290, Gestalt(...) -> {}
@@ -25,6 +25,12 @@
             NDmp: newtdump's requests (hello, map, read) on MemoryByte()
             pfnd: "Installed Package" is installed ('pkya'), others not
    rins, rmvp   dres 0 (the removed package remembered)
+   backup   four soups in four apps: Names (100 Ada Lovelace, 101 Charles
+            Babbage), Notes (Notepad: 200 "Shopping"), System (System
+            information, a systemFrame), Packages (a packageFrame: 300
+            Tetris, a package, and 301, an Extras icon); round 2 (--round
+            2): Names has 100 and 102 (Mary Somerville), the others aren't
+            dirty. Deleted ids and added entries are remembered.
    --browse-install: after docking, as Dock's Install: rtbr 'packages,
             dpth, gfil, spth into a folder "sub" and back, gfin and lpfl of
             the first file; then it disconnects
@@ -48,6 +54,7 @@ struct FakeNewtonOptions
   double connectSeconds = 10;         // keep trying to connect this long
   bool toolkit = true;                // it has the Toolkit app (screenshots)
   bool browseInstall = false;         // browse the desktop and install a package (Dock's Install)
+  int round = 1;                      // its soups at the first backup (1) or a later one (2)
 };
 
 /** The fake Newton's physical memory: a byte; 0x1000 ... 0x1FFF all 0xFF. */
@@ -84,6 +91,11 @@ public:
   /** The packages it took ('lpkg'), and removed ('rmvp'), by name. */
   size_t packagesLoaded() const { return mPackagesLoaded; }
   const std::vector<std::string> & removed() const { return mRemoved; }
+  /** Backups: the soups whose info got NCKLastBackupTime, the ids
+      deleted (dele), the titles of the entries added (adde). */
+  const std::vector<std::string> & soupInfos() const { return mSoupInfos; }
+  const std::vector<int64_t> & deleted() const { return mDeleted; }
+  const std::vector<std::string> & added() const { return mAdded; }
   /** What it saw browsing (--browse-install): "path <element>", "file
       <name> <type>", "subfile <name>", "info <kind> <size>". */
   const std::vector<std::string> & browsed() const { return mBrowsed; }
@@ -101,6 +113,9 @@ private:
   size_t mPackagesLoaded = 0;
   std::vector<std::string> mRemoved;
   std::vector<std::string> mBrowsed;
+  std::vector<std::string> mSoupInfos;
+  std::vector<int64_t> mDeleted;
+  std::vector<std::string> mAdded;
 };
 
 } // namespace ncx

@@ -11,13 +11,18 @@
                                      the Newton's screen (it needs the
                                      Toolkit app), as a PNG; --block: bytes
                                      a request (2048; 0: all at once)
+   ncx-cli backup [--folder <folder>] [options]
+                                     back up the Newton into its
+                                     .newtondevice file in the folder (the
+                                     app's: NCX_DATA_DIR, or as NCX keeps them)
    ncx-cli install <package>... [--replace] [options]
                                      install packages (on the default store);
                                      --replace: those of the same name too
-   ncx-cli serve [--folder <folder>] [options]
+   ncx-cli serve [--folder <folder>] [--backups <folder>] [options]
                                      dock and wait: the Newton browses the
-                                     folder (home) and installs from it, and
-                                     disconnects when done
+                                     folder (home) and installs from it, or
+                                     backs up (into --backups, as backup);
+                                     it disconnects when done
    ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>]
                [--resume] [options]
                                      the Newton's ROM (8 MB from physical 0;
@@ -31,7 +36,8 @@
    ncx-cli convert <nbku> <file>     a Newton Connection 1 backup (.nbku) as
                                      a new .newtondevice file
 
- Options for the commands that dock (info, screenshot, install, serve, rom):
+ Options for the commands that dock (info, screenshot, backup, install, serve,
+ rom):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -48,6 +54,7 @@
 #include "base/Prefs.h"
 #include "comms/Handshake.h"
 #include "comms/Session.h"
+#include "dock/Backup.h"
 #include "dock/DockController.h"
 #include "dock/FileBrowser.h"
 #include "dock/Packages.h"
@@ -55,6 +62,7 @@
 #include "dock/Screenshot.h"
 #include "model/BackupImport.h"
 #include "model/DeviceFile.h"
+#include "model/DeviceList.h"
 #include "model/NewtonModel.h"
 #include "platform/AppFolders.h"
 
@@ -81,8 +89,9 @@ int Usage()
     "Usage: ncx-cli --version | --selftest\n"
     "       ncx-cli info [<dock options>]\n"
     "       ncx-cli screenshot <file.png> [--block <bytes>] [<dock options>]\n"
+    "       ncx-cli backup [--folder <folder>] [<dock options>]\n"
     "       ncx-cli install <package>... [--replace] [<dock options>]\n"
-    "       ncx-cli serve [--folder <folder>] [<dock options>]\n"
+    "       ncx-cli serve [--folder <folder>] [--backups <folder>] [<dock options>]\n"
     "       ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>] [--resume] [<dock options>]\n"
     "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
@@ -367,15 +376,66 @@ int Install(int argc, char * argv[])
 }
 
 
+/** Where backups go: --folder, or the app's folder (NCX_DATA_DIR). */
+std::filesystem::path BackupFolder(const std::string & inFolder)
+{
+  return inFolder.empty() ? ncx::AppDataFolder() : ncx::PathFromUTF8(inFolder);
+}
+
+
+/** Back up the docked Newton into its file in inFolder (found by its id,
+    or made); print what happened. 0 if all went well. */
+int BackUp(ncx::DockController & ioDock, const std::filesystem::path & inFolder, bool inNewtonAsked)
+{
+  std::string error;
+  std::unique_ptr<ncx::DeviceFile> file = ncx::OpenDeviceFileFor(inFolder, ioDock.newton().info, ioDock.newton().name, error);
+  if (!file) {
+    std::fprintf(stderr, "ncx-cli: %s\n", error.c_str());
+    return 1;
+  }
+  if (!inNewtonAsked)
+    ncx::UpdateDevice(ioDock, *file);
+  ncx::Backup backup(ioDock, *file);
+  ncx::Progress progress;
+  int result = inNewtonAsked ? backup.answer(&progress) : backup.run(&progress);
+  const ncx::BackupCounts & counts = backup.counts();
+  std::printf("%s: %zu soups, %zu entries came, %zu removed, %zu deleted on the Newton, %zu sent to it%s\n",
+              ncx::UTF8FromPath(file->path()).c_str(), counts.soups, counts.entries, counts.removed,
+              counts.deletedOnNewton, counts.added, result == 0 ? "" : (" (" + std::to_string(result) + ")").c_str());
+  return result == 0 ? 0 : 1;
+}
+
+
+int BackupCommand(int argc, char * argv[])
+{
+  std::string folder;
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--folder") == 0 && i + 1 < argc)
+      folder = argv[++i];
+    else
+      args.push_back(argv[i]);
+  }
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || !rest.empty())
+    return Usage();
+  return Dock(settings, [&](ncx::DockController & dock) { return BackUp(dock, BackupFolder(folder), false); });
+}
+
+
 int Serve(int argc, char * argv[])
 {
   // dock and wait: the Newton browses the folder (Dock's Install) and
   // disconnects when it's done
   std::filesystem::path folder = ncx::HomeFolder();
+  std::string backups;
   std::vector<char *> args(argv, argv + 2);
   for (int i = 2; i < argc; ++i) {
     if (std::strcmp(argv[i], "--folder") == 0 && i + 1 < argc)
       folder = ncx::PathFromUTF8(argv[++i]);
+    else if (std::strcmp(argv[i], "--backups") == 0 && i + 1 < argc)
+      backups = argv[++i];
     else
       args.push_back(argv[i]);
   }
@@ -391,13 +451,27 @@ int Serve(int argc, char * argv[])
     std::printf("%s: %s\n", ncx::UTF8FromPath(inFile.filename()).c_str(),
                 inError == 0 ? "installed" : ("not installed (" + std::to_string(inError) + ")").c_str());
   });
+  // Dock's Backup on the Newton
+  dock.handle(ncx::kDRequestToSync, [&](ncx::DockController & ioDock, const ncx::DockEvent &) {
+    BackUp(ioDock, BackupFolder(backups), true);
+  });
   ncx::DockController::Events events;
   events.listening = [](const std::vector<std::string> & inWhere) {
     for (const std::string & where : inWhere)
       std::fprintf(stderr, "Waiting for a Newton on %s\n", where.c_str());
   };
-  events.docked = [](const ncx::DockedNewton & inNewton) {
-    std::fprintf(stderr, "Docked: %s; the Newton can install from here now\n", inNewton.name.c_str());
+  events.docked = [&](const ncx::DockedNewton & inNewton) {
+    std::fprintf(stderr, "Docked: %s; the Newton can install and back up now\n", inNewton.name.c_str());
+    // the Newton in its file, as the app does it when a Newton docks
+    dock.post([&](ncx::DockController & ioDock) {
+      std::string error;
+      std::unique_ptr<ncx::DeviceFile> file = ncx::OpenDeviceFileFor(BackupFolder(backups), ioDock.newton().info,
+                                                                     ioDock.newton().name, error);
+      if (file)
+        ncx::UpdateDevice(ioDock, *file);
+      else
+        std::fprintf(stderr, "ncx-cli: %s\n", error.c_str());
+    });
   };
   dock.setEvents(events);
   std::string error;
@@ -502,6 +576,8 @@ int main(int argc, char * argv[])
   }
   if (argc >= 2 && std::strcmp(argv[1], "info") == 0)
     return Info(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "backup") == 0)
+    return BackupCommand(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "install") == 0)
     return Install(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "serve") == 0)

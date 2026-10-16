@@ -675,8 +675,8 @@ clean under ThreadSanitizer and ASan/UBSan.
 ### Phase 5: dock controller and components (no GUI)
 
 In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
-Windows, Matt, 2026-10-16/17); 5.2.3 against the fake Newton. 50 ctests,
-clean under ThreadSanitizer and ASan/UBSan.
+Windows, Matt, 2026-10-16/17); 5.2.3 and 5.2.4 against the fake Newton. 52
+ctests, clean under ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
   - `src/dock/DockController.h`: a dock thread that listens, docks
@@ -765,6 +765,31 @@ clean under ThreadSanitizer and ASan/UBSan.
      waits for the Newton. Still to do: against Einstein and a real Newton.
   4. backup, full and selective (`ncx-cli backup`), which writes the
      `.newtondevice`
+     ✅ (fake Newton) `dock/Backup.h`, as the Cocoa app:
+     - `UpdateDevice` (do_GALS): after docking, the Newton in its file
+       (`OpenDeviceFileFor`): name, info, its stores, and what Gestalt says
+       (OS version, manufacture date, processor); the clock if asked.
+     - `Backup`: the desktop asks (`ssyn` with the desktop in control) or
+       the Newton does (Dock's Backup: `ssyn` from it); the sync options
+       name the stores (and whether packages); per store its apps (System
+       first, Packages last, only if wanted), per soup: a new one whole
+       (`snds`), a known one changed info and indexes, then what changed
+       since `lastBackupId` and the ids of the rest (`bksp`, `base`,
+       `bids`), then synchronised; `NCKLastBackupTime` in the soup's info,
+       in the file and on the Newton. Each soup a transaction (what came
+       stays). Afterwards the device's backup date and error.
+     - Synchronising, as the Cocoa app does: entries the Newton no longer
+       has leave the file; entries made on the desktop (imported) go to the
+       Newton and take the ids it gives; and entries the Newton has that
+       the file doesn't are deleted on the Newton (taken for deleted on the
+       desktop). The last one is the Cocoa app's behaviour and deletes data
+       on the Newton if a file is incomplete: decide before the UI (Phase 7)
+       whether NCX keeps it.
+     - Selective backup is the sync options': the Newton's Backup slip says
+       which stores and whether packages; from the desktop everything.
+     `ncx-cli backup [--folder]` (into the file of the docked Newton in the
+     folder, the app's by default); `ncx-cli serve [--backups]` answers the
+     Newton's Backup. Still to do: against Einstein and a real Newton.
   5. restore
   6. import of entries and soup modification (delete entries or packages)
   7. keyboard passthrough (an API only; `ncx-cli type "text"`)

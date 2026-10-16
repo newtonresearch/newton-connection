@@ -37,6 +37,9 @@ struct FakeProcess
   size_t packagesLoaded = 0;              // the packages it took
   std::vector<std::string> removed;       // the packages removed, by name
   std::vector<std::string> browsed;       // what it saw browsing
+  std::vector<std::string> soupInfos;     // soups whose info got the backup time
+  std::vector<int64_t> deleted;           // ids deleted on it
+  std::vector<std::string> added;         // entries added to it, by title
   std::string why;
 
   /** Start inProgram (ncx-fake-newton) on a thread; it keeps trying to
@@ -85,6 +88,12 @@ struct FakeProcess
         removed.push_back(line.substr(8));
       else if (line.compare(0, 8, "browsed ") == 0)
         browsed.push_back(line.substr(8));
+      else if (line.compare(0, 9, "soupinfo ") == 0)
+        soupInfos.push_back(line.substr(9));
+      else if (line.compare(0, 8, "deleted ") == 0)
+        deleted.push_back(std::stoll(line.substr(8)));
+      else if (line.compare(0, 6, "added ") == 0)
+        added.push_back(line.substr(6));
       else if (line.compare(0, 4, "why ") == 0)
         why = line.substr(4);
     }

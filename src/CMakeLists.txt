@@ -54,6 +54,7 @@ add_library (ncx_core STATIC
   comms/Handshake.cc comms/Handshake.h
   comms/Listener.cc comms/Listener.h
   comms/Session.cc comms/Session.h
+  dock/Backup.cc dock/Backup.h
   dock/DockController.cc dock/DockController.h
   dock/Extensions.cc dock/Extensions.h ${ncx_extension_data}
   dock/FileBrowser.cc dock/FileBrowser.h

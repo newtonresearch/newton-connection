@@ -8,7 +8,7 @@
    ncx_dock_test <section> <ncx-fake-newton>   extensions, bits, controller,
                                                screenshot, onepiece, notoolkit,
                                                memory, packagefiles, install,
-                                               browse, or all
+                                               browse, backup, or all
    ncx_dock_test make-package <file> <name>    a package to try things on
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok.
@@ -18,16 +18,24 @@
 #include "FakeProcess.h"
 
 #include "base/Core.h"
+#include "base/Log.h"
 #include "base/Strings.h"
+#include "model/DeviceFile.h"
+#include "model/DeviceList.h"
+#include "model/NewtonModel.h"
 #include "platform/AppFolders.h"
 #include "base/NewtonCall.h"
+#include "base/NewtonStrings.h"
 #include "comms/DockRefs.h"
+#include "dock/Backup.h"
 #include "dock/DockController.h"
 #include "dock/Extensions.h"
 #include "dock/FileBrowser.h"
 #include "dock/Packages.h"
 #include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
+
+#include "RSSymbols.h"
 
 #include <algorithm>
 #include <atomic>
@@ -447,6 +455,118 @@ void TestBrowse()
   std::filesystem::remove_all(folder);
 }
 
+/*-- backup ------------------------------------------------------------------*/
+
+std::vector<int64_t> SoupIds(DeviceFile & inFile, const std::string & inSoup)
+{
+  std::vector<int64_t> ids;
+  for (const StoreRecord & store : inFile.stores())
+    if (std::optional<SoupRecord> soup = inFile.findSoup(store.pk, inSoup))
+      for (const EntryRecord & entry : inFile.entries(soup->pk))
+        ids.push_back(entry.uniqueId);
+  return ids;
+}
+
+void TestBackup()
+{
+  std::filesystem::path folder = TempFolder("backup");
+  std::filesystem::path path;
+
+  // round 1: a new file, all of it
+  FakeProcess fake;
+  BackupCounts counts;
+  int backedUp = -1;
+  Progress progress;
+  int result = DockWithFake(Port(13), "--round 1", fake, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(folder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    path = file->path();
+    UpdateDevice(dock, *file);
+    Backup backup(dock, *file);
+    backedUp = backup.run(&progress);
+    counts = backup.counts();
+  });
+  Check(result == 0 && backedUp == 0 && counts.soups == 4 && counts.entries == 5,
+        "backup: the first, into a new file (" + std::to_string(counts.soups) + " soups, " + std::to_string(counts.entries)
+        + " entries) " + fake.why);
+  Check(progress.total() == 4 && progress.completed() == 4, "backup: the progress, app by app");
+  Check(Received(fake, "ssyn") && Received(fake, "gsyn") && Received(fake, "snds") && Received(fake, "opdn")
+        && fake.soupInfos.size() == 4, "backup: asked, sync options, soups sent, their backup time");
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadOnly, error);
+    Check(file != nullptr, "backup: the file " + error);
+    if (!file)
+      return;
+    std::optional<DeviceRecord> device = file->device();
+    Check(device && device->name == "Ada Lovelace" && device->osInfo == std::string("2.1 (717006)-1")
+          && device->processor == std::string("161.9 MHz  StrongARM") && device->backupDate && device->backupError == 0,
+          "backup: the device, as Gestalt said");
+    std::vector<StoreRecord> stores = file->stores();
+    std::vector<SoupRecord> soups = file->soups();
+    Check(stores.size() == 1 && stores[0].totalSize == 1048576 && soups.size() == 4, "backup: the store and its soups");
+    bool apps = true, times = true;
+    for (const SoupRecord & soup : soups) {
+      apps = apps && soup.appPk != 0;
+      times = times && soup.lastBackupTime == 50000002;
+    }
+    Check(apps && times, "backup: every soup with its app and its backup time");
+    Check(SoupIds(*file, "Names") == std::vector<int64_t>({ 100, 101 }) && SoupIds(*file, "Packages") == std::vector<int64_t>({ 300 }),
+          "backup: the entries (in Packages only the packages)");
+    std::optional<SoupRecord> names = file->findSoup(stores[0].pk, "Names");
+    std::optional<EntryRecord> ada = names ? file->findEntry(names->pk, 100, false) : std::nullopt;
+    Check(ada && ada->title == std::string("Ada Lovelace") && names->lastBackupId == 101, "backup: titles, lastBackupId");
+  }
+
+  // on the desktop: Ada deleted, a note made
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file)
+      return;
+    StoreRecord store = file->stores().at(0);
+    std::optional<SoupRecord> names = file->findSoup(store.pk, "Names");
+    std::optional<SoupRecord> notes = file->findSoup(store.pk, "Notes");
+    if (!names || !notes)
+      return;
+    DeviceFile::Transaction transaction(*file);
+    file->deleteEntry(file->findEntry(names->pk, 100, false)->pk);
+    RefVar note(AllocateFrame());
+    SetFrameSlot(note, SYMA(class), MakeSymbol("paragraph"));
+    SetFrameSlot(note, SYMA(title), MakeStringFromUTF8("Made on the desktop"));
+    AddImportedEntry(*file, *notes, note);
+    transaction.commit();
+  }
+
+  // round 2: Babbage gone and Somerville new on the Newton
+  FakeProcess fake2;
+  result = DockWithFake(Port(14), "--round 2", fake2, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(folder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    UpdateDevice(dock, *file);
+    Backup backup(dock, *file);
+    backedUp = backup.run();
+    counts = backup.counts();
+  });
+  Check(result == 0 && backedUp == 0 && counts.soups == 4 && counts.entries == 1, "backup: the second " + fake2.why);
+  Check(counts.removed == 1 && fake2.deleted == std::vector<int64_t>({ 100 }) && counts.deletedOnNewton == 1,
+        "backup: gone from the Newton, gone from the file; deleted here, deleted there");
+  Check(counts.added == 1 && fake2.added == std::vector<std::string>({ "Made on the desktop" }),
+        "backup: the note made on the desktop sent to the Newton");
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadOnly, error);
+    std::vector<int64_t> notes = file ? SoupIds(*file, "Notes") : std::vector<int64_t>();
+    Check(file && SoupIds(*file, "Names") == std::vector<int64_t>({ 102 }) && notes == std::vector<int64_t>({ 200, 1000 })
+          && file->rowCount("ZDEVICE") == 1, "backup: the file afterwards (the note with the Newton's id)");
+  }
+  std::filesystem::remove_all(folder);
+}
+
 } // namespace
 
 
@@ -460,12 +580,14 @@ int main(int argc, char * argv[])
     return 0;
   }
   gFakeNewton = argc > 2 ? argv[2] : "ncx-fake-newton";
+  if (const char * level = std::getenv("NCX_LOG"))      // the dock's log, to stderr
+    SetLogLevel(std::atoi(level));
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "extensions", TestExtensions }, { "bits", TestBits }, { "controller", TestController },
     { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
-    { "browse", TestBrowse } };
+    { "browse", TestBrowse }, { "backup", TestBackup } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

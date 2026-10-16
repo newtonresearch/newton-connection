@@ -19,6 +19,7 @@
 #include <algorithm>
 #include <cctype>
 #include <chrono>
+#include <cstring>
 #include <memory>
 #include <thread>
 
@@ -418,6 +419,45 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
 
   // the session: answer until 'disc'
   const EventType kPackageFinder = Cmd("pfnd");
+  // the soups to back up (round 2: Charles Babbage gone, Mary Somerville new)
+  struct FakeSoup { std::string name; int signature; std::string app; std::string appClass; RefStruct entries; };
+  std::vector<FakeSoup> soups;
+  auto addSoup = [&](const char * inName, int inSignature, const char * inApp, const char * inClass) -> Ref {
+    soups.push_back({ inName, inSignature, inApp, inClass, RefStruct(MakeArray(0)) });
+    return soups.back().entries;
+  };
+  {
+    RefVar names(addSoup("Names", 11, "Names", ""));
+    AddArraySlot(names, RefVar(MakeEntry(100, "Ada", "Lovelace")));
+    if (inOptions.round == 1)
+      AddArraySlot(names, RefVar(MakeEntry(101, "Charles", "Babbage")));
+    else
+      AddArraySlot(names, RefVar(MakeEntry(102, "Mary", "Somerville")));
+    RefVar notes(addSoup("Notes", 12, "Notepad", ""));
+    RefVar note(AllocateFrame());
+    SetFrameSlot(note, SYMA(class), MakeSymbol("paragraph"));
+    SetFrameSlot(note, SYMA(title), MakeStringFromUTF8("Shopping"));
+    SetFrameSlot(note, SYMA(_uniqueId), MAKEINT(200));
+    AddArraySlot(notes, note);
+    RefVar system(addSoup("System", 13, "System information", "systemFrame"));
+    RefVar config(AllocateFrame());
+    SetFrameSlot(config, MakeSymbol("tag"), MakeStringFromUTF8("Config"));
+    SetFrameSlot(config, SYMA(_uniqueId), MAKEINT(1));
+    AddArraySlot(system, config);
+    RefVar packages(addSoup("Packages", 14, "Packages", "packageFrame"));
+    RefVar package(AllocateFrame());
+    SetFrameSlot(package, MakeSymbol("packageName"), MakeStringFromUTF8("Tetris"));
+    RefVar pkgRef(AllocateBinary(MakeSymbol("package"), 16));
+    std::memcpy(BinaryData(pkgRef), "package0 a test", 16);
+    SetFrameSlot(package, MakeSymbol("pkgRef"), pkgRef);
+    SetFrameSlot(package, SYMA(_uniqueId), MAKEINT(300));
+    AddArraySlot(packages, package);
+    RefVar icon(AllocateFrame());                     // an Extras icon: not a package
+    SetFrameSlot(icon, MakeSymbol("packageName"), MakeStringFromUTF8("Tetris icon"));
+    SetFrameSlot(icon, SYMA(_uniqueId), MAKEINT(301));
+    AddArraySlot(packages, icon);
+  }
+  std::string currentSoup;
   std::vector<uint32_t> maps;               // NDmp: the windows mapped
   auto hasExtension = [this](const char * inId) {
     for (const std::string & id : mExtensions)
@@ -444,14 +484,28 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       wire->send(MakeRefEvent(kDStoreNames, MakeStores()));
     } else if (c == kDGetDefaultStore) {
       wire->send(MakeRefEvent(kDDefaultStore, GetArraySlot(MakeStores(), 0)));
-    } else if (c == kDSetCurrentStore || c == kDSetStoreToDefault || c == kDSetCurrentSoup || c == kDCursorFree) {
+    } else if (c == kDSetCurrentStore || c == kDSetStoreToDefault || c == kDCursorFree) {
       wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDSetCurrentSoup) {
+      // its name: big-endian UniChars
+      std::u16string name;
+      for (size_t i = 0; i + 1 < event.data.size(); i += 2) {
+        char16_t ch = (char16_t)(event.data[i] << 8 | event.data[i + 1]);
+        if (ch == 0)
+          break;
+        name.push_back(ch);
+      }
+      currentSoup = UTF8FromUTF16(name);
+      bool known = false;
+      for (const FakeSoup & soup : soups)
+        known = known || soup.name == currentSoup;
+      wire->send(DockEvent::MakeValue(kDResult, known ? 0 : kDockErrSoupNotFound));
     } else if (c == kDGetSoupNames) {
-      RefVar names(MakeArray(2)), signatures(MakeArray(2));
-      SetArraySlot(names, 0, MakeStringFromUTF8("Names"));
-      SetArraySlot(names, 1, MakeStringFromUTF8("Notes"));
-      SetArraySlot(signatures, 0, MAKEINT(11));
-      SetArraySlot(signatures, 1, MAKEINT(12));
+      RefVar names(MakeArray(0)), signatures(MakeArray(0));
+      for (const FakeSoup & soup : soups) {
+        AddArraySlot(names, RefVar(MakeStringFromUTF8(soup.name)));
+        AddArraySlot(signatures, MAKEINT(soup.signature));
+      }
       std::vector<uint8_t> data = FlattenToBytes(names), more = FlattenToBytes(signatures);
       data.insert(data.end(), more.begin(), more.end());
       wire->send(DockEvent::MakeData(kDSoupNames, std::move(data)));
@@ -575,14 +629,109 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       ++mPackagesLoaded;
       mPackageSize = event.data.size();
       wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDRequestToSync) {
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDGetSyncOptions) {
+      RefVar options(AllocateFrame());
+      SetFrameSlot(options, MakeSymbol("packages"), TRUEREF);
+      SetFrameSlot(options, MakeSymbol("stores"), MakeStores());
+      wire->send(MakeRefEvent(kDSyncOptions, options));
+    } else if (c == kDLastSyncTime) {
+      wire->send(DockEvent::MakeValue(kDCurrentTime, 50000000 + inOptions.round));
+    } else if (c == kDGetAppNames) {
+      RefVar apps(MakeArray(0));
+      for (const FakeSoup & soup : soups) {
+        RefVar app(AllocateFrame());
+        if (!soup.appClass.empty())
+          SetFrameSlot(app, SYMA(class), MakeSymbol(soup.appClass.c_str()));
+        SetFrameSlot(app, SYMA(name), MakeStringFromUTF8(soup.app));
+        RefVar names(MakeArray(1));
+        SetArraySlot(names, 0, MakeStringFromUTF8(soup.name));
+        SetFrameSlot(app, SYMA(soups), names);
+        AddArraySlot(apps, app);
+      }
+      wire->send(MakeRefEvent(kDAppNames, apps));
+    } else if (c == kDGetSoupInfo) {
+      RefVar soupDef(AllocateFrame());
+      SetFrameSlot(soupDef, SYMA(name), MakeStringFromUTF8(currentSoup));
+      SetFrameSlot(soupDef, MakeSymbol("userDescr"), MakeStringFromUTF8(currentSoup + " soup"));
+      SetFrameSlot(soupDef, MakeSymbol("ownerAppName"), MakeStringFromUTF8(currentSoup));
+      RefVar info(AllocateFrame());
+      SetFrameSlot(info, MakeSymbol("soupDef"), soupDef);
+      wire->send(MakeRefEvent(kDSoupInfo, info));
+    } else if (c == kDGetIndexDescription) {
+      wire->send(MakeRefEvent(kDIndexDescription, RefVar(MakeArray(0))));
+    } else if (c == kDGetChangedInfo || c == kDGetChangedIndex) {
+      wire->send(DockEvent::MakeValue(kDResult, 0));      // unchanged
+    } else if (c == kDSendSoup || c == kDBackupSoup) {
+      // round 2: only Names changed (101 gone, 102 new)
+      int64_t lastId = c == kDBackupSoup ? event.value() : -1;
+      bool dirty = c == kDSendSoup || inOptions.round == 1 || currentSoup == "Names";
+      if (!dirty) {
+        wire->send(DockEvent::Make(kDSoupNotDirty));
+        continue;
+      }
+      std::vector<int64_t> others;
+      for (const FakeSoup & soup : soups)
+        if (soup.name == currentSoup)
+          for (ArrayIndex i = 0; i < Length(soup.entries); ++i) {
+            RefVar entry(GetArraySlot(soup.entries, i));
+            int64_t id = RINT(GetFrameSlot(entry, SYMA(_uniqueId)));
+            if (id > lastId)
+              wire->send(MakeRefEvent(kDEntry, entry));
+            else
+              others.push_back(id);
+          }
+      if (c == kDBackupSoup && !others.empty()) {
+        // the ids of the rest: a base, then n (base + n) and -n (n more)
+        std::sort(others.begin(), others.end());
+        wire->send(DockEvent::MakeValue(kDSetBaseID, (int32_t)others[0]));
+        std::vector<uint8_t> codes;
+        auto put16 = [&](int v) { codes.push_back((uint8_t)(v >> 8)); codes.push_back((uint8_t)v); };
+        for (size_t i = 0; i < others.size();) {
+          size_t run = 1;
+          while (i + run < others.size() && others[i + run] == others[i] + (int64_t)run)
+            ++run;
+          put16((int)(others[i] - others[0]));
+          if (run > 1)
+            put16(-(int)(run - 1));
+          i += run;
+        }
+        put16(0x8000);
+        wire->send(DockEvent::MakeData(kDBackupIDs, std::move(codes)));
+      }
+      wire->send(DockEvent::Make(kDBackupSoupDone));
+    } else if (c == kDSetSoupInfo) {
+      RefVar info(UnflattenBytes(event.data));
+      if (IsFrame(info) && ISINT(GetFrameSlot(info, MakeSymbol("NCKLastBackupTime"))))
+        mSoupInfos.push_back(currentSoup);
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDDeleteEntries) {
+      for (uint32_t i = 0, count = event.data.size() >= 4 ? event.longAt(0) : 0; i < count; ++i)
+        mDeleted.push_back((int64_t)event.longAt(4 + 4 * i));
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDAddEntry) {
+      RefVar entry(UnflattenBytes(event.data));
+      RefVar title(IsFrame(entry) ? GetFrameSlot(entry, SYMA(title)) : (Ref)NILREF);
+      mAdded.push_back(IsString(title) ? UTF8FromString(title) : std::string("?"));
+      wire->send(DockEvent::MakeValue(kDAddedID, 1000 + (int32_t)mAdded.size() - 1));
     } else if (c == kDCallGlobalFunction) {
       size_t end = 0;
       RefVar function(UnflattenBytes(event.data, 0, &end));
       RefVar args(UnflattenBytes(event.data, end));
+      std::string name = IsSymbol(function) ? UTF8FromSymbol(function) : std::string();
+      RefVar first(IsArray(args) && Length(args) > 0 ? GetArraySlot(args, 0) : (Ref)NILREF);
       RefVar result;
-      if (IsSymbol(function) && UTF8FromSymbol(function) == "GetUserConfig")
-        result = MAKEINT(12290);
-      else
+      if (name == "GetUserConfig")
+        result = IsSymbol(first) && UTF8FromSymbol(first) == "hexade" ? (Ref)NILREF : MAKEINT(12290);
+      else if (name == "Gestalt") {
+        result = AllocateFrame();
+        SetFrameSlot(result, MakeSymbol("ROMversionString"), MakeStringFromUTF8("2.1 (717006)"));
+        SetFrameSlot(result, MakeSymbol("patchVersion"), MAKEINT(1));
+        SetFrameSlot(result, MakeSymbol("manufactureDate"), MAKEINT(48000000));
+        SetFrameSlot(result, MakeSymbol("CPUtype"), MakeSymbol("strongARM"));
+        SetFrameSlot(result, MakeSymbol("CPUspeed"), MakeReal(161.9));
+      } else
         result = AllocateFrame();
       wire->send(MakeRefEvent(kDCallResult, result));
     } else {

@@ -214,7 +214,7 @@ void TestSession(bool inPlain)
         kind + "the handshake: name, protocol, machine, ROM " + desktop.failure);
   Check(description.compare(0, inPlain ? 3 : 3, inPlain ? "TCP" : "MNP") == 0, kind + "the listener chose it: " + description);
   Check(storeCount == 1 && storeName == "Internal", kind + "getAllStores, setCurrentStore");
-  Check(soupCount == 2 && soupName == "Names", kind + "getAllSoups (two objects in an event)");
+  Check(soupCount == 4 && soupName == "Names", kind + "getAllSoups (two objects in an event)");
   Check(idCount == 2 && entryName == "Charles", kind + "setCurrentSoup, getEntryIds, getEntry");
   Check(cursorCount == 2 && firstName == "Ada" && secondName == "Charles" && lastName == "nil",
         kind + "query: countEntries, entry, next, next at the end");

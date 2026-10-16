@@ -51,7 +51,7 @@ add_test (NAME ncx_model_fixture COMMAND ncx_model_test fixture ${CMAKE_CURRENT_
 add_executable (ncx_dock_test dock_test.cc)
 target_link_libraries (ncx_dock_test PRIVATE ncx_fake_newton)
 add_dependencies (ncx_dock_test ncx-fake-newton)
-foreach (section extensions bits controller screenshot onepiece notoolkit memory packagefiles install browse)
+foreach (section extensions bits controller screenshot onepiece notoolkit memory packagefiles install browse backup)
   add_test (NAME ncx_dock_${section} COMMAND ncx_dock_test ${section} $<TARGET_FILE:ncx-fake-newton>)
 endforeach ()
 math (EXPR cli_port_screenshot "43000 + ${port_base} + 2000")
@@ -65,3 +65,6 @@ math (EXPR cli_port_install "43000 + ${port_base} + 4000")
 add_test (NAME ncx_cli_install COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DMAKE=$<TARGET_FILE:ncx_dock_test> -DPORT=${cli_port_install} -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_install
           -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_install.cmake)
+math (EXPR cli_port_backup "43000 + ${port_base} + 5000")
+add_test (NAME ncx_cli_backup COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
+          -DPORT=${cli_port_backup} -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_backup -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_backup.cmake)
