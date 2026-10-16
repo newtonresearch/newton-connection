@@ -20,6 +20,10 @@ const char * Version();
     calls do nothing. */
 void InitCore();
 
+/** Logging as the preferences say (LogLevel, LogToFile: the log file,
+    AppFolders.h). */
+void StartLogging();
+
 /** Check the libraries: a frame through NSOF and back (newton_ncx), a frame
     for MNP and back (newton_dock), NSOF in an SQLite blob and back. Starts
     the core if needed. outReport gets a line per check, "ok ..." or

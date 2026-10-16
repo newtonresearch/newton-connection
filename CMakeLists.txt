@@ -17,6 +17,9 @@
 
 cmake_minimum_required (VERSION 3.16)
 
+# macOS 11 and later (std::filesystem needs 10.15; the Info.plist says 11)
+set (CMAKE_OSX_DEPLOYMENT_TARGET "11.0" CACHE STRING "The oldest macOS NCX runs on")
+
 project (NCX
   VERSION 3.1.0          # the Cocoa app was 3.0.2
   DESCRIPTION "Newton Connection"

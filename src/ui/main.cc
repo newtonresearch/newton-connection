@@ -7,8 +7,8 @@
    NCX                         the window
    NCX --selftest              the self test only, no window (exit 0 if all
                                is well)
-   NCX --screenshot <file>     the window, drawn into a PNG file once it is
-                               up (its content: no frame, and on macOS no
+   NCX --screenshot <file>     the window, drawn into a PNG file when it is
+                               shown (its content: no frame, and on macOS no
                                menu bar), then quit; for checking the UI
 
  The menu bar: Fl_Sys_Menu_Bar, at the top of the screen on macOS and in the
@@ -24,10 +24,12 @@
 #include <FL/fl_ask.H>
 
 #include "base/Core.h"
+#include "base/Threads.h"
 #include "base/Version.h"
 
 #include <cstdio>
 #include <cstring>
+#include <functional>
 #include <string>
 
 namespace {
@@ -61,6 +63,17 @@ void ScreenshotCB(void * inData)
   QuitCB(nullptr, nullptr);
 }
 
+/** The dock thread's way to the UI thread (RunOnMainThread). */
+void RunOnFLTKThread(std::function<void()> inTask)
+{
+  auto * task = new std::function<void()>(std::move(inTask));
+  Fl::awake([](void * inData) {
+    auto * task = static_cast<std::function<void()> *>(inData);
+    (*task)();
+    delete task;
+  }, task);
+}
+
 void AboutCB(Fl_Widget *, void *)
 {
   fl_message_title("About " NCX_NAME);
@@ -83,6 +96,10 @@ int main(int argc, char * argv[])
     argc = 1;     // not for FLTK
   }
 
+  Fl::lock();                     // other threads may call Fl::awake
+  ncx::SetMainThreadRunner(RunOnFLTKThread);
+  ncx::StartLogging();
+
   Fl_Double_Window window(480, 320, NCX_NAME);
   Fl_Sys_Menu_Bar menu(0, 0, window.w(), kMenuHeight);
   menu.add("&File/&Quit", FL_COMMAND + 'q', QuitCB);
@@ -97,10 +114,14 @@ int main(int argc, char * argv[])
   window.end();
   window.show(argc, argv);
   if (!shot.file.empty()) {
+    // at once, not on a timer: the image surface draws off the screen, and
+    // a timer may wait long while the window can't be seen (App Nap, a
+    // locked screen)
+    Fl::check();
     shot.window = &window;
-    Fl::add_timeout(0.5, ScreenshotCB, &shot);
+    ScreenshotCB(&shot);
   }
-  int result = Fl::run();
+  int result = shot.file.empty() ? Fl::run() : 0;
   if (!shot.file.empty() && !shot.written) {
     std::fprintf(stderr, "NCX: couldn't write %s\n", shot.file.c_str());
     return 1;

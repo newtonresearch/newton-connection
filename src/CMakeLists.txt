@@ -1,21 +1,32 @@
 #
 # NCX's code (PORTING.md section 2). The layers start with their phases:
-# base/ (now), comms/, model/, dock/, translators/, platform/, ui/, cli/.
+# base/, platform/, ui/, cli/ (now), comms/, model/, dock/, translators/.
 #
 
 #------------------------------------------------------------------------------
-#   ncx_core: everything but the UI. Its headers include no framework or FLTK
-#   headers (they clash); newton_ncx links FLTK (its drawing), but nothing in
-#   ncx_core needs a display.
+#   ncx_core: everything but the UI. Its headers include no FLTK headers,
+#   and only NewtonStrings.h includes the framework's (they clash). It links
+#   FLTK for Fl_Preferences and through newton_ncx (its drawing), but nothing
+#   in ncx_core needs a display.
 #------------------------------------------------------------------------------
 add_library (ncx_core STATIC
   base/Core.cc base/Core.h base/Version.h.in
+  base/Dates.cc base/Dates.h
+  base/Log.cc base/Log.h
+  base/NewtonStrings.cc base/NewtonStrings.h
+  base/Observers.cc base/Observers.h
+  base/Prefs.cc base/Prefs.h
+  base/Progress.h
+  base/Strings.cc base/Strings.h
+  base/Threads.cc base/Threads.h
+  platform/AppFolders.cc platform/AppFolders.h
 )
 target_include_directories (ncx_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}/generated
 )
-target_link_libraries (ncx_core PUBLIC newton_ncx newton_dock ncx_sqlite3)
+# fltk::fltk: Fl_Preferences (Prefs.cc)
+target_link_libraries (ncx_core PUBLIC newton_ncx newton_dock ncx_sqlite3 fltk::fltk)
 
 #------------------------------------------------------------------------------
 #   ncx-cli: without a window, for tests and debugging.
@@ -29,7 +40,7 @@ target_link_libraries (ncx-cli PRIVATE ncx_core)
 #------------------------------------------------------------------------------
 set (ncx_icon "${PROJECT_SOURCE_DIR}/resources/NCX.icns")
 add_executable (NCX WIN32 MACOSX_BUNDLE ui/main.cc ${ncx_icon})
-target_link_libraries (NCX PRIVATE ncx_core fltk::fltk)
+target_link_libraries (NCX PRIVATE ncx_core)    # FLTK comes with it
 set_source_files_properties (${ncx_icon} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 set_target_properties (NCX PROPERTIES
   MACOSX_BUNDLE_INFO_PLIST "${PROJECT_SOURCE_DIR}/cmake/Info.plist.in"

@@ -413,34 +413,83 @@ check. Phases 0–1 come first; 2–6 can partly overlap; 7 needs 5 and 6.
 
 ### Phase 2: base layer (replacing Foundation)
 
-- **2.1 Strings:**
+✅ Done 2026-10-16, locally (CI by hand, see 1.3). `src/base` and
+`src/platform`, tested by `tests/base_test.cc` (`ncx_base_test`, 68 checks
+in 9 ctest sections), which also passes under ThreadSanitizer and under
+AddressSanitizer with UBSan.
+
+- **2.1 Strings:** ✅
   - UTF-8 `std::string` throughout.
   - Ref ↔ UTF-8 helpers (replace `MakeNSString`, `MakeString…`).
   - A MacRoman table (the code uses `NSMacOSRomanStringEncoding` 7
     times).
   - Ports of the `NSString-Extensions` that are actually used.
-- **2.2 Dates:**
+  - Result: `base/Strings.h`: UTF-16 ↔ UTF-8 (surrogates; bad input
+    becomes U+FFFD), MacRoman → UTF-8 (only symbol names used it), the
+    two extensions that are used (`ReplaceAll` for Works' CSV quotes,
+    `ReplaceControlCharacters` for its summaries; the other three were
+    unused), and line ends both ways (CR on the Newton, LF on the desktop).
+    `base/NewtonStrings.h` (the one header with framework types):
+    `UTF8FromString`, `UTF8FromStringLF`, `MakeStringFromUTF8` (LF becomes
+    CR, as `MakeString` did), `UTF8FromSymbol`.
+- **2.2 Dates:** ✅
   - NewtonTime (minutes since 1904) ↔ `time_t` ↔ Core Data time (seconds
     since 2001).
   - Formatting for file names and display (replaces `NSDateFormatter`
     uses).
-- **2.3 Paths and app folders (`platform/`):**
+  - Result: `base/Dates.h`: 64-bit seconds since 1970 in the middle; the
+    conversions are plain arithmetic as before (a Newton time is read as
+    if its clock ran on UTC; worth checking against a real Newton when the
+    dock works). Calendar dates in UTC (own code, any year) and local time.
+    `FormatDate` "Oct 16, 2026", `FormatTime` "3:04 PM", `FormatDateTime`,
+    `FormatRelativeDateTime` ("Today/Yesterday/Tomorrow at", for the last
+    backup), `FormatForFileName` "2026-10-16 15.04". English only, as the
+    app's only localization was.
+- **2.3 Paths and app folders (`platform/`):** ✅
   - macOS keeps `~/Library/Application Support/Newton Connection`, so
     existing files are found.
   - Windows: `%APPDATA%\Newton Connection`.
   - Linux: `$XDG_DATA_HOME/newton-connection`.
-- **2.4 Preferences:** `Fl_Preferences`, same key names as
+  - Result: `platform/AppFolders.h`, plus the log file
+    (`~/Library/Logs/NewtonConnection.log` as before,
+    `%LOCALAPPDATA%\Newton Connection`, `$XDG_STATE_HOME/newton-connection`).
+    `NCX_DATA_DIR` and `NCX_LOG_FILE` override them (tests, a portable
+    copy). Paths are `std::filesystem` (macOS 11 and later now:
+    `CMAKE_OSX_DEPLOYMENT_TARGET`), as text UTF-8.
+- **2.4 Preferences:** ✅ `Fl_Preferences`, same key names as
   `PreferenceKeys.h`.
-- **2.5 Logging:** `REPprintf`/`NSLog` → one logger with levels and an
+  - Result: `base/Prefs.h`: `Prefs::App()` (FLTK's file per user:
+    vendor `newtonresearch.org`, app `Newton Connection`; the old
+    NSUserDefaults aren't read), `Prefs::InMemory()` for tests, typed
+    get/set under a lock (the dock thread reads them too), and the Cocoa
+    app's fallbacks (TCP port 3679, 38400 bps; it registered no defaults).
+- **2.5 Logging:** ✅ `REPprintf`/`NSLog` → one logger with levels and an
   optional log file (prefs `LogToFile`, `LogLevel`).
-- **2.6 Threads:**
+  - Result: `base/Log.h`: the app's levels (0 none, 1 minimum, 2 full, 3
+    developer), `NCX_LOG_MINIMUM/FULL/DEVELOPER` for the old
+    `MINIMUM_LOG`..., stderr, the log file with time stamps, a sink for a
+    log window and tests. `StartLogging()` (`base/Core.h`) sets it up from
+    the preferences; the app calls it. Still to do: the framework's
+    `REPprintf` output (backup dumps) goes to stdout, not into the log.
+- **2.6 Threads:** ✅
   - `SerialQueue` (a thread with a task queue), `Semaphore`, `Timer` (for
     the tickler).
   - `Progress` with a cancel flag.
   - `Observers` (replacing the six `kDock…Notification`s), delivered on
     the UI thread through a hook the UI installs.
+  - Result: `base/Threads.h` (`SerialQueue` with `async`, `sync` that runs
+    at once on its own thread, `stop` that runs what is queued;
+    `Semaphore`; `Timer`, restartable and stoppable from its own task;
+    `RunOnMainThread` with `SetMainThreadRunner`, which the app sets to
+    `Fl::awake`, after `Fl::lock()`), `base/Progress.h`,
+    `base/Observers.h` (`NotificationKind`: the six, and
+    `kSerialPortChanged`; a `Notification` carries the document, the
+    operation and the error, as the old userInfo did).
 - Done when (all of 2.x): unit tests for strings, dates and queues pass in
-  CI.
+  CI. Locally they pass; CI waits (1.3).
+- Found on the way: `NCX --screenshot` waited forever on a locked screen
+  (a timer that macOS throttles while the window can't be seen); it draws
+  at once now, since the image surface needs no screen.
 
 ### Phase 3: comms layer (no GUI)
 

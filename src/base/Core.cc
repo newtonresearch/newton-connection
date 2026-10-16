@@ -5,7 +5,10 @@
  */
 
 #include "base/Core.h"
+#include "base/Log.h"
+#include "base/Prefs.h"
 #include "base/Version.h"
+#include "platform/AppFolders.h"
 
 // newton-framework
 #include "Objects.h"
@@ -35,6 +38,18 @@ void InitCore()
 {
   static std::once_flag once;
   std::call_once(once, [] { InitObjectSystemCore(); });
+}
+
+
+void StartLogging()
+{
+  Prefs & prefs = Prefs::App();
+  SetLogLevel(prefs.logLevel());
+  if (prefs.logToFile()) {
+    std::filesystem::path file = LogFilePath();
+    if (!file.empty() && SetLogFile(file))
+      Log(kLogMinimum, "%s %s", NCX_NAME, NCX_VERSION);
+  }
 }
 
 
