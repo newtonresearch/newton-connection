@@ -658,7 +658,9 @@ clean under ThreadSanitizer and ASan/UBSan.
   raced with the link's thread (ThreadSanitizer, the package test; B71).
   `IsString` was false for the string classes (a Names card's company and
   phones: no title; B72). The Zippy decompressors overran their buffer
-  (ASan, the fixture's packages; B73). All fixed.
+  (ASan, the fixture's packages; B73). On Windows NCX didn't link: MSVC
+  keeps unreachable code, and the relocation code's (after an early return)
+  called a function newton_ncx doesn't have (B74). All fixed.
 
 ### Phase 5: dock controller and components (no GUI)
 
