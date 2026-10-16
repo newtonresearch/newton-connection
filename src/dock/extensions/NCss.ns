@@ -4,24 +4,27 @@
 // kDRegProtocolExtension ('pext', command 'NCss').
 //
 // The Cocoa NCX's 'snap' sent the whole screen in one event (76800 bytes on
-// a MessagePad 2x00), too much for a real Newton's serial link. This one
-// keeps the shot on the Newton and sends it a block at a time, as
-// newtdump's 'NDmp' does. The desktop sends 'NCss' with a request frame;
-// the answer is 'NCsr' with:
+// a MessagePad 2x00): too much for a real Newton's serial link, and with
+// the bits a lot for its NewtonScript heap (NTK's Toolkit catches
+// evt.ex.outofmem when it takes a screenshot, and then takes it in parts).
+// This one takes the screen a few rows at a time, as the Toolkit's parts:
+// each answer is small, and nothing stays on the Newton between them. The
+// desktop sends 'NCss' with a request frame; the answer is 'NCsr' with:
 //
-//   {op: 'take}                   -> {top, left, bottom, right, rowBytes,
-//                                     depth, size} (the bits stay here), or
-//                                    {error: -28010}: no Toolkit app
-//   {op: 'take, bits: true}       -> the same with theBits: all of them at
-//                                    once, as 'snap' (to compare)
-//   {op: 'read, offset, length}   -> the bits from offset (a binary), or
-//                                    {error}
-//   {op: 'done}                   -> {done: true}: the bits are forgotten
+//   {op: 'screen}                 -> {left, top, right, bottom} of the
+//                                    screen, and the depth and rowBytes of
+//                                    a shot of its first row
+//   {op: 'rows, left, top, right, bottom}
+//                                 -> {top, bottom, rowBytes, depth, theBits}:
+//                                    a shot of those rows
+//   {op: 'take}                   -> the whole screen in one piece, as
+//                                    'snap' (to compare): {top, left, bottom,
+//                                    right, rowBytes, depth, theBits}
 //
-// The shot comes from the Toolkit app's ScreenShotFn (newtoolspro), as the
-// Cocoa NCX's did. An exception becomes {error, name} instead of ending
-// the session. Hiding the Dock slip while the user arranges the screen is
-// still the Cocoa NCX's 'scrn'.
+// or {error: -28010} without the Toolkit app (newtoolspro), whose
+// ScreenShotFn takes the shots. An exception becomes {error, name} instead
+// of ending the session. Hiding the Dock slip while the user arranges the
+// screen is still the Cocoa NCX's 'scrn'.
 
 func(ep)
 begin
@@ -30,42 +33,30 @@ begin
   try
   begin
     local op := if IsFrame(request) then request.op;
-    if op = 'take then
+    local ntp := GetRoot().newtoolspro;
+    if not ntp then
+      answer := {error: -28010}
+    else if op = 'screen then
     begin
-      local ntp := GetRoot().newtoolspro;
-      if ntp then
-      begin
-        local shot := {};
-        ntp._proto:ScreenShotFn(shot);
-        // a copy, made now: the Cocoa NCX's 'snap' sent the bits at once,
-        // and a later read of the Toolkit's own didn't answer on Einstein
-        DefGlobalVar('|NCX:shot|, Clone(shot.theBits));
-        answer := {top: shot.top, left: shot.left, bottom: shot.bottom, right: shot.right,
-                   rowBytes: shot.rowBytes, depth: shot.depth, size: Length(shot.theBits)};
-        // {op: 'take, bits: true}: the bits with it, in one piece, as 'snap'
-        if request.bits then
-          answer.theBits := shot.theBits;
-      end
-      else
-        answer := {error: -28010};
+      local box := GetRoot():LocalBox();
+      local shot := {left: box.left, top: box.top, right: box.right, bottom: box.top + 1};
+      ntp._proto:ScreenShotFn(shot);
+      answer := {left: box.left, top: box.top, right: box.right, bottom: box.bottom,
+                 depth: shot.depth, rowBytes: shot.rowBytes};
     end
-    else if op = 'read then
+    else if op = 'rows then
     begin
-      local bits := if GlobalVarExists('|NCX:shot|) then GetGlobalVar('|NCX:shot|);
-      if bits and request.offset < Length(bits) then
-      begin
-        local count := Min(request.length, Length(bits) - request.offset);
-        answer := MakeBinary(count, 'bits);
-        BinaryMunger(answer, 0, count, bits, request.offset, count);
-      end
-      else
-        answer := {error: -1, name: "no screenshot there"};
+      local shot := {left: request.left, top: request.top, right: request.right, bottom: request.bottom};
+      ntp._proto:ScreenShotFn(shot);
+      answer := {top: shot.top, bottom: shot.bottom, rowBytes: shot.rowBytes, depth: shot.depth,
+                 theBits: shot.theBits};
     end
-    else if op = 'done then
+    else if op = 'take then
     begin
-      if GlobalVarExists('|NCX:shot|) then
-        UnDefGlobalVar('|NCX:shot|);
-      answer := {done: true};
+      local shot := {};
+      ntp._proto:ScreenShotFn(shot);
+      answer := {top: shot.top, left: shot.left, bottom: shot.bottom, right: shot.right,
+                 rowBytes: shot.rowBytes, depth: shot.depth, theBits: shot.theBits};
     end
     else
       answer := {error: -1, name: "unknown request"};

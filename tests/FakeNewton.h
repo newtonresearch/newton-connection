@@ -19,7 +19,8 @@
    pext     taken (dres 0); then, as NCX's extensions answer:
             scrn: dres 0 (-28010 without the Toolkit app)
             NCss: a 320 x 480 screen, 4 bits a pixel, the value of a pixel
-                  (x / 20 + y / 30) % 16 (ScreenPixel)
+                  (x / 20 + y / 30) % 16 (ScreenPixel); its rows ('rows'), or
+                  all of it ('take')
  */
 
 #ifndef NCX_TESTS_FAKENEWTON_H
@@ -58,7 +59,7 @@ public:
   size_t packageSize() const { return mPackageSize; }
   /** The protocol extensions the desktop sent ('pext'), by command. */
   const std::vector<std::string> & extensions() const { return mExtensions; }
-  /** The largest block of the screen it sent ('NCss'). */
+  /** The largest piece of the screen it sent in rows ('NCss'). */
   size_t largestBlock() const { return mLargestBlock; }
 
 private:

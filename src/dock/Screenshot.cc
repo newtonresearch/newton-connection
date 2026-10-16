@@ -108,46 +108,69 @@ int ScreenshotSession::take(Screenshot & outShot, Progress * ioProgress)
     ~TimeLimit() { session.suppressTimeout(true); }
   } timeLimit(mDock.session());
   int error;
-  RefVar takeRequest(Request("take"));
-  if (mBlock == 0)
-    SetFrameSlot(takeRequest, MakeSymbol("bits"), TRUEREF);
-  RefVar info(Ask(mDock, takeRequest, error));
-  if (error != 0)
-    return error;
-  if (!IsFrame(info))
-    return kDockErrProtocolError;
-  int width = IntSlot(info, "right") - IntSlot(info, "left");
-  int height = IntSlot(info, "bottom") - IntSlot(info, "top");
-  int rowBytes = IntSlot(info, "rowBytes"), depth = IntSlot(info, "depth"), size = IntSlot(info, "size");
-  if (width <= 0 || height <= 0 || size <= 0 || rowBytes * height > size)
-    return kDockErrProtocolError;
-  if (ioProgress) {
-    ioProgress->setTotal(size);
-    ioProgress->setCompleted(0);
-  }
-
-  std::vector<uint8_t> bits;
-  bits.reserve((size_t)size);
-  RefVar allBits(mBlock == 0 ? GetFrameSlot(info, MakeSymbol("theBits")) : (Ref)NILREF);
-  if (IsBinary(allBits)) {
-    const uint8_t * data = (const uint8_t *)BinaryData(allBits);
-    bits.assign(data, data + Length(allBits));
-  }
-  while ((int)bits.size() < size) {
-    RefVar request(Request("read"));
-    SetFrameSlot(request, MakeSymbol("offset"), MAKEINT((int)bits.size()));
-    SetFrameSlot(request, MakeSymbol("length"), MAKEINT(std::min(mBlock, size - (int)bits.size())));
-    RefVar block(Ask(mDock, request, error));
+  if (mBlock == 0) {
+    // all at once, as the Cocoa app's 'snap'
+    RefVar shot(Ask(mDock, RefVar(Request("take")), error));
     if (error != 0)
       return error;
-    if (!IsBinary(block) || Length(block) == 0)
+    if (!IsFrame(shot))
       return kDockErrProtocolError;
-    const uint8_t * data = (const uint8_t *)BinaryData(block);
-    bits.insert(bits.end(), data, data + Length(block));
-    if (ioProgress)
-      ioProgress->setCompleted((int64_t)bits.size());
+    RefVar bits(GetFrameSlot(shot, MakeSymbol("theBits")));
+    int width = IntSlot(shot, "right") - IntSlot(shot, "left"), height = IntSlot(shot, "bottom") - IntSlot(shot, "top");
+    int rowBytes = IntSlot(shot, "rowBytes");
+    if (!IsBinary(bits) || width <= 0 || height <= 0 || (int)Length(bits) < rowBytes * height)
+      return kDockErrProtocolError;
+    outShot.width = width;
+    outShot.height = height;
+    outShot.depth = IntSlot(shot, "depth");
+    outShot.gray = GrayFromBits((const uint8_t *)BinaryData(bits), Length(bits), width, height, rowBytes, outShot.depth);
+    if (ioProgress) {
+      ioProgress->setTotal(Length(bits));
+      ioProgress->setCompleted(Length(bits));
+    }
+    return 0;
   }
-  Ask(mDock, RefVar(Request("done")), error);
+
+  // the screen, then a few rows at a time (each a shot of its own: nothing
+  // stays on the Newton between them)
+  RefVar screen(Ask(mDock, RefVar(Request("screen")), error));
+  if (error != 0)
+    return error;
+  if (!IsFrame(screen))
+    return kDockErrProtocolError;
+  int left = IntSlot(screen, "left"), top = IntSlot(screen, "top"), right = IntSlot(screen, "right"),
+      bottom = IntSlot(screen, "bottom");
+  int width = right - left, height = bottom - top;
+  int rowBytes = IntSlot(screen, "rowBytes"), depth = IntSlot(screen, "depth");
+  if (width <= 0 || height <= 0 || rowBytes <= 0 || rowBytes * 8 < width * depth)
+    return kDockErrProtocolError;
+  int rowsAtATime = std::max(1, mBlock / rowBytes);
+  std::vector<uint8_t> bits((size_t)rowBytes * height, 0);
+  if (ioProgress) {
+    ioProgress->setTotal((int64_t)bits.size());
+    ioProgress->setCompleted(0);
+  }
+  for (int y = top; y < bottom; y += rowsAtATime) {
+    int last = std::min(bottom, y + rowsAtATime);
+    RefVar request(Request("rows"));
+    SetFrameSlot(request, MakeSymbol("left"), MAKEINT(left));
+    SetFrameSlot(request, MakeSymbol("top"), MAKEINT(y));
+    SetFrameSlot(request, MakeSymbol("right"), MAKEINT(right));
+    SetFrameSlot(request, MakeSymbol("bottom"), MAKEINT(last));
+    RefVar rows(Ask(mDock, request, error));
+    if (error != 0)
+      return error;
+    RefVar rowBits(IsFrame(rows) ? GetFrameSlot(rows, MakeSymbol("theBits")) : (Ref)NILREF);
+    int bandRowBytes = IsFrame(rows) ? IntSlot(rows, "rowBytes") : 0;
+    if (!IsBinary(rowBits) || bandRowBytes <= 0 || (int)Length(rowBits) < bandRowBytes * (last - y))
+      return kDockErrProtocolError;
+    const uint8_t * data = (const uint8_t *)BinaryData(rowBits);
+    for (int row = 0; row < last - y; ++row)
+      std::copy(data + (size_t)row * bandRowBytes, data + (size_t)row * bandRowBytes + std::min(rowBytes, bandRowBytes),
+                bits.begin() + (ptrdiff_t)((size_t)(y - top + row) * rowBytes));
+    if (ioProgress)
+      ioProgress->setCompleted((int64_t)(last - top) * rowBytes);
+  }
 
   outShot.width = width;
   outShot.height = height;

@@ -376,34 +376,33 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       RefVar answer(AllocateFrame());
       if (!inOptions.toolkit) {
         SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(kDockErrFileNotFound));
-      } else if (what == "take") {
-        SetFrameSlot(answer, MakeSymbol("top"), MAKEINT(0));
+      } else if (what == "screen" || what == "rows" || what == "take") {
+        // the screen, or rows of it: 320 x 480, 4 bits a pixel, rows of 160 bytes
+        int top = 0, bottom = 480;
+        if (what == "rows") {
+          top = (int)RINT(GetFrameSlot(request, MakeSymbol("top")));
+          bottom = (int)RINT(GetFrameSlot(request, MakeSymbol("bottom")));
+        }
         SetFrameSlot(answer, MakeSymbol("left"), MAKEINT(0));
-        SetFrameSlot(answer, MakeSymbol("bottom"), MAKEINT(480));
+        SetFrameSlot(answer, MakeSymbol("top"), MAKEINT(top));
         SetFrameSlot(answer, MakeSymbol("right"), MAKEINT(320));
+        SetFrameSlot(answer, MakeSymbol("bottom"), MAKEINT(bottom));
         SetFrameSlot(answer, MakeSymbol("rowBytes"), MAKEINT(160));
         SetFrameSlot(answer, MakeSymbol("depth"), MAKEINT(4));
-        SetFrameSlot(answer, MakeSymbol("size"), MAKEINT(160 * 480));
-        if (NOTNIL(GetFrameSlot(request, MakeSymbol("bits")))) {
-          RefVar all(AllocateBinary(MakeSymbol("bits"), 160 * 480));
-          uint8_t * bits = (uint8_t *)BinaryData(all);
-          for (int at = 0; at < 160 * 480; ++at)
-            bits[at] = (uint8_t)(ScreenPixel((at % 160) * 2, at / 160) << 4 | ScreenPixel((at % 160) * 2 + 1, at / 160));
-          SetFrameSlot(answer, MakeSymbol("theBits"), all);
+        if (what != "screen") {
+          int size = 160 * (bottom - top);
+          RefVar bits(AllocateBinary(MakeSymbol("bits"), size));
+          uint8_t * p = (uint8_t *)BinaryData(bits);
+          for (int at = 0; at < size; ++at) {
+            int y = top + at / 160, x = (at % 160) * 2;
+            p[at] = (uint8_t)(ScreenPixel(x, y) << 4 | ScreenPixel(x + 1, y));
+          }
+          SetFrameSlot(answer, MakeSymbol("theBits"), bits);
+          if (what == "rows")
+            mLargestBlock = std::max(mLargestBlock, (size_t)size);
         }
-      } else if (what == "read") {
-        int offset = (int)RINT(GetFrameSlot(request, MakeSymbol("offset")));
-        int length = (int)RINT(GetFrameSlot(request, MakeSymbol("length")));
-        length = std::max(0, std::min(length, 160 * 480 - offset));
-        answer = AllocateBinary(MakeSymbol("bits"), length);
-        uint8_t * bits = (uint8_t *)BinaryData(answer);
-        for (int i = 0; i < length; ++i) {
-          int at = offset + i, y = at / 160, x = (at % 160) * 2;
-          bits[i] = (uint8_t)(ScreenPixel(x, y) << 4 | ScreenPixel(x + 1, y));
-        }
-        mLargestBlock = std::max(mLargestBlock, (size_t)length);
       } else {
-        SetFrameSlot(answer, MakeSymbol("done"), TRUEREF);
+        SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(-1));
       }
       wire->send(MakeRefEvent(Cmd("NCsr"), answer));
     } else if (c == kDLoadPackage) {

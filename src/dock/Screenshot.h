@@ -4,9 +4,9 @@
  Screenshots of the Newton's screen (PORTING.md 5.2.1; the Cocoa app's
  NCScreenshotComponent). The Newton needs the Toolkit app (NTK's
  "newtoolspro"): its ScreenShotFn takes the shot. NCX's 'NCss' extension
- sends it a block at a time (the Cocoa app's 'snap' sent it in one piece,
- too much for a real Newton's serial link); 'scrn' hides the Dock slip
- meanwhile.
+ takes it a few rows at a time (the Cocoa app's 'snap' sent it in one piece,
+ too much for a real Newton's serial link, and a lot for its heap); 'scrn'
+ hides the Dock slip meanwhile.
 
  The Newton's way, as the UI does it: begin() (the slip goes away, the user
  arranges the screen), take() as often as wanted, end() (the slip is back,
@@ -42,12 +42,13 @@ std::vector<uint8_t> GrayFromBits(const uint8_t * inBits, size_t inSize, int inW
 class ScreenshotSession
 {
 public:
-  static constexpr int kBlock = 2048;       // bytes a request (as newtdump)
+  static constexpr int kBlock = 2048;       // bytes an answer, about (as newtdump)
 
   explicit ScreenshotSession(DockController & inDock) : mDock(inDock) { }
 
-  /** Bytes a request (kBlock; 64 ... 16384), or 0: all of them with the
-      shot, in one piece, as the Cocoa app's 'snap' (to compare). */
+  /** Bytes an answer (kBlock; 64 ... 16384: as many rows as fit, at least
+      one), or 0: the whole screen in one piece, as the Cocoa app's 'snap'
+      (to compare). */
   void setBlock(int inBytes) { mBlock = inBytes <= 0 ? 0 : (inBytes < 64 ? 64 : (inBytes > 16384 ? 16384 : inBytes)); }
 
   /** Take control, hide the slip. 0, or kDockErrFileNotFound (-28010) if the

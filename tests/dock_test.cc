@@ -201,7 +201,7 @@ void TestScreenshot()
       pixels = shot.gray[(size_t)y * 320 + x] == 255 - ScreenPixel(x, y) * 17;
   Check(pixels, "screenshot: every pixel");
   Check(fake.largestBlock > 0 && fake.largestBlock <= (size_t)ScreenshotSession::kBlock,
-        "screenshot: blocks of at most 2048 bytes (" + std::to_string(fake.largestBlock) + ")");
+        "screenshot: rows of at most 2048 bytes at a time (" + std::to_string(fake.largestBlock) + ")");
   Check(progress.total() == 76800 && progress.completed() == 76800, "screenshot: the progress");
   Check(fake.extensions == std::vector<std::string>({ "scrn", "NCss" }), "screenshot: the extensions sent");
 }
