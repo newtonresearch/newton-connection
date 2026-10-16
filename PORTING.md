@@ -216,11 +216,15 @@ newton-connection/
 
 The layers:
 - **`ncx_core`** (static library) is base + comms + model + dock +
-  translators, and has **no FLTK dependency**. Both `ncx-cli` and the GUI
-  link it, so almost everything can be tested without a display.
+  translators. Its headers include no FLTK (or framework) headers, and
+  nothing in it needs a display. It links FLTK only through `newton_ncx`'s
+  drawing. Both `ncx-cli` and the GUI link it, so almost everything can be
+  tested without a display.
 - **`newton_ncx`** (static library in newton-framework) is the object
-  system, NSOF, pipes, packages, compression, ROM data, and the drawing
-  core with a back-end interface.
+  system, NSOF, pipes, packages, compression, ROM data, and the QuickDraw
+  functions, which draw with FLTK (0.5).
+- **`newton_dock`** (static library in newton-framework) is MNP, the
+  transports and DES (0.6).
 - **`NCX`** (the app) is `ui/` plus `ncx_core` plus FLTK.
 
 Threads:
@@ -356,7 +360,7 @@ check. Phases 0–1 come first; 2–6 can partly overlap; 7 needs 5 and 6.
 
 ### Phase 1: NCX build skeleton and CI
 
-- **1.1 Top-level `CMakeLists.txt`.**
+- **1.1 Top-level `CMakeLists.txt`.** ✅ Done 2026-10-16.
   - C++17.
   - `FetchContent` for FLTK (pinned `release-1.4.5`), newton-framework
     (pinned commit), and the SQLite amalgamation.
@@ -365,10 +369,32 @@ check. Phases 0–1 come first; 2–6 can partly overlap; 7 needs 5 and 6.
   - FLTK as static libs, with Fluid built (needed for `.fl` files).
   - Done when: `cmake -B build && cmake --build build` builds an empty
     FLTK window that links `newton_ncx` and prints an NSOF round trip.
-- **1.2 Source layout.** Create `src/…` as in section 2. `NCX/` and
-  `NCX.xcodeproj` stay for reference only; this branch builds pure FLTK
-  (D8).
-- **1.3 GitHub Actions: build.**
+  - Result: FLTK `release-1.4.5`, newton-framework pinned to a commit on
+    `dap_to_toolbox` (it builds only `newton_ncx` and `newton_dock` there,
+    drawing with our FLTK), and the SQLite 3.54.0 amalgamation, checked
+    with the SHA3-256 that sqlite.org publishes (as `ncx_sqlite3`, without
+    run-time extensions). The version is 3.1.0 (the Cocoa app was 3.0.2).
+    A fresh build takes about a minute on an M-series Mac.
+  - `ncx_core`'s first function is a self test: a frame through NSOF, in
+    an MNP frame, and in an SQLite blob, and back. `ncx-cli --selftest`
+    and `NCX --selftest` run it without a window. The app prints it when it
+    starts and shows a window with the menu bar (`Fl_Sys_Menu_Bar`:
+    File/Quit, Help/About) that says whether the core works.
+    `NCX --screenshot <png>` draws the window into a PNG and quits; CI uses
+    it to show the UI on every platform.
+- **1.2 Source layout.** ✅ Done 2026-10-16. Create `src/…` as in
+  section 2. `NCX/` and `NCX.xcodeproj` stay for reference only; this
+  branch builds pure FLTK (D8).
+  - Now: `src/base` (`ncx_core`), `src/cli` (`ncx-cli`), `src/ui` (`NCX`),
+    `cmake/` (the Info.plist), `resources/` (the icon), `tests/` (ctest).
+    The other layers get their directories when their phases start, so
+    there are no empty ones.
+- **1.3 GitHub Actions: build.** Written 2026-10-16, not run yet
+  (`.github/workflows/ncx.yml`). Matt: no CI runs for now unless needed
+  (GitHub's macOS runners were stalling); it runs by hand
+  (`workflow_dispatch`) and for pull requests. Locally the same build
+  works, including a fresh universal one that fetches everything and
+  passes ctest and the x86_64 slice under Rosetta.
   - Matrix: `ubuntu-24.04` (x64), `ubuntu-24.04-arm`, `windows-2022`
     (x64), `windows-11-arm`, `macos-15` (universal2:
     `CMAKE_OSX_ARCHITECTURES="arm64;x86_64"`).
@@ -377,7 +403,10 @@ check. Phases 0–1 come first; 2–6 can partly overlap; 7 needs 5 and 6.
   - Upload build artifacts.
   - Check the runner labels when writing the workflow.
   - Done when: all five jobs are green.
-- **1.4 GitHub Actions: tests.**
+- **1.4 GitHub Actions: tests.** Written with 1.3: ctest (the self
+  tests of `ncx-cli` and `NCX`, the version), the x86_64 slice under
+  Rosetta, a screenshot of the window per platform (Linux under Xvfb),
+  and the installed app with its screenshot as artifacts.
   - `ctest` on every job.
   - The x86_64 macOS slice runs under Rosetta (`arch -x86_64`).
   - Done when: the NSOF test runs everywhere.

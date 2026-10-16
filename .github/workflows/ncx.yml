@@ -2,11 +2,12 @@
 # x86_64 slice of the macOS universal binary under Rosetta, a screenshot of
 # the window (Linux under Xvfb), and the app as an artifact with its
 # screenshot.
+# Started by hand for now (Actions, "Run workflow"; Matt, 2026-10-16: no CI
+# runs unless needed, work goes on locally), and for pull requests. Add
+# "push: branches: [cross_platform]" to run it on every push again.
 name: ncx
 
 on:
-  push:
-    branches: [cross_platform, 'ncx-*']
   pull_request:
   workflow_dispatch:
 
