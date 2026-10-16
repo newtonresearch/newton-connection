@@ -49,7 +49,8 @@ Keeping it brief, so you can add your findings.
   `newton_ncx` static library target there.
 - Framework blockers: `typedef long Ref` (32-bit on Win64), the hand-defined
   `__LP64__`, GNU `.s` ROM data (all three fixed: 0.1, 0.1b), Quartz in
-  `QDDrawing.cc`, and CMake that assumes it is the top-level project.
+  `QDDrawing.cc` (fixed: 0.5, drawing on FLTK's current surface), and CMake
+  that assumes it is the top-level project (fixed: 0.2).
 - `Matt/NewtDump` (DockLink, MNP.cc, NTKTransport.cc, DES, FakeNewton) is
   the base for NCX's comms and tests. NTKTransport is POSIX-only so far.
 - `.newtondevice` files are Core Data SQLite with a simple schema and NSOF

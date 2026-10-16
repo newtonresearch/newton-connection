@@ -47,7 +47,7 @@ controls only; there is nothing exotic in them.
 | `NSUserDefaults` | preferences (`PreferenceKeys.h`) | `Fl_Preferences` |
 | `NSBundle` plugins | translators loaded at runtime | translators linked into the app, kept in a registry |
 | `NSAttributedString` RTF/RTFD | Notes and Works export | our own small RTF writer (see decision D4) |
-| CoreGraphics (`CGContext`) | drawing ink, shapes, bitmaps (through Newton.framework `InitDrawing`/`DrawBitmap`/…) | a drawing back end interface; FLTK `Fl_Image_Surface` implementation (step 0.5) |
+| CoreGraphics (`CGContext`) | drawing ink, shapes, bitmaps (through Newton.framework `InitDrawing`/`DrawBitmap`/…) | the framework's QuickDraw functions on FLTK (step 0.5): they draw on FLTK's current surface, a window or an `Fl_Image_Surface` |
 | `NSImage`, TIFF | screenshots, icons, exported images | `Fl_RGB_Image`, `fl_write_png`, PNG instead of TIFF |
 | AudioToolbox `AudioFile*` | MP3 import: reading the file and its tags | dr_mp3 or minimp3 (single header, public domain) and a small ID3 reader |
 | IOKit serial matching | listing serial ports | macOS: keep IOKit (plain C); Linux: `/dev/serial/by-id`, `ttyUSB*`, `ttyACM*`; Windows: registry `HARDWARE\DEVICEMAP\SERIALCOMM` |
@@ -72,7 +72,9 @@ they fall into a small set of areas:
 - packages: `NewtonPackage`, `PackageParts.h`;
 - dates and strings: `MakeDate`, `MakeString…`, `GetUString`, `FDate`;
 - drawing: `InitDrawing`, `DrawBitmap`, `DrawBits`, `DrawShape`,
-  `DrawPolygon`, `DrawPicture`, `InkDrawInRect`, and rectangle helpers;
+  `DrawPolygon`, `DrawPicture`, `InkDrawInRect`, and rectangle helpers
+  (since 0.5 declared in `Graphics/DrawShape.h` and `Ink.h`; no
+  `InitDrawing`: they draw on FLTK's current surface);
 - compressed large binaries: `FLBAllocCompressed`, `GetStores` (for
   importing sounds and Works documents);
 - Cocoa bridges (`MakeNSString`, `MakeNSDate`, `MakeNSFont`,
@@ -114,7 +116,9 @@ What needs fixing before NCX can use it:
    `.s` files exactly, so it got a C back end, and the data is plain C99
    now (checked object for object against the assembler data).
 4. **`QDDrawing.cc` draws through Quartz** (`CGContextRef quartz`). Linux
-   and Windows need another back end.
+   and Windows need another back end. Solved in 0.5: no Quartz at all
+   (MessagePad, the only other user, won't be implemented); the drawing
+   goes through FLTK.
 5. The CMake file assumes it is the top-level project (`CMAKE_SOURCE_DIR`,
    global ASan flags, `execute_process(ls …)`, macOS frameworks linked
    unconditionally). To be pulled in with `FetchContent` it has to work as
@@ -304,15 +308,34 @@ check. Phases 0–1 come first; 2–6 can partly overlap; 7 needs 5 and 6.
   - The library test now also checks NSOF bytes against a golden copy and
     reads a symbol out of a package, so a byte-order mistake can't hide
     behind a round trip.
-- **0.5 Drawing back-end interface.**
-  - Make `QDDrawing.cc` call a small `QDDevice` interface (stroke/fill
-    path, rect, oval, polygon, bitmap, pattern, pen) instead of Quartz.
-  - Move the Quartz version behind it (macOS only, keeps `newtc`
-    working).
-  - NCX provides an FLTK version (`Fl_Image_Surface`) later, in step 6.3.
-  - `InitDrawing(CGContextRef, int)` becomes `InitDrawing(QDDevice*, int)`.
-  - Done when: `newtc` draws as before, and `newton_ncx` builds without
-    CoreGraphics.
+- **0.5 QuickDraw on FLTK.** ✅ Done 2026-10-16.
+  - Matt: no Cocoa or Quartz calls (MessagePad won't be implemented); FLTK
+    calls if FLTK is linked. So instead of an interface with a Quartz
+    version, the framework draws with FLTK directly.
+  - `Graphics/QDHost.h`: a few primitives (colours, pen, lines, rects,
+    round rects, ovals, arcs, polylines, polygons, RGBA images, PNGs,
+    text). `QDHost.cc` draws them on FLTK's current surface when
+    `NEWTON_QD_FLTK` is set, and does nothing otherwise.
+  - The QuickDraw files (`QDDrawing.cc`, `DrawShape.cc`, `DrawImage.cc`,
+    `DrawText.cc`, `DrawInk.cc`, `Ink.cc`) draw through it, with no y-flip
+    and no CoreText. Text now uses the style's family, size and face, and
+    is measured for real (it used to be Helvetica 10, always 16 pixels
+    wide). Bitmaps of 1, 2, 4 or 8 bits, with gray tables and transfer
+    modes, become RGBA. QuickDraw pictures of bitmaps (PICT) draw too.
+    Images scale with each pixel a block.
+  - `newton_ncx` contains the graphics. With `NEWTON_NCX_FLTK` it links
+    `fltk::fltk` and `fltk::images`. That option is on by default when the
+    parent project already has `fltk::fltk`, as NCX will (1.1).
+  - For NCX: `InitDrawing` is gone. Make a window current (in `draw()`) or
+    an `Fl_Image_Surface` (for PNG or RTF export), then call `DrawShape`,
+    `DrawBitmap`, `DrawBits` (a screenshot, at 0,0), `DrawPolygon`,
+    `InkDrawInRect`. Declarations: `DrawShape.h`, `Ink.h`.
+  - Tested: `newton_ncx_test` draws shapes, bitmaps (1:1 and 2:1), a
+    screenshot's bits, NCX's ink polygon and text into an
+    `Fl_Image_Surface` and checks the pixels. CI runs it with FLTK on all
+    five targets (Linux under Xvfb), plus one Linux job without FLTK.
+  - Found and fixed framework bugs: black was drawn dark gray (B58), and
+    a font frame's family was read wrong (B59).
 - **0.6 Move the Dock link into a shared target.**
   - `MNP.cc`, `NTKTransport.cc`, `DES.c` (and maybe `DockLink`) become a
     small `newton_dock` library used by `newtdump` and NCX.
@@ -484,12 +507,12 @@ check. Phases 0–1 come first; 2–6 can partly overlap; 7 needs 5 and 6.
 - **6.2 Text-only translators first:** Names (vCard), Dates
   (iCalendar via the vendored libical), plain-text Notes, Package, Text.
 - **6.3 Drawing:**
-  - The FLTK `QDDevice` (`Fl_Image_Surface`) from step 0.5.
+  - The framework draws on FLTK since step 0.5: make an
+    `Fl_Image_Surface` current and draw into it.
   - Ink decompression and drawing (`InkDrawInRect`), shapes, bitmaps.
   - Export as PNG (`fl_write_png`).
   - Note: `Fl_Image_Surface` needs a display on Linux, so CI uses
-    `xvfb-run` for these tests. Alternatively, add a pure software
-    `QDDevice` later.
+    `xvfb-run` for these tests (as the framework's CI does since 0.5).
 - **6.4 Rich text:**
   - An RTF writer (styles, fonts, paragraphs, tabs, embedded PNG via
     `\pngblip`) for Notes, checklists, outlines and Works.
