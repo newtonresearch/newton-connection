@@ -36,6 +36,9 @@ public:
     mDescription = "MNP on " + inTransport->describe();
     if (inTransport->isConnected() && inTransport->peer() != inTransport->describe())
       mDescription += " (" + inTransport->peer() + ")";
+    // log level 3: every MNP frame, to stderr
+    if (LogEnabled(kLogDeveloper))
+      mLink.setTrace(stderr);
     return mLink.start(inTransport, inFirstBytes, outError);
   }
 

@@ -120,7 +120,7 @@ int ScreenshotSession::take(Screenshot & outShot, Progress * ioProgress)
   while ((int)bits.size() < size) {
     RefVar request(Request("read"));
     SetFrameSlot(request, MakeSymbol("offset"), MAKEINT((int)bits.size()));
-    SetFrameSlot(request, MakeSymbol("length"), MAKEINT(std::min(kBlock, size - (int)bits.size())));
+    SetFrameSlot(request, MakeSymbol("length"), MAKEINT(std::min(mBlock, size - (int)bits.size())));
     RefVar block(Ask(mDock, request, error));
     if (error != 0)
       return error;

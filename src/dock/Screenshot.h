@@ -46,6 +46,9 @@ public:
 
   explicit ScreenshotSession(DockController & inDock) : mDock(inDock) { }
 
+  /** Bytes a request (kBlock; 64 ... 16384). */
+  void setBlock(int inBytes) { mBlock = inBytes < 64 ? 64 : (inBytes > 16384 ? 16384 : inBytes); }
+
   /** Take control, hide the slip. 0, or kDockErrFileNotFound (-28010) if the
       Newton has no Toolkit app (the desktop is out of control again). */
   int begin();
@@ -57,6 +60,7 @@ public:
 
 private:
   DockController & mDock;
+  int mBlock = kBlock;
   bool mActive = false;
 };
 

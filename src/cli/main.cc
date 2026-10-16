@@ -7,9 +7,10 @@
    ncx-cli --selftest                check the libraries (exit 0 if all is well)
    ncx-cli info [options]            wait for a Newton, dock, print what it
                                      is, its stores and soups, disconnect
-   ncx-cli screenshot <file.png> [options]
+   ncx-cli screenshot <file.png> [--block <bytes>] [options]
                                      the Newton's screen (it needs the
-                                     Toolkit app), as a PNG
+                                     Toolkit app), as a PNG; --block: bytes
+                                     a request (2048)
    ncx-cli device <file> [--check]   a .newtondevice file: its Newton, and
                                      how many soups and entries per store;
                                      --check: that every entry can be read
@@ -25,6 +26,7 @@
    --password <text>   the Newton's password (default: the preference)
    --wait <seconds>    give up waiting for a Newton after this long
    --log <level>       log to stderr: 1 protocol, 2 entries, 3 everything
+                       (with every MNP frame)
  */
 
 #include "base/Core.h"
@@ -58,7 +60,7 @@ int Usage()
   std::fprintf(stderr,
     "Usage: ncx-cli --version | --selftest\n"
     "       ncx-cli info [<dock options>]\n"
-    "       ncx-cli screenshot <file.png> [<dock options>]\n"
+    "       ncx-cli screenshot <file.png> [--block <bytes>] [<dock options>]\n"
     "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
     "       ncx-cli convert <backup.nbku> <file.newtondevice>\n");
@@ -189,14 +191,24 @@ int Info(int argc, char * argv[])
 
 int Screenshot(int argc, char * argv[])
 {
+  // --block <bytes>: bytes a request (to try a Newton's link)
+  int block = ncx::ScreenshotSession::kBlock;
+  std::vector<char *> args(argv, argv + argc);
+  for (size_t i = 2; i + 1 < args.size(); ++i)
+    if (std::strcmp(args[i], "--block") == 0) {
+      block = std::atoi(args[i + 1]);
+      args.erase(args.begin() + (long)i, args.begin() + (long)i + 2);
+      break;
+    }
   ncx::DockController::Settings settings;
   std::vector<std::string> rest;
-  if (!DockOptions(argc, argv, 2, settings, rest) || rest.size() != 1)
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || rest.size() != 1)
     return Usage();
   std::string file = rest[0];
   ncx::Screenshot shot;
   int result = Dock(settings, [&](ncx::DockController & dock) {
     ncx::ScreenshotSession screenshots(dock);
+    screenshots.setBlock(block);
     int error = screenshots.begin();
     if (error == ncx::kDockErrFileNotFound) {
       std::fprintf(stderr, "ncx-cli: the Newton needs the Toolkit app for screenshots\n");
