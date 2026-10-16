@@ -15,6 +15,13 @@
                                      back up the Newton into its
                                      .newtondevice file in the folder (the
                                      app's: NCX_DATA_DIR, or as NCX keeps them)
+   ncx-cli restore [--folder <folder>] [--to <store>] [--from <store>]
+               [--apps <a,b,...>] [--packages] [--yes] [options]
+                                     restore the Newton from its backup in
+                                     the folder (as backup): to its store
+                                     (Internal), from a backed-up one of the
+                                     kind, those apps (all) and the packages;
+                                     without --yes it only says what
    ncx-cli install <package>... [--replace] [options]
                                      install packages (on the default store);
                                      --replace: those of the same name too
@@ -36,8 +43,8 @@
    ncx-cli convert <nbku> <file>     a Newton Connection 1 backup (.nbku) as
                                      a new .newtondevice file
 
- Options for the commands that dock (info, screenshot, backup, install, serve,
- rom):
+ Options for the commands that dock (info, screenshot, backup, restore,
+ install, serve, rom):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -58,11 +65,13 @@
 #include "dock/DockController.h"
 #include "dock/FileBrowser.h"
 #include "dock/Packages.h"
+#include "dock/Restore.h"
 #include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
 #include "model/BackupImport.h"
 #include "model/DeviceFile.h"
 #include "model/DeviceList.h"
+#include "model/Restore.h"
 #include "model/NewtonModel.h"
 #include "platform/AppFolders.h"
 
@@ -72,6 +81,7 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstring>
@@ -90,6 +100,8 @@ int Usage()
     "       ncx-cli info [<dock options>]\n"
     "       ncx-cli screenshot <file.png> [--block <bytes>] [<dock options>]\n"
     "       ncx-cli backup [--folder <folder>] [<dock options>]\n"
+    "       ncx-cli restore [--folder <folder>] [--to <store>] [--from <store>] [--apps <a,b,...>] [--packages] [--yes]\n"
+    "               [<dock options>]\n"
     "       ncx-cli install <package>... [--replace] [<dock options>]\n"
     "       ncx-cli serve [--folder <folder>] [--backups <folder>] [<dock options>]\n"
     "       ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>] [--resume] [<dock options>]\n"
@@ -424,6 +436,108 @@ int BackupCommand(int argc, char * argv[])
 }
 
 
+std::vector<std::string> Split(const std::string & inText, char inSeparator)
+{
+  std::vector<std::string> parts;
+  size_t start = 0;
+  for (size_t at; (at = inText.find(inSeparator, start)) != std::string::npos; start = at + 1)
+    parts.push_back(inText.substr(start, at - start));
+  if (start < inText.size())
+    parts.push_back(inText.substr(start));
+  return parts;
+}
+
+
+int RestoreCommand(int argc, char * argv[])
+{
+  std::string folder, to, from, appList;
+  bool packages = false, yes = false;
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--folder" && i + 1 < argc)
+      folder = argv[++i];
+    else if (arg == "--to" && i + 1 < argc)
+      to = argv[++i];
+    else if (arg == "--from" && i + 1 < argc)
+      from = argv[++i];
+    else if (arg == "--apps" && i + 1 < argc)
+      appList = argv[++i];
+    else if (arg == "--packages")
+      packages = true;
+    else if (arg == "--yes")
+      yes = true;
+    else
+      args.push_back(argv[i]);
+  }
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || !rest.empty())
+    return Usage();
+  return Dock(settings, [&](ncx::DockController & dock) {
+    // the Newton's backup (not made: there must be one)
+    std::filesystem::path path = ncx::FindDeviceFile(BackupFolder(folder), ncx::DeviceId(dock.newton().info));
+    std::string error;
+    std::unique_ptr<ncx::DeviceFile> file = path.empty() ? nullptr : ncx::DeviceFile::Open(path, ncx::DeviceFile::kReadWrite, error);
+    if (!file) {
+      std::fprintf(stderr, "ncx-cli: no backup of this Newton in %s %s\n", ncx::UTF8FromPath(BackupFolder(folder)).c_str(),
+                   error.c_str());
+      return 1;
+    }
+    ncx::UpdateDevice(dock, *file);
+    // the Newton's stores now, as the file has them
+    std::vector<ncx::StoreRecord> newtonStores;
+    dock.setDesktopControl(true);
+    RefVar stores(dock.session().getAllStores());
+    dock.setDesktopControl(false);
+    for (ArrayIndex i = 0, count = IsArray(stores) ? Length(stores) : 0; i < count; ++i) {
+      RefVar signature(GetFrameSlot(RefVar(GetArraySlot(stores, i)), MakeSymbol("signature")));
+      for (const ncx::StoreRecord & store : file->stores())
+        if (ISINT(signature) && store.signature == RINT(signature))
+          newtonStores.push_back(store);
+    }
+    std::vector<ncx::RestoreChoice> choices = ncx::RestoreChoices(*file, newtonStores);
+    const ncx::RestoreChoice * target = nullptr;
+    for (const ncx::RestoreChoice & choice : choices)
+      if (!target && (to.empty() || choice.store.name == to))
+        target = &choice;
+    const ncx::RestoreFrom * source = nullptr;
+    if (target)
+      for (const ncx::RestoreFrom & candidate : target->sources)
+        if (!source && (from.empty() || candidate.store.name == from))
+          source = &candidate;
+    if (!target || !source) {
+      std::fprintf(stderr, "ncx-cli: nothing to restore to %s from %s\n", to.empty() ? "the Newton" : to.c_str(),
+                   from.empty() ? "the backup" : from.c_str());
+      return 1;
+    }
+    ncx::RestoreSelection selection;
+    selection.target = target->store;
+    selection.source = source->store;
+    std::vector<std::string> wanted = Split(appList, ',');
+    for (const ncx::AppRecord & app : source->apps)
+      if (wanted.empty() || std::find(wanted.begin(), wanted.end(), app.name) != wanted.end())
+        selection.apps.push_back(app);
+    if (packages)
+      selection.packages = source->packages;
+    std::printf("Restoring to %s from %s:", selection.target.name.c_str(), selection.source.name.c_str());
+    for (const ncx::AppRecord & app : selection.apps)
+      std::printf(" %s;", app.name.c_str());
+    std::printf(" %zu packages\n", selection.packages.size());
+    if (!yes) {
+      std::printf("Nothing restored: it replaces what is on the Newton (--yes restores)\n");
+      return 1;
+    }
+    ncx::Restore restore(dock, *file);
+    int result = restore.run(selection);
+    const ncx::RestoreCounts & counts = restore.counts();
+    std::printf("%zu soups, %zu entries, %zu packages restored%s\n", counts.soups, counts.entries, counts.packages,
+                result == 0 ? "" : (" (" + std::to_string(result) + ")").c_str());
+    return result == 0 ? 0 : 1;
+  });
+}
+
+
 int Serve(int argc, char * argv[])
 {
   // dock and wait: the Newton browses the folder (Dock's Install) and
@@ -578,6 +692,8 @@ int main(int argc, char * argv[])
     return Info(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "backup") == 0)
     return BackupCommand(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "restore") == 0)
+    return RestoreCommand(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "install") == 0)
     return Install(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "serve") == 0)

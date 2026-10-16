@@ -675,8 +675,9 @@ clean under ThreadSanitizer and ASan/UBSan.
 ### Phase 5: dock controller and components (no GUI)
 
 In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
-Windows, Matt, 2026-10-16/17); 5.2.3 and 5.2.4 against the fake Newton. 52
-ctests, clean under ThreadSanitizer and ASan/UBSan.
+Windows, Matt, 2026-10-16/17); 5.2.3, 5.2.4 and 5.2.5 against the fake
+Newton (backup and restore round-trip its stores). 54 ctests, clean under
+ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
   - `src/dock/DockController.h`: a dock thread that listens, docks
@@ -791,6 +792,20 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
      folder, the app's by default); `ncx-cli serve [--backups]` answers the
      Newton's Backup. Still to do: against Einstein and a real Newton.
   5. restore
+     ✅ (fake Newton) `dock/Restore.h`, the Cocoa app's desktop half: what
+     to restore from `model/Restore.h`'s choices (a store of the Newton, a
+     backed-up one of its kind, apps, packages); desktop in control, `rrst`,
+     `sver` (1.x or 2.x data, manufacturer, machine), the Newton's store;
+     per app and soup: deleted if there, made again (indexes, info,
+     signature), filled with the entries with their ids (`auni`); entries
+     made on the desktop are added (`adde`) and take the Newton's ids
+     (the Cocoa app sent them with their temporary ids). Packages removed
+     and installed again (their `pkgRef`). `ncx-cli restore [--folder]
+     [--to] [--from] [--apps] [--packages] --yes` (without `--yes` it only
+     says what it would restore). Left out: the Newton asking to restore
+     (`rsfl`, `grop`, `ropt`, `rall`): in the Cocoa app it reads the old
+     `.nbku`-style files only, and was unfinished. Still to do: against
+     Einstein and a real Newton.
   6. import of entries and soup modification (delete entries or packages)
   7. keyboard passthrough (an API only; `ncx-cli type "text"`)
   8. the Newton 1 session (`Newton1Component`)

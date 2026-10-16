@@ -40,6 +40,7 @@ struct FakeProcess
   std::vector<std::string> soupInfos;     // soups whose info got the backup time
   std::vector<int64_t> deleted;           // ids deleted on it
   std::vector<std::string> added;         // entries added to it, by title
+  std::vector<std::string> restored;      // what a restore did (FakeNewton.h)
   std::string why;
 
   /** Start inProgram (ncx-fake-newton) on a thread; it keeps trying to
@@ -94,6 +95,8 @@ struct FakeProcess
         deleted.push_back(std::stoll(line.substr(8)));
       else if (line.compare(0, 6, "added ") == 0)
         added.push_back(line.substr(6));
+      else if (line.compare(0, 9, "restored ") == 0)
+        restored.push_back(line.substr(9));
       else if (line.compare(0, 4, "why ") == 0)
         why = line.substr(4);
     }

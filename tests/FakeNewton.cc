@@ -21,6 +21,7 @@
 #include <chrono>
 #include <cstring>
 #include <memory>
+#include <set>
 #include <thread>
 
 namespace ncx {
@@ -458,6 +459,7 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     AddArraySlot(packages, icon);
   }
   std::string currentSoup;
+  std::set<std::string> createdSoups;       // restore: made by the desktop
   std::vector<uint32_t> maps;               // NDmp: the windows mapped
   auto hasExtension = [this](const char * inId) {
     for (const std::string & id : mExtensions)
@@ -496,7 +498,7 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
         name.push_back(ch);
       }
       currentSoup = UTF8FromUTF16(name);
-      bool known = false;
+      bool known = createdSoups.count(currentSoup) > 0;
       for (const FakeSoup & soup : soups)
         known = known || soup.name == currentSoup;
       wire->send(DockEvent::MakeValue(kDResult, known ? 0 : kDockErrSoupNotFound));
@@ -628,6 +630,29 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     } else if (c == kDLoadPackage) {
       ++mPackagesLoaded;
       mPackageSize = event.data.size();
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDRequestToRestore || c == kDSourceVersion || c == kDSetSoupSignature) {
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDDeleteSoup) {
+      mRestored.push_back("deletesoup " + currentSoup);
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDCreateSoup) {
+      // the length of the name, the name (big-endian UniChars), the indexes
+      uint32_t length = event.data.size() >= 4 ? event.longAt(0) : 0;
+      std::u16string name;
+      for (size_t i = 4; i + 1 < 4 + length && i + 1 < event.data.size(); i += 2) {
+        char16_t ch = (char16_t)(event.data[i] << 8 | event.data[i + 1]);
+        if (ch == 0)
+          break;
+        name.push_back(ch);
+      }
+      createdSoups.insert(UTF8FromUTF16(name));
+      mRestored.push_back("createsoup " + UTF8FromUTF16(name));
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDAddEntryWithUniqueID) {
+      RefVar entry(UnflattenBytes(event.data));
+      RefVar id(IsFrame(entry) ? GetFrameSlot(entry, SYMA(_uniqueId)) : (Ref)NILREF);
+      mRestored.push_back("entry " + currentSoup + " " + (ISINT(id) ? std::to_string(RINT(id)) : std::string("?")));
       wire->send(DockEvent::MakeValue(kDResult, 0));
     } else if (c == kDRequestToSync) {
       wire->send(DockEvent::MakeValue(kDResult, 0));

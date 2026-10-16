@@ -31,6 +31,7 @@
             Tetris, a package, and 301, an Extras icon); round 2 (--round
             2): Names has 100 and 102 (Mary Somerville), the others aren't
             dirty. Deleted ids and added entries are remembered.
+   restore  rrst, sver, ssos: dres 0; dsou, csop, auni remembered
    --browse-install: after docking, as Dock's Install: rtbr 'packages,
             dpth, gfil, spth into a folder "sub" and back, gfin and lpfl of
             the first file; then it disconnects
@@ -96,6 +97,9 @@ public:
   const std::vector<std::string> & soupInfos() const { return mSoupInfos; }
   const std::vector<int64_t> & deleted() const { return mDeleted; }
   const std::vector<std::string> & added() const { return mAdded; }
+  /** Restores: "deletesoup <soup>", "createsoup <soup>", "entry <soup>
+      <id>" (auni), in order. */
+  const std::vector<std::string> & restored() const { return mRestored; }
   /** What it saw browsing (--browse-install): "path <element>", "file
       <name> <type>", "subfile <name>", "info <kind> <size>". */
   const std::vector<std::string> & browsed() const { return mBrowsed; }
@@ -116,6 +120,7 @@ private:
   std::vector<std::string> mSoupInfos;
   std::vector<int64_t> mDeleted;
   std::vector<std::string> mAdded;
+  std::vector<std::string> mRestored;
 };
 
 } // namespace ncx

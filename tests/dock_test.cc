@@ -8,7 +8,8 @@
    ncx_dock_test <section> <ncx-fake-newton>   extensions, bits, controller,
                                                screenshot, onepiece, notoolkit,
                                                memory, packagefiles, install,
-                                               browse, backup, or all
+                                               browse, backup, restore, or
+                                               all
    ncx_dock_test make-package <file> <name>    a package to try things on
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok.
@@ -23,6 +24,7 @@
 #include "model/DeviceFile.h"
 #include "model/DeviceList.h"
 #include "model/NewtonModel.h"
+#include "model/Restore.h"
 #include "platform/AppFolders.h"
 #include "base/NewtonCall.h"
 #include "base/NewtonStrings.h"
@@ -32,6 +34,7 @@
 #include "dock/Extensions.h"
 #include "dock/FileBrowser.h"
 #include "dock/Packages.h"
+#include "dock/Restore.h"
 #include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
 
@@ -567,6 +570,84 @@ void TestBackup()
   std::filesystem::remove_all(folder);
 }
 
+/*-- restore -----------------------------------------------------------------*/
+
+void TestRestore()
+{
+  std::filesystem::path folder = TempFolder("restore");
+  std::filesystem::path path;
+
+  // a backup to restore from, and a note made on the desktop
+  FakeProcess fake;
+  int result = DockWithFake(Port(15), "", fake, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(folder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    path = file->path();
+    UpdateDevice(dock, *file);
+    Backup(dock, *file).run();
+  });
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file) {
+      Check(false, "restore: the backup " + error + " " + fake.why);
+      return;
+    }
+    std::optional<SoupRecord> notes = file->findSoup(file->stores().at(0).pk, "Notes");
+    RefVar note(AllocateFrame());
+    SetFrameSlot(note, SYMA(title), MakeStringFromUTF8("Made on the desktop"));
+    DeviceFile::Transaction transaction(*file);
+    AddImportedEntry(*file, *notes, note);
+    transaction.commit();
+  }
+
+  // all of it back: its apps and its package
+  FakeProcess fake2;
+  int restored = -1;
+  RestoreCounts counts;
+  Progress progress;
+  result = DockWithFake(Port(16), "", fake2, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file)
+      return;
+    std::vector<RestoreChoice> choices = RestoreChoices(*file, file->stores());
+    if (choices.empty() || choices[0].sources.empty())
+      return;
+    RestoreSelection selection;
+    selection.target = choices[0].store;
+    selection.source = choices[0].sources[0].store;
+    selection.apps = choices[0].sources[0].apps;
+    selection.packages = choices[0].sources[0].packages;
+    Restore restore(dock, *file);
+    restored = restore.run(selection, &progress);
+    counts = restore.counts();
+  });
+  Check(result == 0 && restored == 0 && counts.soups == 3 && counts.entries == 5 && counts.packages == 1,
+        "restore: 3 soups, 5 entries, a package (" + std::to_string(counts.soups) + ", " + std::to_string(counts.entries)
+        + ", " + std::to_string(counts.packages) + ") " + fake2.why);
+  Check(Received(fake2, "rrst") && Received(fake2, "sver") && Received(fake2, "ssto") && Received(fake2, "opdn"),
+        "restore: asked, the source, the store, done");
+  auto did = [&](const std::string & inLine) {
+    return std::find(fake2.restored.begin(), fake2.restored.end(), inLine) != fake2.restored.end();
+  };
+  Check(did("deletesoup Names") && did("createsoup Names") && did("entry Names 100") && did("entry Names 101")
+        && did("createsoup System") && did("entry Notes 200"), "restore: the soups afresh, the entries with their ids");
+  Check(fake2.added == std::vector<std::string>({ "Made on the desktop" }) && !did("entry Notes 1070000001"),
+        "restore: the note made on the desktop added, not with its id");
+  Check(fake2.removed == std::vector<std::string>({ "Tetris" }) && fake2.packagesLoaded == 1,
+        "restore: the package removed and installed again");
+  Check(progress.total() == 4 && progress.completed() == 4, "restore: the progress, apps and packages");
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadOnly, error);
+    Check(file && SoupIds(*file, "Notes") == std::vector<int64_t>({ 200, 1000 }), "restore: the note has the Newton's id now");
+  }
+  std::filesystem::remove_all(folder);
+}
+
 } // namespace
 
 
@@ -587,7 +668,7 @@ int main(int argc, char * argv[])
     { "extensions", TestExtensions }, { "bits", TestBits }, { "controller", TestController },
     { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
-    { "browse", TestBrowse }, { "backup", TestBackup } };
+    { "browse", TestBrowse }, { "backup", TestBackup }, { "restore", TestRestore } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

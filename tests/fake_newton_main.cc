@@ -74,6 +74,8 @@ int main(int argc, char * argv[])
       out << "deleted " << id << "\n";
     for (const std::string & title : newton.added())
       out << "added " << title << "\n";
+    for (const std::string & line : newton.restored())
+      out << "restored " << line << "\n";
     out << "why " << newton.why() << "\n";
   }
   return ok ? 0 : 1;
