@@ -23,6 +23,11 @@
                   (ScreenPixel); its rows ('rows': blank if white), or all
                   of it ('take')
             NDmp: newtdump's requests (hello, map, read) on MemoryByte()
+            pfnd: "Installed Package" is installed ('pkya'), others not
+   rins, rmvp   dres 0 (the removed package remembered)
+   --browse-install: after docking, as Dock's Install: rtbr 'packages,
+            dpth, gfil, spth into a folder "sub" and back, gfin and lpfl of
+            the first file; then it disconnects
  */
 
 #ifndef NCX_TESTS_FAKENEWTON_H
@@ -42,6 +47,7 @@ struct FakeNewtonOptions
   std::string name = "Ada Lovelace";  // its owner
   double connectSeconds = 10;         // keep trying to connect this long
   bool toolkit = true;                // it has the Toolkit app (screenshots)
+  bool browseInstall = false;         // browse the desktop and install a package (Dock's Install)
 };
 
 /** The fake Newton's physical memory: a byte; 0x1000 ... 0x1FFF all 0xFF. */
@@ -52,6 +58,8 @@ inline uint8_t MemoryByte(uint32_t inAddress)
 
 /** The fake Newton's screen: a pixel's value (0 white ... 15 black). */
 inline int ScreenPixel(int inX, int inY) { return inY < 60 ? 0 : (inX / 20 + inY / 30) % 16; }
+
+class Wire;
 
 class FakeNewton
 {
@@ -73,8 +81,16 @@ public:
   size_t blankBlocks() const { return mBlankBlocks; }
   /** The memory it was asked to read ('NDmp' read), in bytes. */
   size_t memoryRead() const { return mMemoryRead; }
+  /** The packages it took ('lpkg'), and removed ('rmvp'), by name. */
+  size_t packagesLoaded() const { return mPackagesLoaded; }
+  const std::vector<std::string> & removed() const { return mRemoved; }
+  /** What it saw browsing (--browse-install): "path <element>", "file
+      <name> <type>", "subfile <name>", "info <kind> <size>". */
+  const std::vector<std::string> & browsed() const { return mBrowsed; }
 
 private:
+  bool browseAndInstall(Wire & ioWire);
+
   std::string mWhy;
   std::vector<std::string> mReceived;
   std::vector<std::string> mExtensions;
@@ -82,6 +98,9 @@ private:
   size_t mLargestBlock = 0;
   size_t mBlankBlocks = 0;
   size_t mMemoryRead = 0;
+  size_t mPackagesLoaded = 0;
+  std::vector<std::string> mRemoved;
+  std::vector<std::string> mBrowsed;
 };
 
 } // namespace ncx

@@ -12,6 +12,13 @@
 #if defined(_WIN32)
 #include <cstring>
 #include <cwchar>
+#define WIN32_LEAN_AND_MEAN
+#if !defined(NOMINMAX)
+#define NOMINMAX
+#endif
+#include <windows.h>
+#else
+#include <unistd.h>
 #endif
 
 namespace fs = std::filesystem;
@@ -99,6 +106,40 @@ fs::path LogFilePath()
   if (!file.empty())
     Made(file.parent_path());
   return file;
+}
+
+
+fs::path HomeFolder()
+{
+#if defined(_WIN32)
+  fs::path home = EnvPath("USERPROFILE");
+#else
+  fs::path home = EnvPath("HOME");
+#endif
+  return home.empty() ? fs::path(".") : home;
+}
+
+
+std::string ComputerName()
+{
+#if defined(_WIN32)
+  wchar_t name[MAX_COMPUTERNAME_LENGTH + 1];
+  DWORD length = MAX_COMPUTERNAME_LENGTH + 1;
+  if (GetComputerNameW(name, &length))
+    return UTF8FromPath(fs::path(std::wstring(name, length)));
+#else
+  char name[256];
+  if (gethostname(name, sizeof(name)) == 0) {
+    name[sizeof(name) - 1] = 0;
+    std::string text = name;
+    // "Matts-Mac.local": the name without the domain
+    size_t dot = text.find('.');
+    if (dot != std::string::npos && dot > 0)
+      text.erase(dot);
+    return text;
+  }
+#endif
+  return "Desktop";
 }
 
 

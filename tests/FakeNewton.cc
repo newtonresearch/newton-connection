@@ -35,7 +35,10 @@ void PutLong(std::vector<uint8_t> & ioBytes, uint32_t inValue)
 }
 
 
-/*-- the wire: MNP as the Newton, or plain TCP --*/
+} // namespace
+
+
+/*-- the wire: MNP as the Newton, or plain TCP (FakeNewton.h names it) --*/
 
 class Wire
 {
@@ -43,6 +46,8 @@ public:
   virtual ~Wire() { }
   virtual bool connect(int inPort, double inSeconds, std::string & outWhy) = 0;
   virtual bool send(const DockEvent & inEvent) = 0;
+  /** Until what was sent is through (before closing, as a Newton waits). */
+  virtual void flush() { }
   /** The next event; false after inSeconds or when the wire is gone. */
   bool receive(DockEvent & outEvent, double inSeconds)
   {
@@ -92,6 +97,13 @@ class MNPWire : public Wire
 {
 public:
   ~MNPWire() override { mLink.stop(); }
+
+  void flush() override
+  {
+    // the desktop's acknowledgements (MNP sends from a thread of its own)
+    for (int i = 0; i < 300 && mLink.isUp() && mLink.pending() > 0; ++i)
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+  }
 
   bool connect(int inPort, double inSeconds, std::string & outWhy) override
   {
@@ -181,6 +193,8 @@ private:
 };
 
 
+namespace {
+
 /*-- the fixture --*/
 
 Ref MakeEntry(int inId, const char * inFirst, const char * inLast)
@@ -209,6 +223,103 @@ Ref MakeStores()
 }
 
 } // namespace
+
+
+bool FakeNewton::browseAndInstall(Wire & ioWire)
+{
+  DockEvent event;
+  auto ask = [&](const DockEvent & inRequest, EventType inAnswer) -> bool {
+    ioWire.send(inRequest);
+    if (!ioWire.receive(event, 30)) {
+      mWhy = "no answer to '" + CmdName(inRequest.command) + "'";
+      return false;
+    }
+    mReceived.push_back(CmdName(event.command));
+    if (event.command != inAnswer) {
+      mWhy = "'" + CmdName(event.command) + "' instead of '" + CmdName(inAnswer) + "'";
+      return false;
+    }
+    return true;
+  };
+  auto elementName = [](RefArg inElement) {
+    RefVar name(IsFrame(inElement) ? GetFrameSlot(inElement, SYMA(name)) : (Ref)inElement);
+    return IsString(name) ? UTF8FromString(name) : std::string();
+  };
+
+  if (!ask(MakeRefEvent(kDRequestToBrowse, RefVar(MakeSymbol("packages"))), kDResult))
+    return false;
+  if (!ask(DockEvent::Make(kDGetDefaultPath), kDPath))
+    return false;
+  RefVar path(UnflattenBytes(event.data));
+  for (ArrayIndex i = 0, count = IsArray(path) ? Length(path) : 0; i < count; ++i)
+    mBrowsed.push_back("path " + elementName(GetArraySlot(path, i)));
+  if (!ask(DockEvent::Make(kDGetFilesAndFolders), kDFilesAndFolders))
+    return false;
+  RefVar files(UnflattenBytes(event.data));
+  std::string package;
+  bool sub = false;
+  for (ArrayIndex i = 0, count = IsArray(files) ? Length(files) : 0; i < count; ++i) {
+    RefVar file(GetArraySlot(files, i));
+    std::string name = elementName(file);
+    int type = (int)RINT(GetFrameSlot(file, SYMA(type)));
+    mBrowsed.push_back("file " + name + " " + std::to_string(type));
+    if (type == kDesktopFile && package.empty())
+      package = name;
+    if (type == kDesktopFolder && name == "sub")
+      sub = true;
+  }
+  if (sub) {
+    // into "sub", and back
+    RefVar into(Clone(path));
+    RefVar element(AllocateFrame());
+    SetFrameSlot(element, SYMA(name), MakeStringFromUTF8("sub"));
+    SetFrameSlot(element, SYMA(type), MAKEINT(kDesktopFolder));
+    AddArraySlot(into, element);
+    if (!ask(MakeRefEvent(kDSetPath, into), kDFilesAndFolders))
+      return false;
+    RefVar subFiles(UnflattenBytes(event.data));
+    for (ArrayIndex i = 0, count = IsArray(subFiles) ? Length(subFiles) : 0; i < count; ++i)
+      mBrowsed.push_back("subfile " + elementName(GetArraySlot(subFiles, i)));
+    if (!ask(MakeRefEvent(kDSetPath, path), kDFilesAndFolders))
+      return false;
+  }
+  if (package.empty()) {
+    mWhy = "no package to install";
+    return false;
+  }
+  if (!ask(MakeRefEvent(kDGetFileInfo, RefVar(MakeStringFromUTF8(package))), kDFileInfo))
+    return false;
+  RefVar info(UnflattenBytes(event.data));
+  RefVar kind(IsFrame(info) ? GetFrameSlot(info, SYMA(kind)) : (Ref)NILREF);
+  RefVar size(IsFrame(info) ? GetFrameSlot(info, SYMA(size)) : (Ref)NILREF);
+  mBrowsed.push_back("info " + (IsString(kind) ? UTF8FromString(kind) : std::string("-")) + " "
+                     + (ISINT(size) ? std::to_string(RINT(size)) : std::string("-")));
+
+  // the package: the desktop sets the store, then sends it
+  ioWire.send(MakeRefEvent(kDLoadPackageFile, RefVar(MakeStringFromUTF8(package))));
+  for (;;) {
+    if (!ioWire.receive(event, 30)) {
+      mWhy = "the package didn't come";
+      return false;
+    }
+    mReceived.push_back(CmdName(event.command));
+    if (event.command == kDSetStoreToDefault || event.command == kDSetCurrentStore) {
+      ioWire.send(DockEvent::MakeValue(kDResult, 0));
+    } else if (event.command == kDLoadPackage) {
+      ++mPackagesLoaded;
+      mPackageSize = event.data.size();
+      ioWire.send(DockEvent::MakeValue(kDResult, 0));
+      break;
+    } else {
+      mWhy = "'" + CmdName(event.command) + "' instead of the package";
+      return false;
+    }
+  }
+  // done: the Newton ends the session (and waits until 'disc' is through)
+  ioWire.send(DockEvent::Make(kDDisconnect));
+  ioWire.flush();
+  return true;
+}
 
 
 bool FakeNewton::run(const FakeNewtonOptions & inOptions)
@@ -302,7 +413,11 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     return false;
   }
 
+  if (inOptions.browseInstall)
+    return browseAndInstall(*wire);
+
   // the session: answer until 'disc'
+  const EventType kPackageFinder = Cmd("pfnd");
   std::vector<uint32_t> maps;               // NDmp: the windows mapped
   auto hasExtension = [this](const char * inId) {
     for (const std::string & id : mExtensions)
@@ -445,7 +560,19 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
         SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(-1));
       }
       wire->send(MakeRefEvent(Cmd("NDrs"), answer));
+    } else if (c == kPackageFinder && hasExtension("pfnd")) {
+      RefVar request(UnflattenBytes(event.data));
+      RefVar name(IsFrame(request) ? GetFrameSlot(request, MakeSymbol("packageName")) : (Ref)NILREF);
+      bool installed = IsString(name) && UTF8FromString(name) == "Installed Package";
+      wire->send(DockEvent::Make(installed ? Cmd("pkya") : Cmd("pkno")));
+    } else if (c == kDRequestToInstall) {
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == kDRemovePackage) {
+      RefVar name(UnflattenBytes(event.data));
+      mRemoved.push_back(IsString(name) ? UTF8FromString(name) : std::string());
+      wire->send(DockEvent::MakeValue(kDResult, 0));
     } else if (c == kDLoadPackage) {
+      ++mPackagesLoaded;
       mPackageSize = event.data.size();
       wire->send(DockEvent::MakeValue(kDResult, 0));
     } else if (c == kDCallGlobalFunction) {

@@ -11,6 +11,13 @@
                                      the Newton's screen (it needs the
                                      Toolkit app), as a PNG; --block: bytes
                                      a request (2048; 0: all at once)
+   ncx-cli install <package>... [--replace] [options]
+                                     install packages (on the default store);
+                                     --replace: those of the same name too
+   ncx-cli serve [--folder <folder>] [options]
+                                     dock and wait: the Newton browses the
+                                     folder (home) and installs from it, and
+                                     disconnects when done
    ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>]
                [--resume] [options]
                                      the Newton's ROM (8 MB from physical 0;
@@ -24,7 +31,7 @@
    ncx-cli convert <nbku> <file>     a Newton Connection 1 backup (.nbku) as
                                      a new .newtondevice file
 
- Options for the commands that dock (info, screenshot, rom):
+ Options for the commands that dock (info, screenshot, install, serve, rom):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -42,6 +49,8 @@
 #include "comms/Handshake.h"
 #include "comms/Session.h"
 #include "dock/DockController.h"
+#include "dock/FileBrowser.h"
+#include "dock/Packages.h"
 #include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
 #include "model/BackupImport.h"
@@ -72,6 +81,8 @@ int Usage()
     "Usage: ncx-cli --version | --selftest\n"
     "       ncx-cli info [<dock options>]\n"
     "       ncx-cli screenshot <file.png> [--block <bytes>] [<dock options>]\n"
+    "       ncx-cli install <package>... [--replace] [<dock options>]\n"
+    "       ncx-cli serve [--folder <folder>] [<dock options>]\n"
     "       ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>] [--resume] [<dock options>]\n"
     "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
@@ -313,6 +324,96 @@ int ROM(int argc, char * argv[])
 }
 
 
+int Install(int argc, char * argv[])
+{
+  bool replace = false;
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--replace") == 0)
+      replace = true;
+    else
+      args.push_back(argv[i]);
+  }
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || rest.empty())
+    return Usage();
+  std::vector<std::filesystem::path> files;
+  for (const std::string & name : rest) {
+    ncx::PackageFile package;
+    if (!ncx::ReadPackageFile(ncx::PathFromUTF8(name), package)) {
+      std::fprintf(stderr, "ncx-cli: %s isn't a Newton package\n", name.c_str());
+      return 1;
+    }
+    files.push_back(ncx::PathFromUTF8(name));
+  }
+  return Dock(settings, [&](ncx::DockController & dock) {
+    ncx::PackageInstaller installer(dock);
+    installer.setReplace([replace](const std::string &) { return replace; });
+    int failed = 0;
+    for (const ncx::InstallResult & result : installer.install(files)) {
+      std::string file = ncx::UTF8FromPath(result.file.filename());
+      if (result.error != 0) {
+        std::printf("%s: not installed (%d)\n", file.c_str(), result.error);
+        ++failed;
+      } else if (result.skipped) {
+        std::printf("%s: \"%s\" is installed already (--replace replaces it)\n", file.c_str(), result.name.c_str());
+      } else {
+        std::printf("%s: \"%s\" installed\n", file.c_str(), result.name.c_str());
+      }
+    }
+    return failed ? 1 : 0;
+  });
+}
+
+
+int Serve(int argc, char * argv[])
+{
+  // dock and wait: the Newton browses the folder (Dock's Install) and
+  // disconnects when it's done
+  std::filesystem::path folder = ncx::HomeFolder();
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--folder") == 0 && i + 1 < argc)
+      folder = ncx::PathFromUTF8(argv[++i]);
+    else
+      args.push_back(argv[i]);
+  }
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || !rest.empty())
+    return Usage();
+  ncx::InitCore();
+  ncx::DockController dock;
+  ncx::FileBrowser browser(dock);
+  browser.setFolder(folder);
+  browser.setInstalled([](const std::filesystem::path & inFile, int inError) {
+    std::printf("%s: %s\n", ncx::UTF8FromPath(inFile.filename()).c_str(),
+                inError == 0 ? "installed" : ("not installed (" + std::to_string(inError) + ")").c_str());
+  });
+  ncx::DockController::Events events;
+  events.listening = [](const std::vector<std::string> & inWhere) {
+    for (const std::string & where : inWhere)
+      std::fprintf(stderr, "Waiting for a Newton on %s\n", where.c_str());
+  };
+  events.docked = [](const ncx::DockedNewton & inNewton) {
+    std::fprintf(stderr, "Docked: %s; the Newton can install from here now\n", inNewton.name.c_str());
+  };
+  dock.setEvents(events);
+  std::string error;
+  if (!dock.start(settings, error)) {
+    std::fprintf(stderr, "ncx-cli: can't listen: %s\n", error.c_str());
+    return 1;
+  }
+  dock.wait();
+  if (dock.result() != 0) {
+    std::fprintf(stderr, "ncx-cli: %s (%d)\n", dock.why().c_str(), dock.result());
+    return 1;
+  }
+  return 0;
+}
+
+
 int Device(int argc, char * argv[])
 {
   if (argc < 3 || argc > 4 || (argc == 4 && std::strcmp(argv[3], "--check") != 0))
@@ -401,6 +502,10 @@ int main(int argc, char * argv[])
   }
   if (argc >= 2 && std::strcmp(argv[1], "info") == 0)
     return Info(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "install") == 0)
+    return Install(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "serve") == 0)
+    return Serve(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "rom") == 0)
     return ROM(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "screenshot") == 0)

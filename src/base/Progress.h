@@ -26,8 +26,21 @@ public:
   void setTotal(int64_t inTotal) { mTotal = inTotal; }
   int64_t total() const { return mTotal; }
 
-  void setCompleted(int64_t inCompleted) { mCompleted = inCompleted; }
-  void add(int64_t inUnits) { mCompleted += inUnits; }
+  void setCompleted(int64_t inCompleted)
+  {
+    mCompleted = inCompleted;
+    if (mParent)
+      mParent->setCompleted(mOffset + inCompleted);
+  }
+  void add(int64_t inUnits) { setCompleted(mCompleted + inUnits); }
+
+  /** A part of inParent's work, from inOffset of it on: what is done here is
+      done there too, a cancel there cancels this. (Before the work starts.) */
+  void setParent(Progress * inParent, int64_t inOffset)
+  {
+    mParent = inParent;
+    mOffset = inOffset;
+  }
   int64_t completed() const { return mCompleted; }
 
   /** 0.0 ... 1.0; -1 if the total isn't known. */
@@ -52,12 +65,14 @@ public:
   }
 
   void cancel() { mCancelled = true; }
-  bool cancelled() const { return mCancelled; }
+  bool cancelled() const { return mCancelled || (mParent && mParent->cancelled()); }
 
 private:
   std::atomic<int64_t> mTotal;
   std::atomic<int64_t> mCompleted { 0 };
   std::atomic<bool> mCancelled { false };
+  Progress * mParent = nullptr;
+  int64_t mOffset = 0;
   mutable std::mutex mLock;
   std::string mDescription;
 };

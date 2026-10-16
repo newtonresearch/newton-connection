@@ -674,9 +674,9 @@ clean under ThreadSanitizer and ASan/UBSan.
 
 ### Phase 5: dock controller and components (no GUI)
 
-In progress. Done so far: 5.1; 5.2.1 (against Einstein on Windows, Matt,
-2026-10-16); 5.2.2 against the fake Newton. 46 ctests, clean under
-ThreadSanitizer and ASan/UBSan.
+In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
+Windows, Matt, 2026-10-16/17); 5.2.3 against the fake Newton. 50 ctests,
+clean under ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
   - `src/dock/DockController.h`: a dock thread that listens, docks
@@ -744,9 +744,25 @@ ThreadSanitizer and ASan/UBSan.
      has. `ncx-cli rom <file> [--size] [--address] [--block] [--resume]`,
      8 MB from 0 by default (every NewtonOS 2 machine: MessagePad 2x00,
      eMate 300, Einstein). Reconnecting by itself (newtdump does) is left to
-     the caller: `--resume` goes on. Still to do: against Einstein (an 8 MB
-     ROM is about 40 minutes at 3.5 KB/s) and a real Newton.
+     the caller: `--resume` goes on. Against Einstein on Windows (Matt,
+     2026-10-17): about 8 KB/s. Still to do: a real Newton.
   3. package install (`ncx-cli install a.pkg b.pkg`), with `PkgPart`
+     ✅ (fake Newton) `dock/Packages.h`: `PackageInstaller` as the Cocoa
+     app's component: desktop in control, `rins`, then per package the
+     Cocoa app's `pfnd` extension (installed already? `pkno`, `pkya`,
+     `tran`): replaced only if the caller says so (`rmvp` first), otherwise
+     left; sent to the default store with progress (a part of all of them:
+     `Progress::setParent`), cancel, Disconnect on the Newton ('opca').
+     NewtonOS 1 just takes them, and the session ends. A package's name
+     from its directory (no framework needed; `PkgPart` wasn't). `ncx-cli
+     install <package>... [--replace]`.
+     The Newton's own Install (5.1's folder browsing): `dock/FileBrowser.h`
+     answers `rtbr`, `dpth`, `spth`, `gfil`, `gfin` (and `rali`, as the
+     Cocoa app: nothing) and installs what it asks for (`lpfl`). The path
+     is [computer, disk, folders]; it shows the folders and the files of
+     the kind asked for ('packages, 'syncFiles: backups, 'import: none
+     until Phase 6), no hidden ones. `ncx-cli serve [--folder]` docks and
+     waits for the Newton. Still to do: against Einstein and a real Newton.
   4. backup, full and selective (`ncx-cli backup`), which writes the
      `.newtondevice`
   5. restore

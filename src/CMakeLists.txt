@@ -56,7 +56,9 @@ add_library (ncx_core STATIC
   comms/Session.cc comms/Session.h
   dock/DockController.cc dock/DockController.h
   dock/Extensions.cc dock/Extensions.h ${ncx_extension_data}
+  dock/FileBrowser.cc dock/FileBrowser.h
   dock/MemoryDump.cc dock/MemoryDump.h
+  dock/Packages.cc dock/Packages.h
   dock/Screenshot.cc dock/Screenshot.h
   model/BackupImport.cc model/BackupImport.h
   model/CoreDataModel.cc model/CoreDataModel.h

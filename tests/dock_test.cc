@@ -7,7 +7,9 @@
 
    ncx_dock_test <section> <ncx-fake-newton>   extensions, bits, controller,
                                                screenshot, onepiece, notoolkit,
-                                               memory, or all
+                                               memory, packagefiles, install,
+                                               browse, or all
+   ncx_dock_test make-package <file> <name>    a package to try things on
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok.
  */
@@ -16,19 +18,25 @@
 #include "FakeProcess.h"
 
 #include "base/Core.h"
+#include "base/Strings.h"
+#include "platform/AppFolders.h"
 #include "base/NewtonCall.h"
 #include "comms/DockRefs.h"
 #include "dock/DockController.h"
 #include "dock/Extensions.h"
+#include "dock/FileBrowser.h"
+#include "dock/Packages.h"
 #include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <random>
 #include <fstream>
 #include <string>
 #include <thread>
@@ -48,10 +56,12 @@ void Check(bool inOk, const std::string & inWhat)
     ++gFailed;
 }
 
-/** A port of its own for each section (below 40000: Windows). */
+/** A port of its own for each section, below 40000 (Windows). The sections
+    run as processes of their own, at the same time: a base at random, a
+    multiple of 20, the sections' offsets below 20. */
 int Port(int inSection)
 {
-  static int base = 21000 + (int)(std::chrono::steady_clock::now().time_since_epoch().count() % 500) * 10;
+  static int base = 21000 + (int)(std::random_device()() % 900) * 20;
   return base + inSection;
 }
 
@@ -295,6 +305,148 @@ void TestMemory()
   std::filesystem::remove(file);
 }
 
+/*-- packages ----------------------------------------------------------------*/
+
+/** A package file: no parts, its name, inExtra bytes after it. */
+void MakePackage(const std::filesystem::path & inFile, const std::string & inName, size_t inExtra = 1000,
+                 const char * inSignature = "package0")
+{
+  std::u16string name = UTF16FromUTF8(inName);
+  std::vector<uint8_t> nameBytes;
+  for (char16_t c : name) {
+    nameBytes.push_back((uint8_t)(c >> 8));
+    nameBytes.push_back((uint8_t)c);
+  }
+  nameBytes.push_back(0);
+  nameBytes.push_back(0);
+  std::vector<uint8_t> bytes(56, 0);
+  std::memcpy(bytes.data(), inSignature, 8);
+  auto put32 = [&](size_t at, uint32_t v) { for (int i = 0; i < 4; ++i) bytes[at + i] = (uint8_t)(v >> (24 - 8 * i)); };
+  bytes[30] = (uint8_t)(nameBytes.size() >> 8);    // name: offset 0, length
+  bytes[31] = (uint8_t)nameBytes.size();
+  put32(48, 56 + (uint32_t)nameBytes.size());       // the directory's size
+  bytes.insert(bytes.end(), nameBytes.begin(), nameBytes.end());
+  bytes.resize(bytes.size() + inExtra, 0x5A);
+  put32(32, (uint32_t)bytes.size());
+  std::ofstream out(inFile, std::ios::binary);
+  out.write((const char *)bytes.data(), (std::streamsize)bytes.size());
+}
+
+/** The size of MakePackage's file. */
+uint64_t PackageSize(const std::string & inName, size_t inExtra)
+{
+  return 56 + (UTF16FromUTF8(inName).size() + 1) * 2 + inExtra;
+}
+
+std::filesystem::path TempFolder(const std::string & inName)
+{
+  std::filesystem::path folder = std::filesystem::temp_directory_path() / ("ncx-dock-" + inName + "-" + std::to_string(Port(0)));
+  std::filesystem::remove_all(folder);
+  std::filesystem::create_directories(folder);
+  return folder;
+}
+
+void TestPackageFiles()
+{
+  std::filesystem::path folder = TempFolder("pkgfiles");
+  MakePackage(folder / "a.newtonpkg", "Gr\xC3\xBC\xC3\x9F" "e Package", 1000);
+  MakePackage(folder / "b.pkg", "B", 10, "package1");
+  MakePackage(folder / "c.pkg", "C", 10, "xar!\0\0\0\0");          // a Mac installer package
+  MakePackage(folder / "d.txt", "D", 10);
+  PackageFile package;
+  Check(ReadPackageFile(folder / "a.newtonpkg", package) && package.name == "Gr\xC3\xBC\xC3\x9F" "e Package"
+        && package.size == PackageSize(package.name, 1000), "packagefiles: the name and size (" + package.name + ")");
+  Check(ReadPackageFile(folder / "b.pkg", package) && package.name == "B", "packagefiles: package1");
+  Check(!ReadPackageFile(folder / "c.pkg", package), "packagefiles: not a Newton package");
+  Check(IsNewtonPackage(folder / "a.newtonpkg") && IsNewtonPackage(folder / "b.pkg") && !IsNewtonPackage(folder / "c.pkg")
+        && !IsNewtonPackage(folder / "d.txt"), "packagefiles: which are offered");
+  std::filesystem::remove_all(folder);
+}
+
+void TestInstall()
+{
+  std::filesystem::path folder = TempFolder("install");
+  MakePackage(folder / "new.newtonpkg", "New Package", 20000);
+  MakePackage(folder / "old.newtonpkg", "Installed Package", 3000);
+  std::vector<std::filesystem::path> files = { folder / "new.newtonpkg", folder / "old.newtonpkg" };
+
+  for (bool replace : { false, true }) {
+    FakeProcess fake;
+    std::vector<InstallResult> results;
+    Progress progress;
+    std::vector<std::string> asked;
+    int result = DockWithFake(Port(replace ? 11 : 10), "", fake, [&](DockController & dock) {
+      PackageInstaller installer(dock);
+      installer.setReplace([&](const std::string & inName) {
+        asked.push_back(inName);
+        return replace;
+      });
+      results = installer.install(files, &progress);
+    });
+    std::string how = replace ? " (replace)" : "";
+    Check(result == 0 && results.size() == 2 && results[0].error == 0 && !results[0].skipped
+          && results[0].name == "New Package", "install: a new package" + how + " " + fake.why);
+    Check(results.size() == 2 && results[1].error == 0 && results[1].skipped == !replace
+          && asked == std::vector<std::string>({ "Installed Package" }), "install: one installed already, asked" + how);
+    Check(fake.packagesLoaded == (replace ? 2u : 1u)
+          && fake.removed == (replace ? std::vector<std::string>({ "Installed Package" }) : std::vector<std::string>()),
+          "install: sent " + std::to_string(fake.packagesLoaded) + ", removed " + std::to_string(fake.removed.size()) + how);
+    Check(Received(fake, "rins") && Received(fake, "opdn") && fake.extensions == std::vector<std::string>({ "pfnd" }),
+          "install: asked to install, pfnd, done" + how);
+    Check(progress.total() == (int64_t)(PackageSize("New Package", 20000) + PackageSize("Installed Package", 3000))
+          && progress.completed() == progress.total(),
+          "install: the progress of all" + how);
+  }
+  std::filesystem::remove_all(folder);
+}
+
+void TestBrowse()
+{
+  std::filesystem::path folder = TempFolder("browse");
+  MakePackage(folder / "a.newtonpkg", "A Package", 5000);
+  MakePackage(folder / ".hidden.newtonpkg", "Hidden", 10);
+  std::ofstream(folder / "b.txt") << "not a package";
+  std::filesystem::create_directories(folder / "sub");
+  MakePackage(folder / "sub" / "c.newtonpkg", "C Package", 10);
+
+  FakeProcess fake;
+  fake.start(gFakeNewton, Port(12), "--password test --browse-install");
+  DockController dock;
+  FileBrowser browser(dock);
+  browser.setFolder(folder);
+  std::filesystem::path installed;
+  int installError = -1;
+  browser.setInstalled([&](const std::filesystem::path & inFile, int inError) {
+    installed = inFile;
+    installError = inError;
+  });
+  DockController::Settings settings;
+  settings.targets = { "tcp:" + std::to_string(Port(12)) };
+  settings.password = "test";
+  settings.once = true;
+  settings.waitSeconds = 20;
+  std::string error;
+  bool started = dock.start(settings, error);
+  dock.wait();
+  fake.finish();
+  Check(started && dock.result() == 0 && fake.exitCode == 0,
+        "browse: the Newton browsed, installed, disconnected " + fake.why + " (" + std::to_string(dock.result()) + " "
+        + dock.why() + ", fake " + std::to_string(fake.exitCode) + ")");
+  auto saw = [&](const std::string & inLine) {
+    return std::find(fake.browsed.begin(), fake.browsed.end(), inLine) != fake.browsed.end();
+  };
+  std::string folderName = UTF8FromPath(std::filesystem::absolute(folder).filename());
+  Check(!fake.browsed.empty() && fake.browsed.front() == "path " + ComputerName() && saw("path " + folderName),
+        "browse: the path, the computer first");
+  Check(saw("file a.newtonpkg 1") && saw("file sub 2") && !saw("file b.txt 1") && !saw("file .hidden.newtonpkg 1"),
+        "browse: the folder's packages and folders, nothing else");
+  Check(saw("subfile c.newtonpkg"), "browse: into a folder and back");
+  Check(saw("info Newton package " + std::to_string(PackageSize("A Package", 5000))), "browse: a file's info");
+  Check(installed.filename() == "a.newtonpkg" && installError == 0 && fake.packagesLoaded == 1
+        && fake.packageSize == PackageSize("A Package", 5000), "browse: the package installed");
+  std::filesystem::remove_all(folder);
+}
+
 } // namespace
 
 
@@ -302,12 +454,18 @@ int main(int argc, char * argv[])
 {
   std::setvbuf(stdout, nullptr, _IONBF, 0);
   std::string section = argc > 1 ? argv[1] : "all";
+  if (section == "make-package" && argc == 4) {
+    // a package to try things on (the ncx-cli install test)
+    MakePackage(PathFromUTF8(argv[2]), argv[3], 4000);
+    return 0;
+  }
   gFakeNewton = argc > 2 ? argv[2] : "ncx-fake-newton";
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "extensions", TestExtensions }, { "bits", TestBits }, { "controller", TestController },
     { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
-    { "memory", TestMemory } };
+    { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
+    { "browse", TestBrowse } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

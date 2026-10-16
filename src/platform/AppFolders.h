@@ -35,6 +35,12 @@ std::filesystem::path AppDataFile(const std::string & inName);
 /** The log file; its folder is made if it isn't there. */
 std::filesystem::path LogFilePath();
 
+/** The user's home folder (HOME, USERPROFILE on Windows); "." if unknown. */
+std::filesystem::path HomeFolder();
+
+/** This computer's name (UTF-8), as the Newton's file browser shows it. */
+std::string ComputerName();
+
 /** Paths and UTF-8 (on Windows paths are UTF-16 underneath). */
 std::filesystem::path PathFromUTF8(const std::string & inText);
 std::string UTF8FromPath(const std::filesystem::path & inPath);
