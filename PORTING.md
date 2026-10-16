@@ -336,10 +336,23 @@ check. Phases 0–1 come first; 2–6 can partly overlap; 7 needs 5 and 6.
     five targets (Linux under Xvfb), plus one Linux job without FLTK.
   - Found and fixed framework bugs: black was drawn dark gray (B58), and
     a font frame's family was read wrong (B59).
-- **0.6 Move the Dock link into a shared target.**
-  - `MNP.cc`, `NTKTransport.cc`, `DES.c` (and maybe `DockLink`) become a
-    small `newton_dock` library used by `newtdump` and NCX.
-  - Done when: `newtdump` and its tests still pass.
+- **0.6 Move the Dock link into a shared target.** ✅ Done 2026-10-16.
+  - `newton_dock` is a static library with `MNP.cc`, `NTKTransport.cc` and
+    `DES.c`. It is C++17, has no framework headers, and its headers are
+    included by path (`"Matt/MNP.h"`). newtc, newtdump and its fake Newton
+    link it; NCX will too.
+  - `DockLink` and newtdump's small NSOF stay in newtdump: NCX has the
+    framework's NSOF and its own dock protocol code (Phase 4).
+  - On Windows the link and the transports are still stubs that say "not
+    supported on Windows yet"; the framing, CRC and DES work there. Step
+    3.1 brings Winsock and Win32 serial.
+  - Tested: `newton_dock_test` checks the CRC, framing, DES against the
+    textbook vector, and runs two MNP links over TCP on one machine (one
+    plays the Newton, as Einstein does): link up, 8000 bytes both ways,
+    disconnect. CI runs it on all six jobs, which was the first time
+    `MNP.cc` and `NTKTransport.cc` were built on Linux. newtdump's tests
+    pass, and the subproject test's program links `newton_dock` too.
+  - Found and fixed framework bug B61: DES decoding encrypted again.
 
 ### Phase 1: NCX build skeleton and CI
 
