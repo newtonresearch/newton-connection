@@ -11,8 +11,9 @@
 #------------------------------------------------------------------------------
 #------------------------------------------------------------------------------
 #   The protocol extensions (src/dock/extensions/<id>.nsof) built into NCX.
-#   ncx_extensions compiles the NewtonScript ones (<id>.ns) with newtc
-#   first, when NCX_NEWTC names one (src/dock/extensions/README.md).
+#   ncx_extensions compiles the NewtonScript ones (<id>.ns, and newtdump's
+#   NDmp from newton-framework) with newtc first, when NCX_NEWTC names one
+#   (src/dock/extensions/README.md).
 #------------------------------------------------------------------------------
 file (GLOB ncx_extension_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/dock/extensions/*.nsof")
 set (ncx_extension_data "${PROJECT_BINARY_DIR}/generated/ExtensionData.cc")
@@ -28,6 +29,7 @@ set (NCX_NEWTC "" CACHE FILEPATH "newtc, to compile the protocol extensions (tar
 if (NCX_NEWTC)
   add_custom_target (ncx_extensions
     COMMAND "${CMAKE_COMMAND}" -DNEWTC=${NCX_NEWTC} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/dock/extensions
+            "-DEXTERNAL=NDmp=${newton_SOURCE_DIR}/Matt/NewtDump/Newton/Extension.ns"
             -P "${PROJECT_SOURCE_DIR}/cmake/CompileExtensions.cmake"
     COMMENT "Compiling the protocol extensions with newtc"
     VERBATIM
@@ -54,6 +56,7 @@ add_library (ncx_core STATIC
   comms/Session.cc comms/Session.h
   dock/DockController.cc dock/DockController.h
   dock/Extensions.cc dock/Extensions.h ${ncx_extension_data}
+  dock/MemoryDump.cc dock/MemoryDump.h
   dock/Screenshot.cc dock/Screenshot.h
   model/BackupImport.cc model/BackupImport.h
   model/CoreDataModel.cc model/CoreDataModel.h

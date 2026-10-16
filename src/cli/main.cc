@@ -11,6 +11,12 @@
                                      the Newton's screen (it needs the
                                      Toolkit app), as a PNG; --block: bytes
                                      a request (2048; 0: all at once)
+   ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>]
+               [--resume] [options]
+                                     the Newton's ROM (8 MB from physical 0;
+                                     or --size bytes from --address), --block
+                                     bytes a request (2048), --resume after
+                                     what the file has
    ncx-cli device <file> [--check]   a .newtondevice file: its Newton, and
                                      how many soups and entries per store;
                                      --check: that every entry can be read
@@ -18,7 +24,7 @@
    ncx-cli convert <nbku> <file>     a Newton Connection 1 backup (.nbku) as
                                      a new .newtondevice file
 
- Options for the commands that dock (info, screenshot):
+ Options for the commands that dock (info, screenshot, rom):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -36,6 +42,7 @@
 #include "comms/Handshake.h"
 #include "comms/Session.h"
 #include "dock/DockController.h"
+#include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
 #include "model/BackupImport.h"
 #include "model/DeviceFile.h"
@@ -48,8 +55,12 @@
 
 #include <cstdio>
 #include <cstdlib>
+#include <atomic>
+#include <chrono>
 #include <cstring>
+#include <filesystem>
 #include <functional>
+#include <thread>
 #include <string>
 #include <vector>
 
@@ -61,6 +72,7 @@ int Usage()
     "Usage: ncx-cli --version | --selftest\n"
     "       ncx-cli info [<dock options>]\n"
     "       ncx-cli screenshot <file.png> [--block <bytes>] [<dock options>]\n"
+    "       ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>] [--resume] [<dock options>]\n"
     "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
     "       ncx-cli convert <backup.nbku> <file.newtondevice>\n");
@@ -234,6 +246,73 @@ int Screenshot(int argc, char * argv[])
 }
 
 
+uint32_t Number(const char * inText)
+{
+  return (uint32_t)std::strtoul(inText, nullptr, 0);     // 0x... too
+}
+
+
+int ROM(int argc, char * argv[])
+{
+  // its own options: --size, --address, --block, --resume
+  uint32_t size = 0, address = 0, block = ncx::MemoryReader::kBlock;
+  bool resume = false;
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--size" && i + 1 < argc)
+      size = Number(argv[++i]);
+    else if (arg == "--address" && i + 1 < argc)
+      address = Number(argv[++i]);
+    else if (arg == "--block" && i + 1 < argc)
+      block = Number(argv[++i]);
+    else if (arg == "--resume")
+      resume = true;
+    else
+      args.push_back(argv[i]);
+  }
+  if (block < 256 || block > 16384 || (block & (block - 1)) || address % 4 || size % 4) {
+    std::fprintf(stderr, "ncx-cli: --block: a power of 2 from 256 to 16384; --address, --size: multiples of 4\n");
+    return 2;
+  }
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || rest.size() != 1)
+    return Usage();
+  std::filesystem::path file = ncx::PathFromUTF8(rest[0]);
+  return Dock(settings, [&](ncx::DockController & dock) {
+    uint32_t bytes = size ? size : ncx::ROMSize(dock.newton().info);
+    ncx::Progress progress;
+    // progress now and then, on the dock thread (that's where it is)
+    std::atomic<bool> done { false };
+    std::thread reporter([&] {
+      auto started = std::chrono::steady_clock::now();
+      int64_t last = -1;
+      while (!done) {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        int64_t completed = progress.completed();
+        if (completed == last || progress.total() <= 0)
+          continue;
+        last = completed;
+        double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+        std::fprintf(stderr, "\r%lld of %lld KB, %.1f KB/s   ", (long long)completed / 1024,
+                     (long long)progress.total() / 1024, seconds > 0 ? completed / 1024.0 / seconds : 0.0);
+      }
+    });
+    int error = ncx::DumpMemory(dock, address, bytes, file, resume, block, &progress);
+    done = true;
+    reporter.join();
+    std::fprintf(stderr, "\n");
+    if (error != 0) {
+      std::fprintf(stderr, "ncx-cli: %s isn't complete (%d); --resume goes on\n", rest[0].c_str(), error);
+      return 1;
+    }
+    std::printf("%s: %u bytes from 0x%08X\n", rest[0].c_str(), bytes, address);
+    return 0;
+  });
+}
+
+
 int Device(int argc, char * argv[])
 {
   if (argc < 3 || argc > 4 || (argc == 4 && std::strcmp(argv[3], "--check") != 0))
@@ -322,6 +401,8 @@ int main(int argc, char * argv[])
   }
   if (argc >= 2 && std::strcmp(argv[1], "info") == 0)
     return Info(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "rom") == 0)
+    return ROM(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "screenshot") == 0)
     return Screenshot(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "device") == 0)

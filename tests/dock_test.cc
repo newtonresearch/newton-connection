@@ -7,7 +7,7 @@
 
    ncx_dock_test <section> <ncx-fake-newton>   extensions, bits, controller,
                                                screenshot, onepiece, notoolkit,
-                                               or all
+                                               memory, or all
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok.
  */
@@ -20,6 +20,7 @@
 #include "comms/DockRefs.h"
 #include "dock/DockController.h"
 #include "dock/Extensions.h"
+#include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
 
 #include <atomic>
@@ -27,6 +28,8 @@
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
 #include <string>
 #include <thread>
 #include <vector>
@@ -238,6 +241,60 @@ void TestNoToolkit()
   Check(Received(fake, "opdn"), "notoolkit: the desktop gave up control");
 }
 
+/*-- memory ------------------------------------------------------------------*/
+
+std::vector<uint8_t> ReadFile(const std::filesystem::path & inFile)
+{
+  std::ifstream in(inFile, std::ios::binary);
+  return std::vector<uint8_t>((std::istreambuf_iterator<char>(in)), std::istreambuf_iterator<char>());
+}
+
+bool MatchesMemory(const std::vector<uint8_t> & inBytes, uint32_t inAddress)
+{
+  for (size_t i = 0; i < inBytes.size(); ++i)
+    if (inBytes[i] != MemoryByte(inAddress + (uint32_t)i))
+      return false;
+  return true;
+}
+
+void TestMemory()
+{
+  std::filesystem::path file = std::filesystem::temp_directory_path() / ("ncx-memory-" + std::to_string(Port(7)) + ".bin");
+  std::filesystem::remove(file);
+
+  // 64 KB from 0: a uniform block among them (0x1000 ... 0x1FFF)
+  FakeProcess fake;
+  int dumped = -1;
+  Progress progress;
+  int result = DockWithFake(Port(7), "", fake, [&](DockController & dock) {
+    dumped = DumpMemory(dock, 0, 65536, file, false, MemoryReader::kBlock, &progress);
+  });
+  std::vector<uint8_t> bytes = ReadFile(file);
+  Check(result == 0 && dumped == 0 && bytes.size() == 65536 && MatchesMemory(bytes, 0), "memory: 64 KB, every byte " + fake.why);
+  Check(progress.completed() == 65536 && fake.extensions == std::vector<std::string>({ "NDmp" }),
+        "memory: the progress, the extension");
+
+  // resume: after the whole blocks the file has
+  std::filesystem::resize_file(file, 20000);        // 9 blocks and a part
+  FakeProcess fake2;
+  result = DockWithFake(Port(8), "", fake2, [&](DockController & dock) {
+    dumped = DumpMemory(dock, 0, 65536, file, true, MemoryReader::kBlock);
+  });
+  bytes = ReadFile(file);
+  Check(result == 0 && dumped == 0 && bytes.size() == 65536 && MatchesMemory(bytes, 0)
+        && fake2.memoryRead == 65536 - 9 * 2048, "memory: resumed after 9 blocks (" + std::to_string(fake2.memoryRead) + " read)");
+
+  // across a 1 MB window: two maps, a block cut at the window's end
+  FakeProcess fake3;
+  result = DockWithFake(Port(9), "", fake3, [&](DockController & dock) {
+    dumped = DumpMemory(dock, 0xFF000 + 1024, 8192, file, false, MemoryReader::kBlock);
+  });
+  bytes = ReadFile(file);
+  Check(result == 0 && dumped == 0 && bytes.size() == 8192 && MatchesMemory(bytes, 0xFF000 + 1024),
+        "memory: across a 1 MB window");
+  std::filesystem::remove(file);
+}
+
 } // namespace
 
 
@@ -249,7 +306,8 @@ int main(int argc, char * argv[])
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "extensions", TestExtensions }, { "bits", TestBits }, { "controller", TestController },
-    { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit } };
+    { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
+    { "memory", TestMemory } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

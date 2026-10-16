@@ -22,6 +22,7 @@
                   (x / 20 + y / 30) % 16, the first 60 rows white
                   (ScreenPixel); its rows ('rows': blank if white), or all
                   of it ('take')
+            NDmp: newtdump's requests (hello, map, read) on MemoryByte()
  */
 
 #ifndef NCX_TESTS_FAKENEWTON_H
@@ -42,6 +43,12 @@ struct FakeNewtonOptions
   double connectSeconds = 10;         // keep trying to connect this long
   bool toolkit = true;                // it has the Toolkit app (screenshots)
 };
+
+/** The fake Newton's physical memory: a byte; 0x1000 ... 0x1FFF all 0xFF. */
+inline uint8_t MemoryByte(uint32_t inAddress)
+{
+  return inAddress >= 0x1000 && inAddress < 0x2000 ? 0xFF : (uint8_t)(inAddress * 7 ^ inAddress >> 9);
+}
 
 /** The fake Newton's screen: a pixel's value (0 white ... 15 black). */
 inline int ScreenPixel(int inX, int inY) { return inY < 60 ? 0 : (inX / 20 + inY / 30) % 16; }
@@ -64,6 +71,8 @@ public:
   size_t largestBlock() const { return mLargestBlock; }
   /** The pieces it said were white instead of sending them. */
   size_t blankBlocks() const { return mBlankBlocks; }
+  /** The memory it was asked to read ('NDmp' read), in bytes. */
+  size_t memoryRead() const { return mMemoryRead; }
 
 private:
   std::string mWhy;
@@ -72,6 +81,7 @@ private:
   size_t mPackageSize = 0;
   size_t mLargestBlock = 0;
   size_t mBlankBlocks = 0;
+  size_t mMemoryRead = 0;
 };
 
 } // namespace ncx

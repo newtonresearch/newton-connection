@@ -51,10 +51,13 @@ add_test (NAME ncx_model_fixture COMMAND ncx_model_test fixture ${CMAKE_CURRENT_
 add_executable (ncx_dock_test dock_test.cc)
 target_link_libraries (ncx_dock_test PRIVATE ncx_fake_newton)
 add_dependencies (ncx_dock_test ncx-fake-newton)
-foreach (section extensions bits controller screenshot onepiece notoolkit)
+foreach (section extensions bits controller screenshot onepiece notoolkit memory)
   add_test (NAME ncx_dock_${section} COMMAND ncx_dock_test ${section} $<TARGET_FILE:ncx-fake-newton>)
 endforeach ()
 math (EXPR cli_port_screenshot "43000 + ${port_base} + 2000")
 add_test (NAME ncx_cli_screenshot COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_screenshot} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_screenshot.png
           -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_screenshot.cmake)
+math (EXPR cli_port_rom "43000 + ${port_base} + 3000")
+add_test (NAME ncx_cli_rom COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
+          -DPORT=${cli_port_rom} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_rom.bin -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_rom.cmake)

@@ -674,8 +674,9 @@ clean under ThreadSanitizer and ASan/UBSan.
 
 ### Phase 5: dock controller and components (no GUI)
 
-In progress. Done so far (locally, 2026-10-16): 5.1, and 5.2.1 against the
-fake Newton. 43 ctests, clean under ThreadSanitizer and ASan/UBSan.
+In progress. Done so far: 5.1; 5.2.1 (against Einstein on Windows, Matt,
+2026-10-16); 5.2.2 against the fake Newton. 46 ctests, clean under
+ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
   - `src/dock/DockController.h`: a dock thread that listens, docks
@@ -715,16 +716,36 @@ fake Newton. 43 ctests, clean under ThreadSanitizer and ASan/UBSan.
      extensions send the screen in very large chunks. On real devices that
      can overwhelm the Dock/MNP link and fail. Rewrite them to send smaller
      blocks, the way newtdump's `NDmp` extension does.
-     ✅ (fake Newton) `dock/Screenshot.h`: `NCss` (`NCss.ns`) takes the
-     shot with the Toolkit app's `ScreenShotFn`, as 'snap' did, keeps it on
-     the Newton and sends it 2048 bytes at a time; 'scrn' (taken over:
-     hides the Dock slip) stays. The Newton needs the Toolkit app
-     (`NCX/Extras/Toolkit.newtonpkg`); without it `begin()` says so
-     (-28010). The bits become 8-bit gray (0 white ... the highest value
-     black), `ncx-cli` writes a PNG (`fl_write_png`). Still to do: against
-     Einstein and a real Newton (Matt).
+     ✅ `dock/Screenshot.h`: `NCss` (`NCss.ns`) takes the screen with the
+     Toolkit app's `ScreenShotFn`, as 'snap' did, but a few rows at a time
+     (about 2 KB an answer), each a shot of its own, so nothing stays on the
+     Newton between requests; white rows aren't sent (`BinEqual` with an
+     empty binary). 'scrn' (taken over: hides the Dock slip) stays. The
+     Newton needs the Toolkit app (`NCX/Extras/Toolkit.newtonpkg`);
+     without it `begin()` says so (-28010). The bits become 8-bit gray (0
+     white ... the highest value black), `ncx-cli screenshot` writes a PNG
+     (`fl_write_png`); `--block 0` takes it in one piece, as 'snap'.
+     Against Einstein on Windows (Matt, 2026-10-16): the PNG came complete.
+     Found on the way: keeping the Toolkit's bits on the Newton and reading
+     them later didn't answer; keeping a copy filled the NewtonScript heap
+     (NTK's own Toolkit takes a screenshot in parts when it runs out of
+     memory: `ScreenShotFn` takes a rectangle), hence the rows. Einstein's
+     TCP serial port on Windows sent 4 bytes per timer tick (15.6 ms), about
+     250 bytes/s; Matt fixed it in Einstein. Still to do: a real Newton.
   2. ROM dump (`ncx-cli rom out.bin`). Take the approach from newtdump
      (block size, resume after a reconnect).
+     ✅ (fake Newton) `dock/MemoryDump.h`: newtdump's extension itself
+     (`NDmp`, compiled from newton-framework's `Matt/NewtDump/Newton/
+     Extension.ns` by `ncx_extensions`: the bytes newtdump sends), physical
+     memory in 1 MB windows, 2 KB reads, a uniform block as one byte (an
+     integer comes as a 4-byte long, not NSOF). `DumpMemory` writes a range
+     to a file, with progress, cancel (on the desktop, or Disconnect on the
+     Newton: 'opca' -> 'ocaa'), and resume after the whole blocks the file
+     has. `ncx-cli rom <file> [--size] [--address] [--block] [--resume]`,
+     8 MB from 0 by default (every NewtonOS 2 machine: MessagePad 2x00,
+     eMate 300, Einstein). Reconnecting by itself (newtdump does) is left to
+     the caller: `--resume` goes on. Still to do: against Einstein (an 8 MB
+     ROM is about 40 minutes at 3.5 KB/s) and a real Newton.
   3. package install (`ncx-cli install a.pkg b.pkg`), with `PkgPart`
   4. backup, full and selective (`ncx-cli backup`), which writes the
      `.newtondevice`

@@ -8,8 +8,9 @@ them into NCX (`cmake/EmbedExtensions.cmake`, read by `src/dock/Extensions.h`).
 
 | Extension | What it does | Where it comes from |
 |---|---|---|
-| `NCss` | screenshot: takes the shot with the Toolkit app's `ScreenShotFn`, keeps it, sends it a block at a time | `NCss.ns` |
+| `NCss` | screenshot: takes the screen with the Toolkit app's `ScreenShotFn` a few rows at a time (white ones not sent) | `NCss.ns` |
 | `scrn` | hides the Dock slip while the user arranges the screen for a screenshot (and shows it again) | the Cocoa NCX's `NCX/NTK/scrn.stream`, without its 4-byte id |
+| `NDmp` | reads physical memory (the ROM, PCMCIA cards) a block at a time | newtdump's, newton-framework's `Matt/NewtDump/Newton/Extension.ns` (and its ARM natives, `PhysNatives.ns`); the same bytes newtdump sends |
 
 ## Changing one
 
@@ -21,6 +22,9 @@ build needs no newtc:
 cmake -B build -DNCX_NEWTC=<path to newtc>
 cmake --build build --target ncx_extensions
 ```
+
+newtdump's extension is compiled from the fetched newton-framework (its
+source stays there).
 
 Look at what came out with `newtc -nsof <id>.nsof -decompile`. The
 extensions taken over from the Cocoa NCX have no source; decompiling them

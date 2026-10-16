@@ -33,6 +33,7 @@ struct FakeProcess
   size_t packageSize = 0;
   size_t largestBlock = 0;                // the largest block it sent (NCss)
   size_t blankBlocks = 0;                 // the white ones it didn't send
+  size_t memoryRead = 0;                  // the bytes of memory it was asked for (NDmp)
   std::string why;
 
   /** Start inProgram (ncx-fake-newton) on a thread; it keeps trying to
@@ -73,6 +74,8 @@ struct FakeProcess
         largestBlock = (size_t)std::stoul(line.substr(6));
       else if (line.compare(0, 6, "blank ") == 0)
         blankBlocks = (size_t)std::stoul(line.substr(6));
+      else if (line.compare(0, 7, "memory ") == 0)
+        memoryRead = (size_t)std::stoul(line.substr(7));
       else if (line.compare(0, 4, "why ") == 0)
         why = line.substr(4);
     }

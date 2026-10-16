@@ -303,6 +303,7 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
   }
 
   // the session: answer until 'disc'
+  std::vector<uint32_t> maps;               // NDmp: the windows mapped
   auto hasExtension = [this](const char * inId) {
     for (const std::string & id : mExtensions)
       if (id == inId)
@@ -411,6 +412,39 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
         SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(-1));
       }
       wire->send(MakeRefEvent(Cmd("NCsr"), answer));
+    } else if (c == Cmd("NDmp") && hasExtension("NDmp")) {
+      RefVar request(UnflattenBytes(event.data));
+      RefVar op(IsFrame(request) ? GetFrameSlot(request, MakeSymbol("op")) : (Ref)NILREF);
+      std::string what = IsSymbol(op) ? UTF8FromSymbol(op) : std::string();
+      for (char & ch : what)
+        ch = (char)std::tolower((unsigned char)ch);
+      auto intSlot = [&](const char * inSlot) { return (uint32_t)RINT(GetFrameSlot(request, MakeSymbol(inSlot))); };
+      RefVar answer(AllocateFrame());
+      if (what == "hello") {
+        SetFrameSlot(answer, MakeSymbol("version"), MAKEINT(1));
+        SetFrameSlot(answer, MakeSymbol("maps"), MAKEINT((int)maps.size()));
+      } else if (what == "map") {
+        maps.push_back(intSlot("page") * 4096);
+        SetFrameSlot(answer, MakeSymbol("map"), MAKEINT((int)maps.size() - 1));
+      } else if (what == "read" && intSlot("map") < maps.size()) {
+        uint32_t address = maps[intSlot("map")] + intSlot("offset"), length = intSlot("length");
+        mMemoryRead += length;
+        bool uniform = true;
+        for (uint32_t i = 1; i < length && uniform; ++i)
+          uniform = MemoryByte(address + i) == MemoryByte(address);
+        if (uniform) {
+          // an integer: a 4-byte long (TDocker::WriteCommand)
+          wire->send(DockEvent::MakeValue(Cmd("NDrs"), MemoryByte(address)));
+          continue;
+        }
+        answer = AllocateBinary(MakeSymbol("data"), length);
+        uint8_t * p = (uint8_t *)BinaryData(answer);
+        for (uint32_t i = 0; i < length; ++i)
+          p[i] = MemoryByte(address + i);
+      } else {
+        SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(-1));
+      }
+      wire->send(MakeRefEvent(Cmd("NDrs"), answer));
     } else if (c == kDLoadPackage) {
       mPackageSize = event.data.size();
       wire->send(DockEvent::MakeValue(kDResult, 0));

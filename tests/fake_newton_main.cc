@@ -55,6 +55,7 @@ int main(int argc, char * argv[])
       out << "extension " << id << "\n";
     out << "block " << newton.largestBlock() << "\n";
     out << "blank " << newton.blankBlocks() << "\n";
+    out << "memory " << newton.memoryRead() << "\n";
     out << "why " << newton.why() << "\n";
   }
   return ok ? 0 : 1;
