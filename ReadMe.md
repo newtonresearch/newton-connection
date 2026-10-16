@@ -15,7 +15,23 @@ OS emulation platform.
 More information on [NCX](https://newtonresearch.org/connection/) can be found 
 on the [Newton Research](https://newtonresearch.org/) website.
 
-## Build Information
+## Building the cross-platform version (work in progress)
+
+On the `cross_platform` branch, NCX is being ported to C++17 and
+[FLTK](https://www.fltk.org) for Windows, Linux and macOS, on x86_64 and
+arm64. The plan and its progress are in `PORTING.md`. CMake fetches what it
+needs (FLTK, newton-framework, SQLite):
+
+    cmake -B build
+    cmake --build build
+    ctest --test-dir build
+
+On Linux, FLTK needs the X11 and Wayland development packages (the list is
+in `.github/workflows/ncx.yml`). For work on the libraries, use local
+checkouts with `-DFETCHCONTENT_SOURCE_DIR_FLTK=<path>` and
+`-DFETCHCONTENT_SOURCE_DIR_NEWTON=<path>`.
+
+## Build Information (the Cocoa app)
 
 The `NCX.xcodeproj` builds NCX as a x86_64-only application using Xcode, 
 tested with Xcode 26.3. There are a bunch of back-compatibility warnings, 

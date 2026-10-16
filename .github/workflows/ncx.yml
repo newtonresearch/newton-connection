@@ -1,0 +1,81 @@
+# NCX on every system it runs on (PORTING.md 1.3, 1.4): build, ctest, the
+# x86_64 slice of the macOS universal binary under Rosetta, a screenshot of
+# the window (Linux under Xvfb), and the app as an artifact with its
+# screenshot.
+name: ncx
+
+on:
+  push:
+    branches: [cross_platform, 'ncx-*']
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: ${{ matrix.name }}
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - { name: linux-x64,       os: ubuntu-24.04 }
+          - { name: linux-arm64,     os: ubuntu-24.04-arm }
+          - { name: windows-x64,     os: windows-2022,   cmake_args: "-A x64" }
+          - { name: windows-arm64,   os: windows-11-arm, cmake_args: "-A ARM64" }
+          - { name: macos-universal, os: macos-15,       cmake_args: "\"-DCMAKE_OSX_ARCHITECTURES=arm64;x86_64\"" }
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v5
+
+      # FLTK on Linux: X11 and Wayland (one binary for both), Xvfb for the
+      # screenshot
+      - name: Packages (Linux)
+        if: runner.os == 'Linux'
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends xvfb \
+            libx11-dev libxext-dev libxft-dev libxinerama-dev libxcursor-dev libxrender-dev \
+            libxfixes-dev libxi-dev libfontconfig1-dev \
+            libwayland-dev wayland-protocols libxkbcommon-dev libpango1.0-dev libcairo2-dev libdbus-1-dev
+
+      - name: Configure
+        run: cmake -S . -B build -DCMAKE_BUILD_TYPE=RelWithDebInfo ${{ matrix.cmake_args }}
+
+      # 4 jobs: --parallel alone is an unlimited make -j (FLTK twice on
+      # macOS would swap the runner to a standstill)
+      - name: Build
+        run: cmake --build build --config RelWithDebInfo --parallel 4
+
+      - name: Test
+        run: ctest --test-dir build -C RelWithDebInfo --output-on-failure
+
+      - name: Install
+        run: cmake --install build --config RelWithDebInfo --component ncx --prefix dist
+
+      - name: Test the x86_64 slice (Rosetta)
+        if: runner.os == 'macOS'
+        run: |
+          arch -x86_64 dist/bin/ncx-cli --selftest
+          arch -x86_64 dist/NCX.app/Contents/MacOS/NCX --selftest
+
+      - name: Screenshot
+        run: |
+          case "${{ runner.os }}" in
+            Linux)   xvfb-run -a dist/bin/NCX --screenshot ncx-${{ matrix.name }}.png ;;
+            Windows) dist/bin/NCX.exe --screenshot ncx-${{ matrix.name }}.png ;;
+            macOS)   dist/NCX.app/Contents/MacOS/NCX --screenshot ncx-${{ matrix.name }}.png ;;
+          esac
+          test -s ncx-${{ matrix.name }}.png
+          cp ncx-${{ matrix.name }}.png dist/
+
+      - name: Pack
+        run: tar -czf ncx-${{ matrix.name }}.tar.gz -C dist .
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: ncx-${{ matrix.name }}
+          path: |
+            ncx-${{ matrix.name }}.tar.gz
+            ncx-${{ matrix.name }}.png
