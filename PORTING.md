@@ -660,7 +660,11 @@ clean under ThreadSanitizer and ASan/UBSan.
   phones: no title; B72). The Zippy decompressors overran their buffer
   (ASan, the fixture's packages; B73). On Windows NCX didn't link: MSVC
   keeps unreachable code, and the relocation code's (after an early return)
-  called a function newton_ncx doesn't have (B74). All fixed.
+  called a function newton_ncx doesn't have (B74). A Debug build on Windows
+  stopped at MSVC's run-time check for variables read before they are set
+  (B75: 49 in the framework, found with clang's uninitialized warnings;
+  NCX's own sources have none). CI builds RelWithDebInfo, which doesn't
+  check. All fixed.
 
 ### Phase 5: dock controller and components (no GUI)
 
