@@ -6,7 +6,8 @@
  Newton Connection 1 backups, the device list. One section per ctest:
 
    ncx_model_test <section>    plist, file, delete, entries, titles, backup,
-                               devices, large, restore, or all
+                               devices, large, restore, fixture <file>, or
+                               all [<fixture file>]
    ncx_model_test write-backup <file>   a test backup (.nbku), for trying
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok. Files
@@ -725,6 +726,126 @@ void TestRestore()
         && toCard[0].packages.empty(), "restore: to a card, the cards'");
 }
 
+/*-- fixture -----------------------------------------------------------------*/
+
+std::string gFixture;      // tests/fixtures/einstein.newtondevice
+
+/** A backup the Cocoa NCX made from Einstein (MessagePad 2000, NewtonOS
+    2.1, an internal store and a flash card), read and changed by NCX. */
+void TestFixture()
+{
+  TempFolder folder("fixture");
+  fs::path path = folder.path / "0000-4E65-7774-6F6E.newtondevice";
+  fs::copy_file(PathFromUTF8(gFixture), path);
+  std::string error;
+  {
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadOnly, error);
+    Check(file != nullptr, "fixture: open " + error);
+    if (!file)
+      return;
+    Check(file->newtonId() == "0000-4E65-7774-6F6E", "fixture: NewtonId " + file->newtonId());
+    std::optional<DeviceRecord> device = file->device();
+    Check(device && MachineTypeName(NewtonInfoOf(*device)) == "MessagePad 2000"
+          && DeviceId(NewtonInfoOf(*device)) == "0000-4E65-7774-6F6E", "fixture: the device");
+    std::vector<StoreRecord> stores = SortedStores(*file);
+    Check(stores.size() == 2 && stores[0].name == "Internal" && IsInternal(stores[0]) && !IsInternal(stores[1])
+          && stores[1].kind == "Flash storage card", "fixture: an internal store and a card");
+    // the Cocoa NCX deleted the card's soups but not their entries (the
+    // model's delete rules only cut the links): 22 entries in no soup
+    Check(file->rowCount("ZSOUP") == 21 && file->rowCount("ZENTRY") == 91 && file->rowCount("ZAPP") == 12,
+          "fixture: 21 soups, 91 entries (22 in no soup), 12 apps");
+
+    size_t entries = 0, unread = 0, titles = 0, classes = 0, ids = 0, packages = 0, soupData = 0, backupIds = 0;
+    for (const SoupRecord & soup : file->soups()) {
+      RefVar info(UnflattenBytes(soup.info)), indexes(UnflattenBytes(soup.indexes));
+      if (IsFrame(info) && IsArray(indexes))
+        ++soupData;
+      int64_t highest = 0;
+      for (const EntryRecord & entry : file->entries(soup.pk, true)) {
+        ++entries;
+        RefVar frame(EntryFrame(entry));
+        if (!IsFrame(frame)) {
+          ++unread;
+          continue;
+        }
+        if (entry.uniqueId < kImportIdBase && entry.uniqueId > highest)
+          highest = entry.uniqueId;
+        std::string title = EntryTitle(frame, soup.name);
+        if (title == entry.title.value_or(""))
+          ++titles;
+        else
+          std::printf("        %s: title \"%s\", the Cocoa NCX's \"%s\"\n", soup.name.c_str(), title.c_str(),
+                      entry.title.value_or("").c_str());
+        // the class symbol, else *package* for a package, else none
+        RefVar entryClass(GetFrameSlot(frame, SYMA(class)));
+        std::string cls = IsSymbol(entryClass) ? UTF8FromSymbol(entryClass)
+                        : FrameHasSlot(frame, MakeSymbol("pkgRef")) ? std::string("*package*") : std::string();
+        if (cls == entry.refClass.value_or(""))
+          ++classes;
+        if (UniqueIdOf(RefVar(GetFrameSlot(frame, SYMA(_uniqueId)))) == entry.uniqueId)
+          ++ids;
+        if (entry.refClass == std::string("*package*")) {
+          RefVar package(GetFrameSlot(frame, MakeSymbol("pkgRef")));
+          if (IsBinary(package) && Length(package) > 8 && std::memcmp(BinaryData(package), "package", 7) == 0)
+            ++packages;
+        }
+      }
+      if (soup.lastBackupId >= highest)
+        ++backupIds;
+    }
+    Check(entries == 69 && unread == 0, "fixture: every entry reads");
+    Check(titles == entries, "fixture: titles as the Cocoa NCX made them (" + std::to_string(titles) + " of "
+          + std::to_string(entries) + ")");
+    Check(classes == entries, "fixture: classes as the Cocoa NCX had them (" + std::to_string(classes) + ")");
+    Check(ids == entries, "fixture: _uniqueIds (" + std::to_string(ids) + ")");
+    Check(packages == 18, "fixture: 18 packages, decompressed (" + std::to_string(packages) + ")");
+    Check(soupData == 21, "fixture: every soup's info and indexes (" + std::to_string(soupData) + ")");
+    Check(backupIds == 21, "fixture: every soup's lastBackupId (" + std::to_string(backupIds) + ")");
+
+    std::vector<RestoreChoice> choices = RestoreChoices(*file, stores);
+    Check(choices.size() == 2 && choices[0].sources.size() == 1 && choices[0].sources[0].packages.size() == 18
+          && !choices[0].sources[0].apps.empty() && choices[1].sources.size() == 1, "fixture: restore choices");
+  }
+
+  // NCX changes it
+  {
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    Check(file != nullptr, "fixture: open for writing " + error);
+    if (!file)
+      return;
+    DeviceFile::Transaction transaction(*file);
+    StoreRecord internal = SortedStores(*file).at(0);
+    std::optional<SoupRecord> notes = file->findSoup(internal.pk, "Notes");
+    std::optional<SoupRecord> cache = file->findSoup(internal.pk, "Courier Cache:40Hz");
+    if (!notes || !cache) {
+      Check(false, "fixture: the Notes and Courier Cache soups");
+      return;
+    }
+    RefVar note(AllocateFrame());
+    SetFrameSlot(note, SYMA(class), Sym("paragraph"));
+    SetFrameSlot(note, SYMA(title), MakeStringFromUTF8("Added by NCX"));
+    EntryRecord added = AddImportedEntry(*file, *notes, note);
+    file->deleteSoup(cache->pk);
+    internal.usedSize += 1000;
+    file->update(internal);
+    file->setIdentity(file->newtonId(), "Einstein (changed)");
+    transaction.commit();
+    Check(added.uniqueId == kImportIdBase + 1 && added.title == "Added by NCX", "fixture: an entry added");
+  }
+  Check(PrimaryKeysAgree(path), "fixture: Z_PRIMARYKEY.Z_MAX follows the rows");
+  {
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadOnly, error);
+    Check(file && coredata::IsThisModel(file->metadata()) && file->newtonId() == "0000-4E65-7774-6F6E"
+          && file->newtonName() == "Einstein (changed)", "fixture: reopened, the metadata kept");
+    size_t inSoups = 0;
+    if (file)
+      for (const SoupRecord & soup : file->soups())
+        inSoups += file->entryCount(soup.pk);
+    Check(file && file->rowCount("ZSOUP") == 20 && inSoups == 69 - 9 + 1 && file->rowCount("ZENTRY") == 91 - 9 + 1,
+          "fixture: reopened, the changes there");
+  }
+}
+
 } // namespace
 
 
@@ -732,6 +853,7 @@ int main(int argc, char * argv[])
 {
   std::setvbuf(stdout, nullptr, _IONBF, 0);
   std::string section = argc > 1 ? argv[1] : "all";
+  gFixture = argc > 2 ? argv[2] : "";
   InitCore();
   if (section == "write-backup" && argc > 2) {
     // a backup to try things on (ncx-cli convert, the Core Data check)
@@ -743,10 +865,10 @@ int main(int argc, char * argv[])
   struct { const char * name; void (*test)(); } sections[] = {
     { "plist", TestPlist }, { "file", TestFile }, { "delete", TestDelete }, { "entries", TestEntries },
     { "titles", TestTitles }, { "backup", TestBackup }, { "devices", TestDevices }, { "large", TestLarge },
-    { "restore", TestRestore } };
+    { "restore", TestRestore }, { "fixture", TestFixture } };
   bool found = false;
   for (auto & s : sections)
-    if (section == "all" || section == s.name) {
+    if ((section == "all" && (std::strcmp(s.name, "fixture") != 0 || !gFixture.empty())) || section == s.name) {
       s.test();
       found = true;
     }

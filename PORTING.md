@@ -581,8 +581,9 @@ ThreadSanitizer and ASan/UBSan.
 ### Phase 4: data model and persistence (no GUI)
 
 ✅ Done 2026-10-16, locally (no CI run yet). `src/model` (in `ncx_core`),
-`ncx-cli device` and `ncx-cli convert`. Tested by `tests/model_test.cc` (9
-ctest sections); 30 ctests, clean under ThreadSanitizer and ASan/UBSan.
+`ncx-cli device` and `ncx-cli convert`. Tested by `tests/model_test.cc` (10
+ctest sections, one of them on a backup the Cocoa NCX made); 31 ctests,
+clean under ThreadSanitizer and ASan/UBSan.
 
 - **4.1 Model classes:** ✅
   - `model/Records.h`: plain structs `DeviceRecord`, `UserInfoRecord`,
@@ -640,15 +641,24 @@ ctest sections); 30 ctests, clean under ThreadSanitizer and ASan/UBSan.
     Connection/` (Matt's: read only, counts only): `ncx-cli device <file>
     --check` reads every entry of both (117), and every package is a
     package.
-  - Still to do: a fixture `.newtondevice` made by the Cocoa NCX from
-    Einstein, without personal data, for CI (Matt).
+  - `tests/fixtures/einstein.newtondevice` (Matt, 2026-10-16: no personal
+    data): a backup the Cocoa NCX made from Einstein (MessagePad 2000, an
+    internal store and a flash card; 21 soups, 18 packages). The
+    `fixture` section reads it (every entry, every package decompressed;
+    titles, classes, ids and lastBackupIds as the Cocoa NCX made them),
+    changes it and reopens it. It has 22 entries in no soup: the Cocoa NCX
+    deleted the card's soups but not their entries. Core Data opens it as
+    copied. The Cocoa NCX connects to Einstein only through the named pipes
+    (its TCP endpoint is plain TCP, Einstein's TCP driver sends MNP).
 - Found in newton-framework: large binaries (VBOs) in NSOF, which a Newton
   sends for compressed text, ink and packages, crashed or failed: the
   reader mapped them into virtual memory the host doesn't have (B70; now
   read into plain binaries, decompressed). The package store's list of
   decompressors had every other one missing (B69). `MNPLink::pending()`
   raced with the link's thread (ThreadSanitizer, the package test; B71).
-  All fixed.
+  `IsString` was false for the string classes (a Names card's company and
+  phones: no title; B72). The Zippy decompressors overran their buffer
+  (ASan, the fixture's packages; B73). All fixed.
 
 ### Phase 5: dock controller and components (no GUI)
 

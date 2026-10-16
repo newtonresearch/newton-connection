@@ -43,3 +43,6 @@ target_link_libraries (ncx_model_test PRIVATE ncx_core)
 foreach (section plist file delete entries titles backup devices large restore)
   add_test (NAME ncx_model_${section} COMMAND ncx_model_test ${section})
 endforeach ()
+# A backup the Cocoa NCX made from Einstein (no personal data): NCX reads it
+# as that NCX wrote it, and changes it
+add_test (NAME ncx_model_fixture COMMAND ncx_model_test fixture ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice)
