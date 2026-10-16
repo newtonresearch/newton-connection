@@ -1,6 +1,6 @@
 #
 # NCX's code (PORTING.md section 2). The layers start with their phases:
-# base/, platform/, ui/, cli/ (now), comms/, model/, dock/, translators/.
+# base/, comms/, platform/, ui/, cli/ (now), model/, dock/, translators/.
 #
 
 #------------------------------------------------------------------------------
@@ -19,7 +19,15 @@ add_library (ncx_core STATIC
   base/Progress.h
   base/Strings.cc base/Strings.h
   base/Threads.cc base/Threads.h
+  comms/Connection.cc comms/Connection.h
+  comms/DockEvent.cc comms/DockEvent.h comms/DockProtocol.h
+  comms/DockRefs.cc comms/DockRefs.h
+  comms/EventQueue.cc comms/EventQueue.h
+  comms/Handshake.cc comms/Handshake.h
+  comms/Listener.cc comms/Listener.h
+  comms/Session.cc comms/Session.h
   platform/AppFolders.cc platform/AppFolders.h
+  platform/SerialPorts.cc platform/SerialPorts.h
 )
 target_include_directories (ncx_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}

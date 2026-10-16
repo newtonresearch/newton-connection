@@ -493,40 +493,90 @@ AddressSanitizer with UBSan.
 
 ### Phase 3: comms layer (no GUI)
 
-- **3.1 Transports.**
+✅ Done 2026-10-16. CI (by hand, on a branch `ncx-3`): green on Linux
+x64/arm64 and Windows x64/arm64 (21 ctests: MNP over Winsock, the listener,
+plain TCP, packages, `ncx-cli info` against the fake Newton); macOS stopped
+at a timer test (a slow runner: the timer caught up missed runs in a burst;
+fixed, checked locally under load and ThreadSanitizer). `src/comms`
+(in `ncx_core`), `platform/SerialPorts`, and in newton-framework
+`newton_dock` on Windows. Tested by `tests/comms_test.cc` (6 ctest
+sections against the fake Newton), `ncx_base_test serial`, and two ctests
+that run `ncx-cli info` against `ncx-fake-newton`; clean under
+ThreadSanitizer and ASan/UBSan.
+
+- **3.1 Transports.** ✅
   - Build on `newton_dock`'s `NTKTransport` (tcp server for Einstein and
     the Newton's network option, serial, Einstein PTY), plus the Einstein
     FIFO endpoint (POSIX).
   - Add Windows serial (Win32, overlapped) and Winsock TCP.
   - Use one reader thread per transport, so Windows serial needs no
     `select()`.
-- **3.2 Listening on all transports at once.** Port
-  `NCEndpointController`: listen on every enabled transport, keep the one
-  that connects, close the others.
-- **3.3 Serial port list (`platform/`):** IOKit (macOS), `/dev`
+  - Result: there are two kinds of TCP docking (Matt). Einstein's serial
+    port emulated over TCP carries the whole serial protocol (MNP); a
+    Newton with the Internet Enabler (NIE driver, NE2000 card) sends the
+    Docking Protocol over plain TCP, where TCP takes MNP's place. Both come
+    to port 3679; the listener tells them apart by the first byte (MNP
+    starts with SYN, a dock event with 'newtdock'). `newton_dock` got
+    `tcp-all:<port>` (all interfaces, for a Newton on the network; `tcp:`
+    stays this machine only, for Einstein) and `MNPLink::start(transport,
+    firstBytes)` (MNP on a transport someone else opened and read from).
+    Einstein's named pipes are NCX's own transport (`einstein-pipes`,
+    macOS only: Einstein makes them only there). On Windows `newton_dock`
+    keeps its descriptor model: TCP is Winsock (sockets work with
+    `select()`), a serial port is overlapped Win32 I/O with a reader thread
+    that passes the bytes through a socket pair (its `fd()`), and MNP's
+    wake-up pipes are socket pairs too (`NTKMakeWakePair`). newtc and
+    newtdump get it as well. Windows serial isn't tested (no ports on CI).
+  - `src/comms/Connection.h`: a byte stream to a Newton, MNP or plain.
+- **3.2 Listening on all transports at once.** ✅ `src/comms/Listener.h`
+  (NCEndpointController): every target at once, the first Newton wins,
+  the rest are closed; targets that can't be used are logged and skipped.
+  The default (`ncx-cli`): `tcp-all:<TCPIPPort>` and `einstein-pipes`.
+- **3.3 Serial port list (`platform/`):** ✅ IOKit (macOS), `/dev`
   scanning (Linux), `SERIALCOMM` registry (Windows), for the preferences
-  panel.
-- **3.4 MNP.** Use `newton_dock`'s `MNP.cc` (D2). It started as NCX's
-  `MNPSerialEndpoint` and was changed to work well with Einstein's PTY
-  hacks, so merging is mostly mixing the newtdump code back in.
-  - Diff it against `MNPSerialEndpoint` and carry over anything NCX does
-    that newtdump dropped.
-  - Take newtdump's smaller chunk sizes and its reconnect after a failed
-    connection. Reconnect is optional per operation (useful for long
-    backups and ROM dumps).
-- **3.5 Dock events and session.**
-  - Port `NCBuffer`, `CRC`, `DockEvent`, `DockEventQueue`, `Session`,
-    `Cursor` to C++.
-  - `NCDockEvent` becomes a struct with command, length, data and a lazily
-    unflattened Ref.
-- **3.6 `ncx-cli` v0:** `ncx-cli --target tcp info` connects, does the
-  handshake and password, and prints the Newton's name, ROM version and
-  stores.
-- **3.7 Fake Newton for NCX.**
-  - Extend `newtdump-test-newton` (or a copy in `tests/`) to answer
-    NCX's handshake, store/soup queries and cursor calls from a fixture.
+  panel. `platform/SerialPorts.h`: macOS the callout devices as before;
+  Linux the tty devices with hardware behind them, named by
+  `/dev/serial/by-id`.
+- **3.4 MNP.** ✅ Use `newton_dock`'s `MNP.cc` (D2).
+  - Result: nothing of NCX's MNP had to be carried over. Its LR is byte
+    for byte newtdump's `kDesktopLR`; newtdump's has what NCX's lacked
+    (retransmission, keep-alive LAs, the Newton's credit); NCX read an LA's
+    credit 0 as "resend" (it means "wait"). Smaller chunks and reconnecting
+    belong to the operations (Phase 5, 6).
+- **3.5 Dock events and session.** ✅
+  - `comms/DockProtocol.h` (the commands as `Cmd("rtdk")` constants, made
+    from the Cocoa header by a script; `NewtonInfo`; the errors),
+    `DockEvent` (encoding, an incremental parser that also finds the end
+    of an event of no set length, a description for the log), `DockRefs`
+    (NSOF in events), `EventQueue` (NCDockEventQueue: a reader thread),
+    `Session` and `Cursor` (NCSession, NCCursor: all their requests;
+    `DockFailure` instead of `exComm`; a tickler that says 'helo' after 30
+    quiet seconds; `sendPackage` in pieces as MNP acknowledges them, with
+    progress and cancel), `Handshake` (do_rtdk, do_name, do_ninf, do_pass:
+    the desktop info, the icons, the password both ways with two retries;
+    Windows says it is a Windows desktop, as NCU did). NCBuffer, CRC,
+    ChunkBuffer weren't needed (MNP is newton_dock's).
+- **3.6 `ncx-cli` v0:** ✅ `ncx-cli info [--target ...] [--password ...]
+  [--wait ...] [--log 1]` listens, docks, takes control (`dsnc`), prints
+  the Newton (name, machine, ROM, RAM, screen, protocol), its stores and
+  their soups, and disconnects (`opdn`, `disc`).
+- **3.7 Fake Newton for NCX.** ✅
+  - `tests/FakeNewton.cc`, `ncx-fake-newton`: connects as Einstein's serial
+    port (MNP) or as the Internet Enabler (plain), docks, and answers from a
+    fixture (a store, two soups, entries, a query's cursor, global
+    functions, packages). It runs as a program of its own: the object
+    system belongs to one thread (the dock's), so a fake Newton on a thread
+    of the test would share it (ThreadSanitizer saw that).
   - Done when: a CI test runs `ncx-cli info` against it on all
     platforms, and `ncx-cli info` works against Einstein locally.
+  - Still to do: `ncx-cli info` against Einstein and a real Newton (Matt).
+- Found in newton-framework: DES's bit permutation shifted `1 << 31` (an
+  int; UBSan; B67), MNP's settings read once raced when two links started at
+  once (ThreadSanitizer; B68). Both fixed.
+- Found on Windows: MSVC reads sources in the ANSI code page, so NCX's
+  sources stay ASCII (escapes for anything else); test ports stay below
+  40000 (Windows hands out 49152 and up, and CI runners reserve blocks
+  there). `base/Threads.h`'s Timer no longer makes up for missed runs.
 
 ### Phase 4: data model and persistence (no GUI)
 

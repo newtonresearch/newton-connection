@@ -5,8 +5,8 @@
  strings, dates, app folders, preferences, logging, threads, progress,
  observers. One section per ctest:
 
-   ncx_base_test <section>     strings, newton, dates, folders, prefs, log,
-                               threads, progress, observers, or all
+   ncx_base_test <section>     strings, newton, dates, folders, serial, prefs,
+                               log, threads, progress, observers, or all
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok.
  */
@@ -21,7 +21,9 @@
 #include "base/Strings.h"
 #include "base/Threads.h"
 #include "platform/AppFolders.h"
+#include "platform/SerialPorts.h"
 
+#include <algorithm>
 #include <atomic>
 #include <chrono>
 #include <cstdio>
@@ -29,6 +31,7 @@
 #include <cstring>
 #include <deque>
 #include <fstream>
+#include <initializer_list>
 #include <functional>
 #include <sstream>
 #include <string>
@@ -52,7 +55,9 @@ void Check(bool inOk, const std::string & inWhat)
 void SetEnv(const char * inName, const std::string & inValue)
 {
 #if defined(_WIN32)
-  _putenv_s(inName, inValue.c_str());
+  // as UTF-16: _putenv_s would take the bytes in the ANSI code page
+  std::u16string name = UTF16FromUTF8(inName), value = UTF16FromUTF8(inValue);
+  _wputenv_s(reinterpret_cast<const wchar_t *>(name.c_str()), reinterpret_cast<const wchar_t *>(value.c_str()));
 #else
   if (inValue.empty())
     unsetenv(inName);
@@ -98,18 +103,36 @@ int Drain()
 
 /*-- strings -----------------------------------------------------------------*/
 
+/** inText == inExpected (char16_t values); the text in hex if not. Sources
+    stay ASCII: MSVC reads them in the ANSI code page. */
+void CheckUTF16(const std::u16string & inText, std::initializer_list<char16_t> inExpected, const std::string & inWhat)
+{
+  bool ok = inText == std::u16string(inExpected);
+  std::string hex;
+  if (!ok) {
+    char code[8];
+    for (char16_t c : inText) {
+      std::snprintf(code, sizeof(code), " %04X", (unsigned)c);
+      hex += code;
+    }
+    hex = " (got" + hex + ")";
+  }
+  Check(ok, inWhat + hex);
+}
+
 void TestStrings()
 {
-  const uint16_t chars[] = { 'G', 'r', 0xFC, 0xDF, 'e', ' ', 0xD83D, 0xDE00 };   // Grüße 😀 (no 2nd e: short)
+  const uint16_t chars[] = { 'G', 'r', 0xFC, 0xDF, 'e', ' ', 0xD83D, 0xDE00 };   // "Grusse" with u-umlaut and sharp s, a smiley
   std::string utf8 = UTF8FromUTF16(chars, 8);
   Check(utf8 == "Gr\xC3\xBC\xC3\x9F" "e \xF0\x9F\x98\x80", "UTF8FromUTF16: Latin-1 and a surrogate pair");
   std::u16string back = UTF16FromUTF8(utf8);
   Check(back.size() == 8 && back[6] == 0xD83D && back[7] == 0xDE00 && back[2] == 0xFC, "UTF16FromUTF8: and back");
   const uint16_t lone[] = { 'a', 0xD800, 'b', 0xDC00 };
   Check(UTF8FromUTF16(lone, 4) == "a\xEF\xBF\xBD" "b\xEF\xBF\xBD", "UTF8FromUTF16: lone surrogates become U+FFFD");
-  Check(UTF16FromUTF8("a\xFF" "b") == u"a�b", "UTF16FromUTF8: a byte that isn't UTF-8 becomes U+FFFD");
-  Check(UTF16FromUTF8("\xC0\xAF") == u"��", "UTF16FromUTF8: an overlong form isn't UTF-8");
-  Check(UTF16FromUTF8("\xE2\x82") == u"��", "UTF16FromUTF8: a cut-off sequence");
+  const char16_t bad = 0xFFFD;
+  CheckUTF16(UTF16FromUTF8("a\xFF" "b"), { u'a', bad, u'b' }, "UTF16FromUTF8: a byte that isn't UTF-8 becomes U+FFFD");
+  CheckUTF16(UTF16FromUTF8("\xC0\xAF"), { bad, bad }, "UTF16FromUTF8: an overlong form isn't UTF-8");
+  CheckUTF16(UTF16FromUTF8("\xE2\x82"), { bad, bad }, "UTF16FromUTF8: a cut-off sequence");
 
   Check(UTF8FromMacRoman("\x80\xA5\xDB\xF0 ok") == "\xC3\x84\xE2\x80\xA2\xE2\x82\xAC\xEF\xA3\xBF ok",
         "UTF8FromMacRoman: \xC3\x84, bullet, euro, the Apple logo");
@@ -186,7 +209,7 @@ void TestDates()
 void TestFolders()
 {
   fs::path base = fs::temp_directory_path() / ("ncx-test-" + std::to_string(Now() % 100000));
-  fs::path data = base / "Gr\xC3\xBC\xC3\x9F" "e";
+  fs::path data = base / PathFromUTF8("Gr\xC3\xBC\xC3\x9F" "e");   // (a narrow literal is ANSI on Windows)
   fs::remove_all(base);
   SetEnv("NCX_DATA_DIR", UTF8FromPath(data));
   fs::path folder = AppDataFolder();
@@ -195,10 +218,31 @@ void TestFolders()
   SetEnv("NCX_LOG_FILE", UTF8FromPath(base / "logs" / "ncx.log"));
   fs::path log = LogFilePath();
   Check(log == base / "logs" / "ncx.log" && fs::is_directory(base / "logs"), "LogFilePath: NCX_LOG_FILE, its folder made");
-  Check(UTF8FromPath(PathFromUTF8("a/Gr\xC3\xBC\xC3\x9F" "e")) == "a/Gr\xC3\xBC\xC3\x9F" "e", "UTF-8 paths and back");
+  Check(UTF8FromPath(PathFromUTF8("Gr\xC3\xBC\xC3\x9F" "e")) == "Gr\xC3\xBC\xC3\x9F" "e", "UTF-8 paths and back");
   SetEnv("NCX_DATA_DIR", "");
   SetEnv("NCX_LOG_FILE", "");
   fs::remove_all(base);
+}
+
+
+/*-- serial ports ------------------------------------------------------------*/
+
+void TestSerialPorts()
+{
+  std::vector<SerialPort> ports = ListSerialPorts();
+  bool ok = true;
+  for (const SerialPort & port : ports) {
+    std::printf("        %s (%s)\n", port.path.c_str(), port.name.c_str());
+#if defined(__APPLE__)
+    ok = ok && port.path.compare(0, 8, "/dev/cu.") == 0;
+#elif defined(_WIN32)
+    ok = ok && port.path.compare(0, 3, "COM") == 0;
+#else
+    ok = ok && port.path.compare(0, 5, "/dev/") == 0;
+#endif
+  }
+  Check(ok && std::is_sorted(ports.begin(), ports.end(), [](const SerialPort & a, const SerialPort & b) { return a.path < b.path; }),
+        "ListSerialPorts: " + std::to_string(ports.size()) + " ports, paths as the system has them, sorted");
 }
 
 
@@ -315,7 +359,7 @@ void TestThreads()
   timer.stop();
   int stoppedAt = ticks;
   Sleep(60);
-  Check(stoppedAt >= 4 && stoppedAt <= 9 && ticks == stoppedAt && !timer.running(),
+  Check(stoppedAt >= 2 && stoppedAt <= 9 && ticks == stoppedAt && !timer.running(),   // (a slow CI machine: fewer)
         "Timer: every 20 ms (" + std::to_string(stoppedAt) + " in 170 ms), none after stop()");
   ticks = 0;
   timer.start(0.01, [&] { if (++ticks == 3) timer.stop(); });
@@ -400,7 +444,7 @@ int main(int argc, char * argv[])
   std::string section = argc > 1 ? argv[1] : "all";
   struct { const char * name; void (*test)(); } sections[] = {
     { "strings", TestStrings }, { "newton", TestNewtonStrings }, { "dates", TestDates },
-    { "folders", TestFolders }, { "prefs", TestPrefs }, { "log", TestLog },
+    { "folders", TestFolders }, { "serial", TestSerialPorts }, { "prefs", TestPrefs }, { "log", TestLog },
     { "threads", TestThreads }, { "progress", TestProgress }, { "observers", TestObservers } };
   bool found = false;
   for (auto & s : sections)

@@ -75,7 +75,8 @@ private:
 
 
 /** dispatch_source timer: inTask every inSeconds (the first time after
-    inSeconds), on the timer's own thread, until stop() or start() again. */
+    inSeconds), on the timer's own thread, until stop() or start() again.
+    Runs that are late don't make up for those missed. */
 class Timer
 {
 public:

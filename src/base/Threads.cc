@@ -184,7 +184,12 @@ void Timer::run(unsigned inGeneration, double inSeconds)
       task = mTask;
     }
     task();
+    // the next one an interval on; after a late one (a busy machine) no
+    // burst to catch up, as a dispatch timer doesn't either
     next += interval;
+    auto now = std::chrono::steady_clock::now();
+    if (next < now)
+      next = now + interval;
   }
 }
 

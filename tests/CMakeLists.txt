@@ -11,6 +11,28 @@ set_tests_properties (ncx_cli_version PROPERTIES PASS_REGULAR_EXPRESSION "ncx-cl
 # The base layer (PORTING.md Phase 2): one ctest per section of ncx_base_test
 add_executable (ncx_base_test base_test.cc)
 target_link_libraries (ncx_base_test PRIVATE ncx_core)
-foreach (section strings newton dates folders prefs log threads progress observers)
+foreach (section strings newton dates folders serial prefs log threads progress observers)
   add_test (NAME ncx_base_${section} COMMAND ncx_base_test ${section})
 endforeach ()
+
+# The comms layer (PORTING.md Phase 3) against the fake Newton
+add_library (ncx_fake_newton STATIC FakeNewton.cc FakeNewton.h)
+target_link_libraries (ncx_fake_newton PUBLIC ncx_core)
+target_include_directories (ncx_fake_newton PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
+add_executable (ncx-fake-newton fake_newton_main.cc)
+target_link_libraries (ncx-fake-newton PRIVATE ncx_fake_newton)
+add_executable (ncx_comms_test comms_test.cc)
+target_link_libraries (ncx_comms_test PRIVATE ncx_core)
+add_dependencies (ncx_comms_test ncx-fake-newton)
+foreach (section events mnp plain password listener package)
+  add_test (NAME ncx_comms_${section} COMMAND ncx_comms_test ${section} $<TARGET_FILE:ncx-fake-newton>)
+endforeach ()
+# ncx-cli info against ncx-fake-newton: MNP (Einstein's serial port) and
+# plain TCP (the Internet Enabler)
+string (RANDOM LENGTH 3 ALPHABET 0123456789 port_base)
+math (EXPR cli_port "43000 + ${port_base}")
+math (EXPR cli_port_plain "43000 + ${port_base} + 1000")
+add_test (NAME ncx_cli_info_mnp COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
+          -DPORT=${cli_port} -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
+add_test (NAME ncx_cli_info_plain COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
+          -DPORT=${cli_port_plain} -DPLAIN=ON -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
