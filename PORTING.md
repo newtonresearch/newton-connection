@@ -569,7 +569,12 @@ ThreadSanitizer and ASan/UBSan.
     of the test would share it (ThreadSanitizer saw that).
   - Done when: a CI test runs `ncx-cli info` against it on all
     platforms, and `ncx-cli info` works against Einstein locally.
-  - Still to do: `ncx-cli info` against Einstein and a real Newton (Matt).
+  - `ncx-cli info --target tcp:3679` against Einstein (its serial port as
+    a TCP client) on Windows 11: docks, lists stores and soups, and
+    disconnects, twice in a row (Matt, 2026-10-16). The Newton then says
+    "The connection was stopped because your PC disconnected": its words
+    for a desktop's `disc`, as after the Cocoa NCX's disconnect.
+  - Still to do: `ncx-cli info` against a real Newton (Matt).
 - Found in newton-framework: DES's bit permutation shifted `1 << 31` (an
   int; UBSan; B67), MNP's settings read once raced when two links started at
   once (ThreadSanitizer; B68). Both fixed.
