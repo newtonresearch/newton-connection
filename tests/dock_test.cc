@@ -203,6 +203,7 @@ void TestScreenshot()
   Check(fake.largestBlock > 0 && fake.largestBlock <= (size_t)ScreenshotSession::kBlock,
         "screenshot: rows of at most 2048 bytes at a time (" + std::to_string(fake.largestBlock) + ")");
   Check(progress.total() == 76800 && progress.completed() == 76800, "screenshot: the progress");
+  Check(fake.blankBlocks == 5, "screenshot: white rows not sent (" + std::to_string(fake.blankBlocks) + " of 40)");
   Check(fake.extensions == std::vector<std::string>({ "scrn", "NCss" }), "screenshot: the extensions sent");
 }
 

@@ -19,8 +19,9 @@
    pext     taken (dres 0); then, as NCX's extensions answer:
             scrn: dres 0 (-28010 without the Toolkit app)
             NCss: a 320 x 480 screen, 4 bits a pixel, the value of a pixel
-                  (x / 20 + y / 30) % 16 (ScreenPixel); its rows ('rows'), or
-                  all of it ('take')
+                  (x / 20 + y / 30) % 16, the first 60 rows white
+                  (ScreenPixel); its rows ('rows': blank if white), or all
+                  of it ('take')
  */
 
 #ifndef NCX_TESTS_FAKENEWTON_H
@@ -43,7 +44,7 @@ struct FakeNewtonOptions
 };
 
 /** The fake Newton's screen: a pixel's value (0 white ... 15 black). */
-inline int ScreenPixel(int inX, int inY) { return (inX / 20 + inY / 30) % 16; }
+inline int ScreenPixel(int inX, int inY) { return inY < 60 ? 0 : (inX / 20 + inY / 30) % 16; }
 
 class FakeNewton
 {
@@ -61,6 +62,8 @@ public:
   const std::vector<std::string> & extensions() const { return mExtensions; }
   /** The largest piece of the screen it sent in rows ('NCss'). */
   size_t largestBlock() const { return mLargestBlock; }
+  /** The pieces it said were white instead of sending them. */
+  size_t blankBlocks() const { return mBlankBlocks; }
 
 private:
   std::string mWhy;
@@ -68,6 +71,7 @@ private:
   std::vector<std::string> mExtensions;
   size_t mPackageSize = 0;
   size_t mLargestBlock = 0;
+  size_t mBlankBlocks = 0;
 };
 
 } // namespace ncx

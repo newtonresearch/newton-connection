@@ -16,7 +16,8 @@
 //                                    a shot of its first row
 //   {op: 'rows, left, top, right, bottom}
 //                                 -> {top, bottom, rowBytes, depth, theBits}:
-//                                    a shot of those rows
+//                                    a shot of those rows; blank: true
+//                                    instead of theBits if they are white
 //   {op: 'take}                   -> the whole screen in one piece, as
 //                                    'snap' (to compare): {top, left, bottom,
 //                                    right, rowBytes, depth, theBits}
@@ -48,8 +49,13 @@ begin
     begin
       local shot := {left: request.left, top: request.top, right: request.right, bottom: request.bottom};
       ntp._proto:ScreenShotFn(shot);
-      answer := {top: shot.top, bottom: shot.bottom, rowBytes: shot.rowBytes, depth: shot.depth,
-                 theBits: shot.theBits};
+      answer := {top: shot.top, bottom: shot.bottom, rowBytes: shot.rowBytes, depth: shot.depth};
+      // white rows (all 0) aren't sent: a native compare, much less than
+      // sending them (a fresh binary is all 0; if not, the bits go)
+      if BinEqual(shot.theBits, MakeBinary(Length(shot.theBits), 'bits)) then
+        answer.blank := true
+      else
+        answer.theBits := shot.theBits;
     end
     else if op = 'take then
     begin

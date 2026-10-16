@@ -32,6 +32,7 @@ struct FakeProcess
   std::vector<std::string> extensions;    // the extensions it was sent
   size_t packageSize = 0;
   size_t largestBlock = 0;                // the largest block it sent (NCss)
+  size_t blankBlocks = 0;                 // the white ones it didn't send
   std::string why;
 
   /** Start inProgram (ncx-fake-newton) on a thread; it keeps trying to
@@ -70,6 +71,8 @@ struct FakeProcess
         packageSize = (size_t)std::stoul(line.substr(8));
       else if (line.compare(0, 6, "block ") == 0)
         largestBlock = (size_t)std::stoul(line.substr(6));
+      else if (line.compare(0, 6, "blank ") == 0)
+        blankBlocks = (size_t)std::stoul(line.substr(6));
       else if (line.compare(0, 4, "why ") == 0)
         why = line.substr(4);
     }

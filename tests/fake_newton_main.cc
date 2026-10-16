@@ -54,6 +54,7 @@ int main(int argc, char * argv[])
     for (const std::string & id : newton.extensions())
       out << "extension " << id << "\n";
     out << "block " << newton.largestBlock() << "\n";
+    out << "blank " << newton.blankBlocks() << "\n";
     out << "why " << newton.why() << "\n";
   }
   return ok ? 0 : 1;

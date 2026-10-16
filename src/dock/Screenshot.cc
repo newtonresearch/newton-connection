@@ -160,14 +160,19 @@ int ScreenshotSession::take(Screenshot & outShot, Progress * ioProgress)
     RefVar rows(Ask(mDock, request, error));
     if (error != 0)
       return error;
-    RefVar rowBits(IsFrame(rows) ? GetFrameSlot(rows, MakeSymbol("theBits")) : (Ref)NILREF);
-    int bandRowBytes = IsFrame(rows) ? IntSlot(rows, "rowBytes") : 0;
-    if (!IsBinary(rowBits) || bandRowBytes <= 0 || (int)Length(rowBits) < bandRowBytes * (last - y))
+    if (!IsFrame(rows))
       return kDockErrProtocolError;
-    const uint8_t * data = (const uint8_t *)BinaryData(rowBits);
-    for (int row = 0; row < last - y; ++row)
-      std::copy(data + (size_t)row * bandRowBytes, data + (size_t)row * bandRowBytes + std::min(rowBytes, bandRowBytes),
-                bits.begin() + (ptrdiff_t)((size_t)(y - top + row) * rowBytes));
+    // white rows come without their bits (bits is all 0, white, already)
+    if (ISNIL(GetFrameSlot(rows, MakeSymbol("blank")))) {
+      RefVar rowBits(GetFrameSlot(rows, MakeSymbol("theBits")));
+      int bandRowBytes = IntSlot(rows, "rowBytes");
+      if (!IsBinary(rowBits) || bandRowBytes <= 0 || (int)Length(rowBits) < bandRowBytes * (last - y))
+        return kDockErrProtocolError;
+      const uint8_t * data = (const uint8_t *)BinaryData(rowBits);
+      for (int row = 0; row < last - y; ++row)
+        std::copy(data + (size_t)row * bandRowBytes, data + (size_t)row * bandRowBytes + std::min(rowBytes, bandRowBytes),
+                  bits.begin() + (ptrdiff_t)((size_t)(y - top + row) * rowBytes));
+    }
     if (ioProgress)
       ioProgress->setCompleted((int64_t)(last - top) * rowBytes);
   }

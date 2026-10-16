@@ -397,7 +397,13 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
             int y = top + at / 160, x = (at % 160) * 2;
             p[at] = (uint8_t)(ScreenPixel(x, y) << 4 | ScreenPixel(x + 1, y));
           }
-          SetFrameSlot(answer, MakeSymbol("theBits"), bits);
+          bool white = what == "rows" && std::all_of(p, p + size, [](uint8_t b) { return b == 0; });
+          if (white) {
+            SetFrameSlot(answer, MakeSymbol("blank"), TRUEREF);
+            ++mBlankBlocks;
+          } else {
+            SetFrameSlot(answer, MakeSymbol("theBits"), bits);
+          }
           if (what == "rows")
             mLargestBlock = std::max(mLargestBlock, (size_t)size);
         }
