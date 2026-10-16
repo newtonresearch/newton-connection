@@ -10,7 +10,7 @@
    ncx-cli screenshot <file.png> [--block <bytes>] [options]
                                      the Newton's screen (it needs the
                                      Toolkit app), as a PNG; --block: bytes
-                                     a request (2048)
+                                     a request (2048; 0: all at once)
    ncx-cli device <file> [--check]   a .newtondevice file: its Newton, and
                                      how many soups and entries per store;
                                      --check: that every entry can be read

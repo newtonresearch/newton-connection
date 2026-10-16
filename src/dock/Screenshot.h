@@ -46,8 +46,9 @@ public:
 
   explicit ScreenshotSession(DockController & inDock) : mDock(inDock) { }
 
-  /** Bytes a request (kBlock; 64 ... 16384). */
-  void setBlock(int inBytes) { mBlock = inBytes < 64 ? 64 : (inBytes > 16384 ? 16384 : inBytes); }
+  /** Bytes a request (kBlock; 64 ... 16384), or 0: all of them with the
+      shot, in one piece, as the Cocoa app's 'snap' (to compare). */
+  void setBlock(int inBytes) { mBlock = inBytes <= 0 ? 0 : (inBytes < 64 ? 64 : (inBytes > 16384 ? 16384 : inBytes)); }
 
   /** Take control, hide the slip. 0, or kDockErrFileNotFound (-28010) if the
       Newton has no Toolkit app (the desktop is out of control again). */

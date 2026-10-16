@@ -99,8 +99,19 @@ int ScreenshotSession::begin()
 
 int ScreenshotSession::take(Screenshot & outShot, Progress * ioProgress)
 {
+  // the exchanges have a time limit, the waiting for the user between them
+  // doesn't
+  struct TimeLimit
+  {
+    Session & session;
+    explicit TimeLimit(Session & inSession) : session(inSession) { session.suppressTimeout(false); }
+    ~TimeLimit() { session.suppressTimeout(true); }
+  } timeLimit(mDock.session());
   int error;
-  RefVar info(Ask(mDock, RefVar(Request("take")), error));
+  RefVar takeRequest(Request("take"));
+  if (mBlock == 0)
+    SetFrameSlot(takeRequest, MakeSymbol("bits"), TRUEREF);
+  RefVar info(Ask(mDock, takeRequest, error));
   if (error != 0)
     return error;
   if (!IsFrame(info))
@@ -117,6 +128,11 @@ int ScreenshotSession::take(Screenshot & outShot, Progress * ioProgress)
 
   std::vector<uint8_t> bits;
   bits.reserve((size_t)size);
+  RefVar allBits(mBlock == 0 ? GetFrameSlot(info, MakeSymbol("theBits")) : (Ref)NILREF);
+  if (IsBinary(allBits)) {
+    const uint8_t * data = (const uint8_t *)BinaryData(allBits);
+    bits.assign(data, data + Length(allBits));
+  }
   while ((int)bits.size() < size) {
     RefVar request(Request("read"));
     SetFrameSlot(request, MakeSymbol("offset"), MAKEINT((int)bits.size()));

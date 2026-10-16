@@ -6,7 +6,8 @@
  (ncx-fake-newton, a process of its own). One section per ctest:
 
    ncx_dock_test <section> <ncx-fake-newton>   extensions, bits, controller,
-                                               screenshot, notoolkit, or all
+                                               screenshot, onepiece, notoolkit,
+                                               or all
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok.
  */
@@ -205,6 +206,25 @@ void TestScreenshot()
   Check(fake.extensions == std::vector<std::string>({ "scrn", "NCss" }), "screenshot: the extensions sent");
 }
 
+void TestOnePiece()
+{
+  FakeProcess fake;
+  Screenshot shot;
+  int took = -1;
+  int result = DockWithFake(Port(6), "", fake, [&](DockController & dock) {
+    ScreenshotSession screenshots(dock);
+    screenshots.setBlock(0);
+    if (screenshots.begin() == 0)
+      took = screenshots.take(shot);
+    screenshots.end();
+  });
+  bool pixels = result == 0 && took == 0 && shot.gray.size() == 320 * 480;
+  for (int y = 0; pixels && y < 480; ++y)
+    for (int x = 0; pixels && x < 320; ++x)
+      pixels = shot.gray[(size_t)y * 320 + x] == 255 - ScreenPixel(x, y) * 17;
+  Check(pixels && fake.largestBlock == 0, "onepiece: the bits with the shot, no reads");
+}
+
 void TestNoToolkit()
 {
   FakeProcess fake;
@@ -228,7 +248,7 @@ int main(int argc, char * argv[])
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "extensions", TestExtensions }, { "bits", TestBits }, { "controller", TestController },
-    { "screenshot", TestScreenshot }, { "notoolkit", TestNoToolkit } };
+    { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

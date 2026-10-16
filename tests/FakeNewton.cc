@@ -384,6 +384,13 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
         SetFrameSlot(answer, MakeSymbol("rowBytes"), MAKEINT(160));
         SetFrameSlot(answer, MakeSymbol("depth"), MAKEINT(4));
         SetFrameSlot(answer, MakeSymbol("size"), MAKEINT(160 * 480));
+        if (NOTNIL(GetFrameSlot(request, MakeSymbol("bits")))) {
+          RefVar all(AllocateBinary(MakeSymbol("bits"), 160 * 480));
+          uint8_t * bits = (uint8_t *)BinaryData(all);
+          for (int at = 0; at < 160 * 480; ++at)
+            bits[at] = (uint8_t)(ScreenPixel((at % 160) * 2, at / 160) << 4 | ScreenPixel((at % 160) * 2 + 1, at / 160));
+          SetFrameSlot(answer, MakeSymbol("theBits"), all);
+        }
       } else if (what == "read") {
         int offset = (int)RINT(GetFrameSlot(request, MakeSymbol("offset")));
         int length = (int)RINT(GetFrameSlot(request, MakeSymbol("length")));

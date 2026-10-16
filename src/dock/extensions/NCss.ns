@@ -12,6 +12,8 @@
 //   {op: 'take}                   -> {top, left, bottom, right, rowBytes,
 //                                     depth, size} (the bits stay here), or
 //                                    {error: -28010}: no Toolkit app
+//   {op: 'take, bits: true}       -> the same with theBits: all of them at
+//                                    once, as 'snap' (to compare)
 //   {op: 'read, offset, length}   -> the bits from offset (a binary), or
 //                                    {error}
 //   {op: 'done}                   -> {done: true}: the bits are forgotten
@@ -35,9 +37,14 @@ begin
       begin
         local shot := {};
         ntp._proto:ScreenShotFn(shot);
-        DefGlobalVar('|NCX:shot|, shot.theBits);
+        // a copy, made now: the Cocoa NCX's 'snap' sent the bits at once,
+        // and a later read of the Toolkit's own didn't answer on Einstein
+        DefGlobalVar('|NCX:shot|, Clone(shot.theBits));
         answer := {top: shot.top, left: shot.left, bottom: shot.bottom, right: shot.right,
                    rowBytes: shot.rowBytes, depth: shot.depth, size: Length(shot.theBits)};
+        // {op: 'take, bits: true}: the bits with it, in one piece, as 'snap'
+        if request.bits then
+          answer.theBits := shot.theBits;
       end
       else
         answer := {error: -28010};
