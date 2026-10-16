@@ -7,6 +7,12 @@
    ncx-cli --selftest                check the libraries (exit 0 if all is well)
    ncx-cli info [options]            wait for a Newton, dock, print what it
                                      is, its stores and soups, disconnect
+   ncx-cli device <file> [--check]   a .newtondevice file: its Newton, and
+                                     how many soups and entries per store;
+                                     --check: that every entry can be read
+                                     (and packages are packages)
+   ncx-cli convert <nbku> <file>     a Newton Connection 1 backup (.nbku) as
+                                     a new .newtondevice file
 
  Options for info:
    --target <target>   listen here (more than once for several): tcp-all:<port>,
@@ -25,6 +31,10 @@
 #include "comms/Handshake.h"
 #include "comms/Listener.h"
 #include "comms/Session.h"
+#include "model/BackupImport.h"
+#include "model/DeviceFile.h"
+#include "model/NewtonModel.h"
+#include "platform/AppFolders.h"
 
 #include "RSSymbols.h"
 
@@ -40,7 +50,9 @@ int Usage()
 {
   std::fprintf(stderr,
     "Usage: ncx-cli --version | --selftest\n"
-    "       ncx-cli info [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n");
+    "       ncx-cli info [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
+    "       ncx-cli device <file.newtondevice> [--check]\n"
+    "       ncx-cli convert <backup.nbku> <file.newtondevice>\n");
   return 2;
 }
 
@@ -138,6 +150,77 @@ int Info(int argc, char * argv[])
   return 0;
 }
 
+int Device(int argc, char * argv[])
+{
+  if (argc < 3 || argc > 4 || (argc == 4 && std::strcmp(argv[3], "--check") != 0))
+    return Usage();
+  bool check = argc == 4;
+  ncx::InitCore();
+  std::string error;
+  std::unique_ptr<ncx::DeviceFile> file = ncx::DeviceFile::Open(ncx::PathFromUTF8(argv[2]), ncx::DeviceFile::kReadOnly, error);
+  if (!file) {
+    std::fprintf(stderr, "ncx-cli: %s\n", error.c_str());
+    return 1;
+  }
+  std::printf("Newton:   %s (%s)\n", file->newtonName().c_str(), file->newtonId().c_str());
+  if (std::optional<ncx::DeviceRecord> device = file->device()) {
+    ncx::NewtonInfo info = ncx::NewtonInfoOf(*device);
+    std::printf("Machine:  %s, %s\n", ncx::ManufacturerName(info).c_str(), ncx::MachineTypeName(info).c_str());
+  }
+  size_t soupCount = 0, entryCount = 0, unreadable = 0;
+  for (const ncx::StoreRecord & store : ncx::SortedStores(*file)) {
+    std::vector<ncx::SoupRecord> soups = file->soups(store.pk);
+    size_t entries = 0;
+    for (const ncx::SoupRecord & soup : soups) {
+      entries += file->entryCount(soup.pk);
+      if (check)
+        for (const ncx::EntryRecord & entry : file->entries(soup.pk, true)) {
+          RefVar frame(ncx::EntryFrame(entry));
+          bool ok = IsFrame(frame);
+          if (ok && entry.refClass == std::string("*package*")) {
+            // a package's binary is a package: "package0" or "package1"
+            RefVar package(GetFrameSlot(frame, MakeSymbol("pkgRef")));
+            ok = IsBinary(package) && Length(package) > 8 && std::memcmp(BinaryData(package), "package", 7) == 0;
+          }
+          if (!ok) {
+            ++unreadable;
+            std::printf("Unread:   an entry of class %s, %zu bytes\n", entry.refClass ? entry.refClass->c_str() : "-",
+                        entry.refData.size());
+          }
+        }
+    }
+    std::printf("Store:    %s: %zu soups, %zu entries\n", store.name.c_str(), soups.size(), entries);
+    soupCount += soups.size();
+    entryCount += entries;
+  }
+  std::printf("Total:    %zu soups, %zu entries\n", soupCount, entryCount);
+  if (check)
+    std::printf("Check:    %zu entries can't be read\n", unreadable);
+  return unreadable ? 1 : 0;
+}
+
+
+int Convert(int argc, char * argv[])
+{
+  if (argc != 4)
+    return Usage();
+  ncx::InitCore();
+  std::string error;
+  std::unique_ptr<ncx::DeviceFile> file = ncx::ImportBackup(ncx::PathFromUTF8(argv[2]), error);
+  if (!file) {
+    std::fprintf(stderr, "ncx-cli: %s\n", error.c_str());
+    return 1;
+  }
+  try {
+    file->saveAs(ncx::PathFromUTF8(argv[3]));
+  } catch (const ncx::ModelError & e) {
+    std::fprintf(stderr, "ncx-cli: %s\n", e.what());
+    return 1;
+  }
+  std::printf("%zu soups, %zu entries\n", file->rowCount("ZSOUP"), file->rowCount("ZENTRY"));
+  return 0;
+}
+
 } // namespace
 
 
@@ -155,5 +238,9 @@ int main(int argc, char * argv[])
   }
   if (argc >= 2 && std::strcmp(argv[1], "info") == 0)
     return Info(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "device") == 0)
+    return Device(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "convert") == 0)
+    return Convert(argc, argv);
   return Usage();
 }

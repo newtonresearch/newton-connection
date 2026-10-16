@@ -36,3 +36,10 @@ add_test (NAME ncx_cli_info_mnp COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx
           -DPORT=${cli_port} -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
 add_test (NAME ncx_cli_info_plain COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_plain} -DPLAIN=ON -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
+
+# The model (PORTING.md Phase 4): device files, entries, backups
+add_executable (ncx_model_test model_test.cc)
+target_link_libraries (ncx_model_test PRIVATE ncx_core)
+foreach (section plist file delete entries titles backup devices large restore)
+  add_test (NAME ncx_model_${section} COMMAND ncx_model_test ${section})
+endforeach ()

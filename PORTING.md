@@ -580,28 +580,75 @@ ThreadSanitizer and ASan/UBSan.
 
 ### Phase 4: data model and persistence (no GUI)
 
-- **4.1 Model classes:**
-  - Plain C++ `Device`, `UserInfo`, `Store`, `Soup`, `App`, `Entry`,
-    `RestoreInfo`.
-  - `Entry` keeps its NSOF blob and unflattens on demand.
-  - The UI-only properties (`image`, `icon`, `status`) move to `ui/`.
-- **4.2 SQLite store:**
-  - Read and write the Core Data schema from 1.5, including `Z_ENT`,
-    `Z_OPT` and `Z_PRIMARYKEY` upkeep, and keep `Z_METADATA` as found
-    (decision D5).
-  - Transactions replace `save:`; the in-thread contexts in
-    `makeManagedObjectContextForThread` go away.
-- **4.3 Device chooser and legacy backups:**
-  - List the `.newtondevice` files and their device names (the
-    `docList`/`docSheet` logic).
-  - Port `BackupDocument` (importing old backup files).
-- **4.4 Tests:**
-  - Load a fixture `.newtondevice` made with the current macOS NCX from
-    Einstein (not personal data).
-  - Check the entry counts and that entries unflatten.
-  - Write it back, then reopen it.
-  - Done when: these pass in CI, and the macOS Core Data NCX still opens a
-    file written by the new code (checked by hand once).
+✅ Done 2026-10-16, locally (no CI run yet). `src/model` (in `ncx_core`),
+`ncx-cli device` and `ncx-cli convert`. Tested by `tests/model_test.cc` (9
+ctest sections); 30 ctests, clean under ThreadSanitizer and ASan/UBSan.
+
+- **4.1 Model classes:** ✅
+  - `model/Records.h`: plain structs `DeviceRecord`, `UserInfoRecord`,
+    `StoreRecord`, `AppRecord`, `SoupRecord`, `EntryRecord`, one field per
+    column; a row is its `Z_PK`, a reference the other row's. The device's
+    `NewtonInfo` (`ZINFO`, 72 bytes, little-endian as the Cocoa app kept
+    the struct) and what NCX showed of it (DeviceId, machine, ROM).
+  - `EntryRecord` keeps its NSOF blob (`refData`); `EntryFrame()`
+    unflattens it when asked.
+  - `model/NewtonModel.h` (the dock thread: Newton objects): what
+    NCDocument, NCStore, NCSoup and NCEntry did with the frames a Newton
+    sends. `AddStore` (by signature), `FindOrAddApp`, `MakeSoup` (from the
+    soupDef), `AddEntry` (titles from the soup's columns: the Cocoa app's
+    `slot.plist` as a C++ table, `SoupColumns`), `AddImportedEntry`
+    (desktop-made entries get ids from 1070000000 on), `UpdateEntry`.
+  - Imported entries' ids don't fit a Newton integer (30 bits). The
+    64-bit Cocoa app kept them anyway, NSOF stored their low 30 bits, and
+    it read them back unsigned. `UniqueIdOf`/`MakeUniqueId` do the same, so
+    the NSOF stays byte for byte what the Cocoa app wrote.
+  - `model/Restore.h`: NCRestoreInfo. For each store of the connected
+    Newton (Internal first): the backed-up stores of its kind, with their
+    apps (but Packages) and packages. What the user picks is the UI's.
+  - The UI-only properties (`image`, `icon`, `status`) are left to `ui/`.
+- **4.2 SQLite store:** ✅ `model/DeviceFile.h`
+  - Reads and writes the Core Data schema from 1.5 (`model/CoreDataModel.h`
+    has the exact statements, the entities, the model's hashes). A new row's
+    `Z_PK` is `Z_PRIMARYKEY.Z_MAX + 1`, its `Z_ENT` the entity's number, its
+    `Z_OPT` 1, then +1 per change. Deleting a soup or a store takes its
+    entries and soups along (the model's delete rules only nullify).
+    `Z_METADATA` (a binary plist, `model/Plist.h`) stays as found, but for
+    NewtonId and NewtonName (decision D5). New files: WAL, incremental auto
+    vacuum, as Core Data makes them. An open checks the model's hashes.
+  - `DeviceFile::Transaction` replaces `save:`; there are no per-thread
+    contexts.
+  - Checked with Core Data on macOS (by hand, once; `xcrun momc` of
+    `NCX/Store.xcdatamodel`): it opens a file NCX wrote, fetches every
+    entity with its relationships, and saves changes into it; NCX opens a
+    file Core Data made, and the one it changed. Core Data leaves
+    `Z_MODELCACHE` empty, as NCX does.
+- **4.3 Device chooser and legacy backups:** ✅
+  - `model/DeviceList.h`: the `.newtondevice` files in a folder with their
+    NewtonId and NewtonName (from `Z_METADATA`, read only), the file for a
+    Newton that connects (by NewtonId, else a new `<DeviceId>.newtondevice`:
+    NCDocument setDevice).
+  - `model/BackupImport.h`: BackupDocument. A Newton Connection 1 backup
+    (`.nbku`, either byte order) into a device file in memory;
+    `DeviceFile::saveAs` writes it out. `ncx-cli convert <nbku> <file>`.
+- **4.4 Tests:** ✅
+  - `tests/model_test.cc`: plists; a file made, written, reopened
+    (`Z_MAX`, `Z_OPT`, WAL, read only, other files refused); deletes and
+    `cropSoup`; entries (updates, imported ids and their NSOF); titles;
+    `.nbku` import (made by the test, both byte orders, cut short); the
+    device list; large binaries; restore choices.
+  - The real backups in `~/Library/Application Support/Newton
+    Connection/` (Matt's: read only, counts only): `ncx-cli device <file>
+    --check` reads every entry of both (117), and every package is a
+    package.
+  - Still to do: a fixture `.newtondevice` made by the Cocoa NCX from
+    Einstein, without personal data, for CI (Matt).
+- Found in newton-framework: large binaries (VBOs) in NSOF, which a Newton
+  sends for compressed text, ink and packages, crashed or failed: the
+  reader mapped them into virtual memory the host doesn't have (B70; now
+  read into plain binaries, decompressed). The package store's list of
+  decompressors had every other one missing (B69). `MNPLink::pending()`
+  raced with the link's thread (ThreadSanitizer, the package test; B71).
+  All fixed.
 
 ### Phase 5: dock controller and components (no GUI)
 

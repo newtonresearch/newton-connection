@@ -1,6 +1,6 @@
 #
 # NCX's code (PORTING.md section 2). The layers start with their phases:
-# base/, comms/, platform/, ui/, cli/ (now), model/, dock/, translators/.
+# base/, comms/, platform/, ui/, cli/, model/ (now), dock/, translators/.
 #
 
 #------------------------------------------------------------------------------
@@ -26,6 +26,14 @@ add_library (ncx_core STATIC
   comms/Handshake.cc comms/Handshake.h
   comms/Listener.cc comms/Listener.h
   comms/Session.cc comms/Session.h
+  model/BackupImport.cc model/BackupImport.h
+  model/CoreDataModel.cc model/CoreDataModel.h
+  model/DeviceFile.cc model/DeviceFile.h
+  model/DeviceList.cc model/DeviceList.h
+  model/NewtonModel.cc model/NewtonModel.h
+  model/Plist.cc model/Plist.h
+  model/Records.cc model/Records.h
+  model/Restore.cc model/Restore.h
   platform/AppFolders.cc platform/AppFolders.h
   platform/SerialPorts.cc platform/SerialPorts.h
 )
