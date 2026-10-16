@@ -16,6 +16,10 @@
             last: "Lovelace"}}, 101 (Charles Babbage)
    GetUserConfig('userFont) -> 12290, Gestalt(...) -> {}
    lpkg     taken (its size remembered), dres 0
+   pext     taken (dres 0); then, as NCX's extensions answer:
+            scrn: dres 0 (-28010 without the Toolkit app)
+            NCss: a 320 x 480 screen, 4 bits a pixel, the value of a pixel
+                  (x / 20 + y / 30) % 16 (ScreenPixel)
  */
 
 #ifndef NCX_TESTS_FAKENEWTON_H
@@ -34,7 +38,11 @@ struct FakeNewtonOptions
   std::string password;               // the Newton's
   std::string name = "Ada Lovelace";  // its owner
   double connectSeconds = 10;         // keep trying to connect this long
+  bool toolkit = true;                // it has the Toolkit app (screenshots)
 };
+
+/** The fake Newton's screen: a pixel's value (0 white ... 15 black). */
+inline int ScreenPixel(int inX, int inY) { return (inX / 20 + inY / 30) % 16; }
 
 class FakeNewton
 {
@@ -48,11 +56,17 @@ public:
   const std::vector<std::string> & received() const { return mReceived; }
   /** The size of the last package the desktop sent (lpkg). */
   size_t packageSize() const { return mPackageSize; }
+  /** The protocol extensions the desktop sent ('pext'), by command. */
+  const std::vector<std::string> & extensions() const { return mExtensions; }
+  /** The largest block of the screen it sent ('NCss'). */
+  size_t largestBlock() const { return mLargestBlock; }
 
 private:
   std::string mWhy;
   std::vector<std::string> mReceived;
+  std::vector<std::string> mExtensions;
   size_t mPackageSize = 0;
+  size_t mLargestBlock = 0;
 };
 
 } // namespace ncx

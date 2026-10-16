@@ -13,6 +13,7 @@
 
 #include "base/Core.h"
 #include "base/NewtonStrings.h"
+#include "FakeProcess.h"
 #include "comms/DockEvent.h"
 #include "comms/Handshake.h"
 #include "comms/Listener.h"
@@ -104,54 +105,18 @@ void TestEvents()
 }
 
 
-/*-- the fake Newton, a program of its own -----------------------------------*/
+/*-- the fake Newton, a program of its own (FakeProcess.h) --------------------*/
 
-struct Fake
-{
-  std::thread thread;
-  int exitCode = -1;
-  std::filesystem::path report;
-  std::vector<std::string> received;
-  size_t packageSize = 0;
-  std::string why;
-};
+typedef FakeProcess Fake;
 
-/** Start ncx-fake-newton on a thread (it keeps trying to connect). */
 void StartFake(Fake & ioFake, int inPort, const std::string & inOptions)
 {
-  ioFake.report = std::filesystem::temp_directory_path() / ("ncx-fake-" + std::to_string(inPort) + ".txt");
-  std::filesystem::remove(ioFake.report);
-  std::string command = "\"" + gFakeNewton + "\" --port " + std::to_string(inPort) + " " + inOptions
-                      + " --report \"" + ioFake.report.u8string() + "\"";
-#if defined(_WIN32)
-  command = "\"" + command + "\"";     // cmd /c takes the outer quotes away
-#endif
-  ioFake.thread = std::thread([&ioFake, command] {
-    int status = std::system(command.c_str());
-#if defined(_WIN32)
-    ioFake.exitCode = status;
-#else
-    ioFake.exitCode = WIFEXITED(status) ? WEXITSTATUS(status) : -1;
-#endif
-  });
+  ioFake.start(gFakeNewton, inPort, inOptions);
 }
 
-/** Wait for it to end; what it reported. */
 void FinishFake(Fake & ioFake)
 {
-  ioFake.thread.join();
-  std::ifstream in(ioFake.report, std::ios::binary);
-  std::string line;
-  while (std::getline(in, line)) {
-    if (line.compare(0, 9, "received ") == 0)
-      ioFake.received.push_back(line.substr(9));
-    else if (line.compare(0, 8, "package ") == 0)
-      ioFake.packageSize = (size_t)std::stoul(line.substr(8));
-    else if (line.compare(0, 4, "why ") == 0)
-      ioFake.why = line.substr(4);
-  }
-  in.close();
-  std::filesystem::remove(ioFake.report);
+  ioFake.finish();
 }
 
 

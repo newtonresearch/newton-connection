@@ -8,6 +8,7 @@
 #include "model/DeviceList.h"
 #include "model/NewtonModel.h"
 #include "base/Log.h"
+#include "base/NewtonCall.h"
 #include "base/NewtonStrings.h"
 #include "comms/DockRefs.h"
 #include "platform/AppFolders.h"
@@ -163,10 +164,15 @@ std::unique_ptr<DeviceFile> ImportBackup(const Bytes & inData, const std::string
     return nullptr;
   try {
     DeviceFile::Transaction transaction(*file);
-    ReadBackup(*file, inData, inName);
+    // a damaged backup can make the object system throw (a frame that isn't one)
+    CallNewton([&] { ReadBackup(*file, inData, inName); });
     transaction.commit();
   } catch (const ModelError & e) {
     outError = e.what();
+    Log(kLogMinimum, "backup: %s", outError.c_str());
+    return nullptr;
+  } catch (const NewtonException & e) {
+    outError = std::string("the backup is damaged: ") + e.what();
     Log(kLogMinimum, "backup: %s", outError.c_str());
     return nullptr;
   }

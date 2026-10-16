@@ -16,6 +16,8 @@
 #include "Matt/NTKTransport.h"
 #include "RSSymbols.h"
 
+#include <algorithm>
+#include <cctype>
 #include <chrono>
 #include <memory>
 #include <thread>
@@ -301,6 +303,12 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
   }
 
   // the session: answer until 'disc'
+  auto hasExtension = [this](const char * inId) {
+    for (const std::string & id : mExtensions)
+      if (id == inId)
+        return true;
+    return false;
+  };
   RefVar entries(MakeArray(2));
   SetArraySlot(entries, 0, MakeEntry(100, "Ada", "Lovelace"));
   SetArraySlot(entries, 1, MakeEntry(101, "Charles", "Babbage"));
@@ -352,6 +360,45 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
         cursorPosition = 0;
       RefVar entry(cursorPosition < 2 ? GetArraySlot(entries, cursorPosition) : (Ref)NILREF);
       wire->send(MakeRefEvent(kDRefResult, entry));
+    } else if (c == kDRegProtocolExtension) {
+      if (event.data.size() > 4)
+        mExtensions.push_back(CmdName(event.longAt(0)));
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+    } else if (c == Cmd("scrn") && hasExtension("scrn")) {
+      wire->send(DockEvent::MakeValue(kDResult, inOptions.toolkit ? 0 : kDockErrFileNotFound));
+    } else if (c == Cmd("NCss") && hasExtension("NCss")) {
+      RefVar request(UnflattenBytes(event.data));
+      RefVar op(IsFrame(request) ? GetFrameSlot(request, MakeSymbol("op")) : (Ref)NILREF);
+      // symbols compare without case, as on a Newton ('read may come as 'Read)
+      std::string what = IsSymbol(op) ? UTF8FromSymbol(op) : std::string();
+      for (char & ch : what)
+        ch = (char)std::tolower((unsigned char)ch);
+      RefVar answer(AllocateFrame());
+      if (!inOptions.toolkit) {
+        SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(kDockErrFileNotFound));
+      } else if (what == "take") {
+        SetFrameSlot(answer, MakeSymbol("top"), MAKEINT(0));
+        SetFrameSlot(answer, MakeSymbol("left"), MAKEINT(0));
+        SetFrameSlot(answer, MakeSymbol("bottom"), MAKEINT(480));
+        SetFrameSlot(answer, MakeSymbol("right"), MAKEINT(320));
+        SetFrameSlot(answer, MakeSymbol("rowBytes"), MAKEINT(160));
+        SetFrameSlot(answer, MakeSymbol("depth"), MAKEINT(4));
+        SetFrameSlot(answer, MakeSymbol("size"), MAKEINT(160 * 480));
+      } else if (what == "read") {
+        int offset = (int)RINT(GetFrameSlot(request, MakeSymbol("offset")));
+        int length = (int)RINT(GetFrameSlot(request, MakeSymbol("length")));
+        length = std::max(0, std::min(length, 160 * 480 - offset));
+        answer = AllocateBinary(MakeSymbol("bits"), length);
+        uint8_t * bits = (uint8_t *)BinaryData(answer);
+        for (int i = 0; i < length; ++i) {
+          int at = offset + i, y = at / 160, x = (at % 160) * 2;
+          bits[i] = (uint8_t)(ScreenPixel(x, y) << 4 | ScreenPixel(x + 1, y));
+        }
+        mLargestBlock = std::max(mLargestBlock, (size_t)length);
+      } else {
+        SetFrameSlot(answer, MakeSymbol("done"), TRUEREF);
+      }
+      wire->send(MakeRefEvent(Cmd("NCsr"), answer));
     } else if (c == kDLoadPackage) {
       mPackageSize = event.data.size();
       wire->send(DockEvent::MakeValue(kDResult, 0));

@@ -1,6 +1,6 @@
 #
 # NCX's code (PORTING.md section 2). The layers start with their phases:
-# base/, comms/, platform/, ui/, cli/, model/ (now), dock/, translators/.
+# base/, comms/, platform/, ui/, cli/, model/, dock/ (now), translators/.
 #
 
 #------------------------------------------------------------------------------
@@ -9,10 +9,36 @@
 #   FLTK for Fl_Preferences and through newton_ncx (its drawing), but nothing
 #   in ncx_core needs a display.
 #------------------------------------------------------------------------------
+#------------------------------------------------------------------------------
+#   The protocol extensions (src/dock/extensions/<id>.nsof) built into NCX.
+#   ncx_extensions compiles the NewtonScript ones (<id>.ns) with newtc
+#   first, when NCX_NEWTC names one (src/dock/extensions/README.md).
+#------------------------------------------------------------------------------
+file (GLOB ncx_extension_files CONFIGURE_DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/dock/extensions/*.nsof")
+set (ncx_extension_data "${PROJECT_BINARY_DIR}/generated/ExtensionData.cc")
+add_custom_command (
+  OUTPUT "${ncx_extension_data}"
+  COMMAND "${CMAKE_COMMAND}" -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/dock/extensions -DOUT=${ncx_extension_data}
+          -P "${PROJECT_SOURCE_DIR}/cmake/EmbedExtensions.cmake"
+  DEPENDS ${ncx_extension_files} "${PROJECT_SOURCE_DIR}/cmake/EmbedExtensions.cmake"
+  COMMENT "Embedding the protocol extensions"
+  VERBATIM
+)
+set (NCX_NEWTC "" CACHE FILEPATH "newtc, to compile the protocol extensions (target ncx_extensions)")
+if (NCX_NEWTC)
+  add_custom_target (ncx_extensions
+    COMMAND "${CMAKE_COMMAND}" -DNEWTC=${NCX_NEWTC} -DDIR=${CMAKE_CURRENT_SOURCE_DIR}/dock/extensions
+            -P "${PROJECT_SOURCE_DIR}/cmake/CompileExtensions.cmake"
+    COMMENT "Compiling the protocol extensions with newtc"
+    VERBATIM
+  )
+endif ()
+
 add_library (ncx_core STATIC
   base/Core.cc base/Core.h base/Version.h.in
   base/Dates.cc base/Dates.h
   base/Log.cc base/Log.h
+  base/NewtonCall.cc base/NewtonCall.h
   base/NewtonStrings.cc base/NewtonStrings.h
   base/Observers.cc base/Observers.h
   base/Prefs.cc base/Prefs.h
@@ -26,6 +52,9 @@ add_library (ncx_core STATIC
   comms/Handshake.cc comms/Handshake.h
   comms/Listener.cc comms/Listener.h
   comms/Session.cc comms/Session.h
+  dock/DockController.cc dock/DockController.h
+  dock/Extensions.cc dock/Extensions.h ${ncx_extension_data}
+  dock/Screenshot.cc dock/Screenshot.h
   model/BackupImport.cc model/BackupImport.h
   model/CoreDataModel.cc model/CoreDataModel.h
   model/DeviceFile.cc model/DeviceFile.h
@@ -48,7 +77,7 @@ target_link_libraries (ncx_core PUBLIC newton_ncx newton_dock ncx_sqlite3 fltk::
 #   ncx-cli: without a window, for tests and debugging.
 #------------------------------------------------------------------------------
 add_executable (ncx-cli cli/main.cc)
-target_link_libraries (ncx-cli PRIVATE ncx_core)
+target_link_libraries (ncx-cli PRIVATE ncx_core)    # fl_write_png: fltk::images comes with newton_ncx
 
 #------------------------------------------------------------------------------
 #   NCX: the app. NCX.app on macOS (Info.plist from cmake/), a GUI program on

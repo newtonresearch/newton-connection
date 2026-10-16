@@ -7,6 +7,9 @@
    ncx-cli --selftest                check the libraries (exit 0 if all is well)
    ncx-cli info [options]            wait for a Newton, dock, print what it
                                      is, its stores and soups, disconnect
+   ncx-cli screenshot <file.png> [options]
+                                     the Newton's screen (it needs the
+                                     Toolkit app), as a PNG
    ncx-cli device <file> [--check]   a .newtondevice file: its Newton, and
                                      how many soups and entries per store;
                                      --check: that every entry can be read
@@ -14,7 +17,7 @@
    ncx-cli convert <nbku> <file>     a Newton Connection 1 backup (.nbku) as
                                      a new .newtondevice file
 
- Options for info:
+ Options for the commands that dock (info, screenshot):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -29,8 +32,9 @@
 #include "base/NewtonStrings.h"
 #include "base/Prefs.h"
 #include "comms/Handshake.h"
-#include "comms/Listener.h"
 #include "comms/Session.h"
+#include "dock/DockController.h"
+#include "dock/Screenshot.h"
 #include "model/BackupImport.h"
 #include "model/DeviceFile.h"
 #include "model/NewtonModel.h"
@@ -38,9 +42,12 @@
 
 #include "RSSymbols.h"
 
+#include <FL/Fl_PNG_Image.H>
+
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
+#include <functional>
 #include <string>
 #include <vector>
 
@@ -50,7 +57,9 @@ int Usage()
 {
   std::fprintf(stderr,
     "Usage: ncx-cli --version | --selftest\n"
-    "       ncx-cli info [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
+    "       ncx-cli info [<dock options>]\n"
+    "       ncx-cli screenshot <file.png> [<dock options>]\n"
+    "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
     "       ncx-cli convert <backup.nbku> <file.newtondevice>\n");
   return 2;
@@ -67,51 +76,82 @@ std::string Text(RefArg inObj)
 }
 
 
-int Info(int argc, char * argv[])
+/** The options of the commands that dock (info, screenshot, ...): the
+    dock's settings; the arguments that aren't options in outRest. False
+    for an option it doesn't know. */
+bool DockOptions(int argc, char * argv[], int inFirst, ncx::DockController::Settings & outSettings,
+                 std::vector<std::string> & outRest)
 {
-  std::vector<std::string> targets;
-  std::string password = ncx::Prefs::App().getString(ncx::pref::kPassword);
-  int waitSeconds = -1;
-  for (int i = 2; i < argc; ++i) {
+  outSettings.password = ncx::Prefs::App().getString(ncx::pref::kPassword);
+  outSettings.once = true;
+  for (int i = inFirst; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "--target" && i + 1 < argc)
-      targets.push_back(argv[++i]);
+      outSettings.targets.push_back(argv[++i]);
     else if (arg == "--password" && i + 1 < argc)
-      password = argv[++i];
+      outSettings.password = argv[++i];
     else if (arg == "--wait" && i + 1 < argc)
-      waitSeconds = std::atoi(argv[++i]);
+      outSettings.waitSeconds = std::atoi(argv[++i]);
     else if (arg == "--log" && i + 1 < argc)
       ncx::SetLogLevel(std::atoi(argv[++i]));
+    else if (arg.size() > 2 && arg.compare(0, 2, "--") == 0)
+      return false;
     else
-      return Usage();
+      outRest.push_back(arg);
   }
-  if (targets.empty()) {
-    targets.push_back("tcp-all:" + std::to_string(ncx::Prefs::App().tcpPort()));
+  if (outSettings.targets.empty()) {
+    outSettings.targets.push_back("tcp-all:" + std::to_string(ncx::Prefs::App().tcpPort()));
 #if defined(__APPLE__)
-    targets.push_back("einstein-pipes");
+    outSettings.targets.push_back("einstein-pipes");
 #endif
   }
+  return true;
+}
 
+
+/** Dock once, run inTask on the dock thread, disconnect. Exit code: 0 if
+    the task returned 0 and the session ended as it should. */
+int Dock(const ncx::DockController::Settings & inSettings, std::function<int(ncx::DockController &)> inTask)
+{
   ncx::InitCore();
-  ncx::Listener listener;
+  ncx::DockController dock;
+  int taskResult = 1;
+  ncx::DockController::Events events;
+  events.listening = [](const std::vector<std::string> & inWhere) {
+    for (const std::string & where : inWhere)
+      std::fprintf(stderr, "Waiting for a Newton on %s\n", where.c_str());
+  };
+  events.docked = [&](const ncx::DockedNewton &) {
+    dock.post([&](ncx::DockController & ioDock) { taskResult = inTask(ioDock); });
+    dock.disconnect();
+  };
+  events.status = [](const std::string & inText) {
+    if (!inText.empty())
+      std::fprintf(stderr, "%s\n", inText.c_str());
+  };
+  dock.setEvents(events);
   std::string error;
-  if (!listener.start(targets, error)) {
+  if (!dock.start(inSettings, error)) {
     std::fprintf(stderr, "ncx-cli: can't listen: %s\n", error.c_str());
     return 1;
   }
-  for (const std::string & where : listener.listening())
-    std::fprintf(stderr, "Waiting for a Newton on %s\n", where.c_str());
-  std::unique_ptr<ncx::Connection> connection = listener.waitForConnection(waitSeconds < 0 ? -1 : waitSeconds * 1000, error);
-  if (!connection) {
-    std::fprintf(stderr, "ncx-cli: %s\n", error.empty() ? "no Newton came" : error.c_str());
+  dock.wait();
+  if (dock.result() != 0) {
+    std::fprintf(stderr, "ncx-cli: %s (%d)\n", dock.why().c_str(), dock.result());
     return 1;
   }
-  std::fprintf(stderr, "Connected: %s\n", connection->describe().c_str());
+  return taskResult;
+}
 
-  ncx::EventQueue queue(std::move(connection));
-  ncx::Session session(queue);
-  try {
-    ncx::DockedNewton newton = ncx::Handshake(session, password, ncx::DockAppInfo(), 60);
+
+int Info(int argc, char * argv[])
+{
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions(argc, argv, 2, settings, rest) || !rest.empty())
+    return Usage();
+  return Dock(settings, [](ncx::DockController & dock) {
+    const ncx::DockedNewton & newton = dock.newton();
     std::printf("Newton:   %s\n", newton.name.empty() ? "(no name)" : newton.name.c_str());
     std::printf("Machine:  %s\n", ncx::MachineName(newton.info.fMachineType).c_str());
     std::printf("ROM:      %u.%u%s\n", newton.info.fROMVersion >> 16, newton.info.fROMVersion & 0xFFFF,
@@ -119,36 +159,68 @@ int Info(int argc, char * argv[])
     std::printf("RAM:      %u KB\n", newton.info.fRAMSize / 1024);
     std::printf("Screen:   %u x %u\n", newton.info.fScreenWidth, newton.info.fScreenHeight);
     std::printf("Protocol: %u\n", newton.protocolVersion);
-    if (!newton.newton1) {
-      session.send(ncx::kDDesktopInControl);
-      RefVar stores(session.getAllStores());
-      for (ArrayIndex i = 0, count = IsArray(stores) ? Length(stores) : 0; i < count; ++i) {
-        RefVar store(GetArraySlot(stores, i));
-        std::printf("Store:    %s (%s), signature %s, %s of %s bytes used\n",
-                    Text(GetFrameSlot(store, SYMA(name))).c_str(), Text(GetFrameSlot(store, SYMA(kind))).c_str(),
-                    Text(GetFrameSlot(store, SYMA(signature))).c_str(),
-                    Text(GetFrameSlot(store, MakeSymbol("usedSize"))).c_str(),
-                    Text(GetFrameSlot(store, MakeSymbol("totalSize"))).c_str());
-        session.setCurrentStore(store, false);
-        RefVar soups(session.getAllSoups());
-        if (IsArray(soups) && Length(soups) == 2) {
-          RefVar names(GetArraySlot(soups, 0));
-          std::printf("Soups:   ");
-          for (ArrayIndex k = 0; k < Length(names); ++k)
-            std::printf(" %s%s", Text(GetArraySlot(names, k)).c_str(), k + 1 < Length(names) ? "," : "");
-          std::printf("\n");
-        }
+    if (newton.newton1)
+      return 0;
+    ncx::Session & session = dock.session();
+    dock.setDesktopControl(true);
+    RefVar stores(session.getAllStores());
+    for (ArrayIndex i = 0, count = IsArray(stores) ? Length(stores) : 0; i < count; ++i) {
+      RefVar store(GetArraySlot(stores, i));
+      std::printf("Store:    %s (%s), signature %s, %s of %s bytes used\n",
+                  Text(GetFrameSlot(store, SYMA(name))).c_str(), Text(GetFrameSlot(store, SYMA(kind))).c_str(),
+                  Text(GetFrameSlot(store, SYMA(signature))).c_str(),
+                  Text(GetFrameSlot(store, MakeSymbol("usedSize"))).c_str(),
+                  Text(GetFrameSlot(store, MakeSymbol("totalSize"))).c_str());
+      session.setCurrentStore(store, false);
+      RefVar soups(session.getAllSoups());
+      if (IsArray(soups) && Length(soups) == 2) {
+        RefVar names(GetArraySlot(soups, 0));
+        std::printf("Soups:   ");
+        for (ArrayIndex k = 0; k < Length(names); ++k)
+          std::printf(" %s%s", Text(GetArraySlot(names, k)).c_str(), k + 1 < Length(names) ? "," : "");
+        std::printf("\n");
       }
-      session.send(ncx::kDOperationDone);
     }
-    session.send(ncx::kDDisconnect);
-  } catch (const ncx::DockFailure & failure) {
-    std::fprintf(stderr, "ncx-cli: %s (%d)\n", failure.what(), failure.code);
+    dock.setDesktopControl(false);
+    return 0;
+  });
+}
+
+
+int Screenshot(int argc, char * argv[])
+{
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions(argc, argv, 2, settings, rest) || rest.size() != 1)
+    return Usage();
+  std::string file = rest[0];
+  ncx::Screenshot shot;
+  int result = Dock(settings, [&](ncx::DockController & dock) {
+    ncx::ScreenshotSession screenshots(dock);
+    int error = screenshots.begin();
+    if (error == ncx::kDockErrFileNotFound) {
+      std::fprintf(stderr, "ncx-cli: the Newton needs the Toolkit app for screenshots\n");
+      return 1;
+    }
+    if (error == 0)
+      error = screenshots.take(shot);
+    screenshots.end();
+    if (error != 0) {
+      std::fprintf(stderr, "ncx-cli: no screenshot (%d)\n", error);
+      return 1;
+    }
+    return 0;
+  });
+  if (result != 0)
+    return result;
+  if (fl_write_png(file.c_str(), shot.gray.data(), shot.width, shot.height, 1) != 0) {
+    std::fprintf(stderr, "ncx-cli: can't write %s\n", file.c_str());
     return 1;
   }
-  queue.close();
+  std::printf("%s: %d x %d, %d bits a pixel on the Newton\n", file.c_str(), shot.width, shot.height, shot.depth);
   return 0;
 }
+
 
 int Device(int argc, char * argv[])
 {
@@ -238,6 +310,8 @@ int main(int argc, char * argv[])
   }
   if (argc >= 2 && std::strcmp(argv[1], "info") == 0)
     return Info(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "screenshot") == 0)
+    return Screenshot(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "device") == 0)
     return Device(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "convert") == 0)

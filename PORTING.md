@@ -674,7 +674,31 @@ clean under ThreadSanitizer and ASan/UBSan.
 
 ### Phase 5: dock controller and components (no GUI)
 
-- **5.1 `DockController`:**
+In progress. Done so far (locally, 2026-10-16): 5.1, and 5.2.1 against the
+fake Newton. 43 ctests, clean under ThreadSanitizer and ASan/UBSan.
+
+- **5.1 `DockController`:** ✅ (the plan below; what came of it here)
+  - `src/dock/DockController.h`: a dock thread that listens, docks
+    (`Handshake`), and serves the session: operations the desktop posts
+    (lambdas, run in order on the dock thread) and requests the Newton
+    makes on its own (handlers by command; 'opca' with nothing to cancel is
+    acknowledged, unknown ones answered 'unkn'). Then it listens again, or
+    ends (`once`, for ncx-cli). Events (listening, docked, undocked,
+    status) come on the dock thread; the UI passes them on. `ncx-cli info`
+    runs on it now.
+  - Newton exceptions and C++ exceptions: the framework throws with
+    longjmp, so a C++ exception must not leave a `newton_try` (its handler
+    would stay behind), and an uncaught Throw ends the program.
+    `base/NewtonCall.h` (`CallNewton`) runs code where both are safe; the
+    dock thread runs every operation and handler through it (a Newton
+    exception fails the operation, a `DockFailure` ends the session), and
+    the `.nbku` import too.
+  - Protocol extensions: `src/dock/extensions/<id>.nsof`, embedded at
+    build time (`cmake/EmbedExtensions.cmake`, `dock/Extensions.h`). NCX's
+    own are NewtonScript (`<id>.ns`), compiled with newtc by the optional
+    target `ncx_extensions` (`-DNCX_NEWTC=<newtc>`); the NSOF is checked in,
+    so a build needs no newtc (as the framework's ROM data). See
+    `src/dock/extensions/README.md`.
   - Port `NCDockProtocolController`.
   - Operation state, cancel, progress, the install queue, folder browsing
     for the Newton (`buildFileList` and friends).
@@ -691,6 +715,14 @@ clean under ThreadSanitizer and ASan/UBSan.
      extensions send the screen in very large chunks. On real devices that
      can overwhelm the Dock/MNP link and fail. Rewrite them to send smaller
      blocks, the way newtdump's `NDmp` extension does.
+     ✅ (fake Newton) `dock/Screenshot.h`: `NCss` (`NCss.ns`) takes the
+     shot with the Toolkit app's `ScreenShotFn`, as 'snap' did, keeps it on
+     the Newton and sends it 2048 bytes at a time; 'scrn' (taken over:
+     hides the Dock slip) stays. The Newton needs the Toolkit app
+     (`NCX/Extras/Toolkit.newtonpkg`); without it `begin()` says so
+     (-28010). The bits become 8-bit gray (0 white ... the highest value
+     black), `ncx-cli` writes a PNG (`fl_write_png`). Still to do: against
+     Einstein and a real Newton (Matt).
   2. ROM dump (`ncx-cli rom out.bin`). Take the approach from newtdump
      (block size, resume after a reconnect).
   3. package install (`ncx-cli install a.pkg b.pkg`), with `PkgPart`

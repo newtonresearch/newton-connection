@@ -46,3 +46,15 @@ endforeach ()
 # A backup the Cocoa NCX made from Einstein (no personal data): NCX reads it
 # as that NCX wrote it, and changes it
 add_test (NAME ncx_model_fixture COMMAND ncx_model_test fixture ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice)
+
+# The dock (PORTING.md Phase 5) against the fake Newton
+add_executable (ncx_dock_test dock_test.cc)
+target_link_libraries (ncx_dock_test PRIVATE ncx_fake_newton)
+add_dependencies (ncx_dock_test ncx-fake-newton)
+foreach (section extensions bits controller screenshot notoolkit)
+  add_test (NAME ncx_dock_${section} COMMAND ncx_dock_test ${section} $<TARGET_FILE:ncx-fake-newton>)
+endforeach ()
+math (EXPR cli_port_screenshot "43000 + ${port_base} + 2000")
+add_test (NAME ncx_cli_screenshot COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
+          -DPORT=${cli_port_screenshot} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_screenshot.png
+          -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_screenshot.cmake)

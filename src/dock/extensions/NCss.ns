@@ -1,0 +1,75 @@
+// NCss.ns: NCX's screenshot extension, the Newton's side (PORTING.md 5.2).
+// newtc compiles it into NCss.nsof (the ncx_extensions target, see
+// src/dock/extensions/README.md); the desktop installs it with
+// kDRegProtocolExtension ('pext', command 'NCss').
+//
+// The Cocoa NCX's 'snap' sent the whole screen in one event (76800 bytes on
+// a MessagePad 2x00), too much for a real Newton's serial link. This one
+// keeps the shot on the Newton and sends it a block at a time, as
+// newtdump's 'NDmp' does. The desktop sends 'NCss' with a request frame;
+// the answer is 'NCsr' with:
+//
+//   {op: 'take}                   -> {top, left, bottom, right, rowBytes,
+//                                     depth, size} (the bits stay here), or
+//                                    {error: -28010}: no Toolkit app
+//   {op: 'read, offset, length}   -> the bits from offset (a binary), or
+//                                    {error}
+//   {op: 'done}                   -> {done: true}: the bits are forgotten
+//
+// The shot comes from the Toolkit app's ScreenShotFn (newtoolspro), as the
+// Cocoa NCX's did. An exception becomes {error, name} instead of ending
+// the session. Hiding the Dock slip while the user arranges the screen is
+// still the Cocoa NCX's 'scrn'.
+
+func(ep)
+begin
+  local request := ep:ReadCommandData();
+  local answer;
+  try
+  begin
+    local op := if IsFrame(request) then request.op;
+    if op = 'take then
+    begin
+      local ntp := GetRoot().newtoolspro;
+      if ntp then
+      begin
+        local shot := {};
+        ntp._proto:ScreenShotFn(shot);
+        DefGlobalVar('|NCX:shot|, shot.theBits);
+        answer := {top: shot.top, left: shot.left, bottom: shot.bottom, right: shot.right,
+                   rowBytes: shot.rowBytes, depth: shot.depth, size: Length(shot.theBits)};
+      end
+      else
+        answer := {error: -28010};
+    end
+    else if op = 'read then
+    begin
+      local bits := if GlobalVarExists('|NCX:shot|) then GetGlobalVar('|NCX:shot|);
+      if bits and request.offset < Length(bits) then
+      begin
+        local count := Min(request.length, Length(bits) - request.offset);
+        answer := MakeBinary(count, 'bits);
+        BinaryMunger(answer, 0, count, bits, request.offset, count);
+      end
+      else
+        answer := {error: -1, name: "no screenshot there"};
+    end
+    else if op = 'done then
+    begin
+      if GlobalVarExists('|NCX:shot|) then
+        UnDefGlobalVar('|NCX:shot|);
+      answer := {done: true};
+    end
+    else
+      answer := {error: -1, name: "unknown request"};
+  end
+  onexception |evt.ex| do
+  begin
+    local ex := CurrentException();
+    answer := {error: if IsFrame(ex.data) and IsInteger(ex.data.errorCode) then ex.data.errorCode
+                      else if IsInteger(ex.error) then ex.error else -1,
+               name: SPrintObject(ex.name)};
+  end;
+  ep:WriteCommand("NCsr", answer, true);
+  nil;
+end;

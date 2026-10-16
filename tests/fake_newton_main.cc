@@ -6,10 +6,11 @@
  system is the dock thread's alone, so the fake Newton runs in its own
  process).
 
-   ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--report <file>]
+   ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--report <file>]
 
  --plain: as a Newton with the Internet Enabler (plain TCP), not Einstein's
- serial port (MNP). --report: what the desktop did, into a file: a line
+ serial port (MNP). --no-toolkit: without the Toolkit app (no
+ screenshots). --report: what the desktop did, into a file: a line
  "received <command>" per event, "package <bytes>", "why <text>". Exit 0
  if it docked and the desktop disconnected.
  */
@@ -33,10 +34,12 @@ int main(int argc, char * argv[])
       options.plainTCP = true;
     else if (arg == "--password" && i + 1 < argc)
       options.password = argv[++i];
+    else if (arg == "--no-toolkit")
+      options.toolkit = false;
     else if (arg == "--report" && i + 1 < argc)
       report = argv[++i];
     else {
-      std::fprintf(stderr, "Usage: ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--report <file>]\n");
+      std::fprintf(stderr, "Usage: ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--report <file>]\n");
       return 2;
     }
   }
@@ -48,6 +51,9 @@ int main(int argc, char * argv[])
     for (const std::string & command : newton.received())
       out << "received " << command << "\n";
     out << "package " << newton.packageSize() << "\n";
+    for (const std::string & id : newton.extensions())
+      out << "extension " << id << "\n";
+    out << "block " << newton.largestBlock() << "\n";
     out << "why " << newton.why() << "\n";
   }
   return ok ? 0 : 1;
