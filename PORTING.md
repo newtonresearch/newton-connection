@@ -675,8 +675,8 @@ clean under ThreadSanitizer and ASan/UBSan.
 ### Phase 5: dock controller and components (no GUI)
 
 In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
-Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.7 against the fake Newton
-(backup and restore round-trip its stores), 5.2.4 against Einstein too. 53
+Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.8 against the fake Newton
+(backup and restore round-trip its stores), 5.2.4 against Einstein too. 55
 ctests, clean under ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
@@ -859,6 +859,24 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
      thread; the UI hears on and off (`setChanged`). `ncx-cli type <text>...
      [--file]`. Still to do: against Einstein and a real Newton.
   8. the Newton 1 session (`Newton1Component`)
+     ✅ (fake Newton) `dock/Newton1.cc`: the same `Backup`, `Restore` and
+     `UpdateDevice` take the old protocol when the Newton is NewtonOS 1, so
+     `ncx-cli backup`/`restore` (and the UI) need nothing else. No desktop
+     control (`setDesktopControl` does nothing), no Gestalt or global
+     functions, no sync options: every soup of every store, each in an app
+     as NewtonOS 2 has it (`Newton1AppName`, the Cocoa app's
+     `appslot.plist`) or of its name; the ids of all entries (`gids`), then
+     those changed since the soup's last backup (`gcid`), fetched one by one
+     (`rete`); synchronised as for NewtonOS 2 (`DeletionPlan`); no packages
+     (as the Cocoa app). An entry made on the desktop is added with `adde`;
+     if the Newton answers with a result only (the Cocoa app expected that
+     of NewtonOS 1), it leaves the file and comes back with its id at the
+     next backup (`SendImportedEntry`, now shared by backup, restore and
+     `SoupEditor`). Restore: no `rrst`, `sver` or signature; entries by
+     `adde`. Keyboard passthrough and screenshots are NewtonOS 2 only. The
+     fake Newton's `--newton1` ends with an error at any NewtonOS 2
+     request. Package install for NewtonOS 1 came with 5.2.3. Still to do: a
+     real NewtonOS 1 Newton (MessagePad 120/130; Einstein runs 2.x only).
   9. later: PCMCIA card dumps (CIS, attribute and common memory), taken
      from newtdump (`CIS.cc`, the `PhysMap`/`PhysRead`/`CardPower`
      natives).

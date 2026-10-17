@@ -5,6 +5,7 @@
  */
 
 #include "dock/Restore.h"
+#include "dock/Backup.h"
 #include "dock/DockController.h"
 #include "base/Log.h"
 #include "base/NewtonStrings.h"
@@ -33,7 +34,9 @@ int Restore::answer(Progress * ioProgress)
   Session & session = mDock.session();
   for (;;) {
     DockEvent event = session.receive(kDAnyEvent);
-    if (event.command == kDResult) {
+    if (event.command == kDResult || event.command == kDAddedID) {
+      if (event.command == kDAddedID)
+        event = DockEvent::MakeValue(kDResult, 0);    // NewtonOS 1's adde
       if (event.value() == 0 && ioProgress && ioProgress->cancelled()) {
         session.send(kDOperationCanceled);        // no answer to it (as the Cocoa app)
         return kDockErrAborted;
@@ -54,6 +57,8 @@ int Restore::run(const RestoreSelection & inSelection, Progress * ioProgress)
 {
   mCounts = RestoreCounts();
   mNewtonCancelled = false;
+  if (mDock.newton().newton1)
+    return restoreNewton1(inSelection, ioProgress);
   Session & session = mDock.session();
   mDock.setDesktopControl(true);
   session.send(kDRequestToRestore);
@@ -120,7 +125,8 @@ int Restore::restoreSoup(SoupRecord & ioSoup, Progress * ioProgress)
     error = session.setCurrentSoup(name);
   if (error == 0)
     error = session.setSoupInfo(RefVar(SoupInfoFrame(ioSoup)));
-  if (error == 0) {
+  bool newton1 = mDock.newton().newton1;
+  if (error == 0 && !newton1) {
     session.sendValue(kDSetSoupSignature, (int32_t)ioSoup.signature);
     error = session.receiveResult();
   }
@@ -131,11 +137,18 @@ int Restore::restoreSoup(SoupRecord & ioSoup, Progress * ioProgress)
   for (EntryRecord entry : mFile.entries(ioSoup.pk, true)) {
     if (entry.uniqueId >= kImportIdBase) {
       // made on the desktop: the Newton gives it its id
-      RefVar frame(EntryFrame(entry));
-      if (!IsFrame(frame))
-        continue;
-      session.addEntry(frame);
-      UpdateEntry(mFile, ioSoup, entry, frame);
+      error = SendImportedEntry(mDock, mFile, ioSoup, entry);
+      if (error == kDockErrAborted)
+        mNewtonCancelled = true;
+      if (error != 0)
+        break;
+    } else if (newton1) {
+      // NewtonOS 1 has no auni: added with its id, answered with the id or
+      // a result
+      session.send(DockEvent::MakeData(kDAddEntry, entry.refData));
+      error = answer(ioProgress);
+      if (error != 0)
+        break;
     } else {
       session.send(DockEvent::MakeData(kDAddEntryWithUniqueID, entry.refData));
       error = answer(ioProgress);

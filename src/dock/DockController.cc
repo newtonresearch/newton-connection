@@ -284,6 +284,12 @@ void DockController::endSession(int inCode, const std::string & inWhy)
 
 void DockController::setDesktopControl(bool inControl)
 {
+  if (mNewton.newton1) {
+    // NewtonOS 1 has no desktop control: the desktop asks, always
+    if (!inControl)
+      mSession->suppressTimeout(false);
+    return;
+  }
   if (inControl) {
     mSession->send(kDDesktopInControl);
   } else {

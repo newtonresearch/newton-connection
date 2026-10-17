@@ -63,6 +63,16 @@ bool IsSystemApp(RefArg inApp)
 void UpdateDevice(DockController & ioDock, DeviceFile & ioFile, bool inSetClock)
 {
   Session & session = ioDock.session();
+  if (ioDock.newton().newton1) {
+    // NewtonOS 1: no control, no Gestalt, no global functions; its stores
+    RefVar stores(session.getAllStores());
+    DeviceFile::Transaction transaction(ioFile);
+    DeviceRecord device = SetDevice(ioFile, ioDock.newton().name, ioDock.newton().info);
+    for (ArrayIndex i = 0, count = IsArray(stores) ? Length(stores) : 0; i < count; ++i)
+      AddStore(ioFile, device.pk, RefVar(GetArraySlot(stores, i)));
+    transaction.commit();
+    return;
+  }
   ioDock.setDesktopControl(true);
   RefVar stores(session.getAllStores());
   {
@@ -107,6 +117,34 @@ void UpdateDevice(DockController & ioDock, DeviceFile & ioFile, bool inSetClock)
 }
 
 
+int SendImportedEntry(DockController & ioDock, DeviceFile & ioFile, SoupRecord & ioSoup, EntryRecord & ioEntry)
+{
+  Session & session = ioDock.session();
+  RefVar frame(EntryFrame(ioEntry));
+  if (!IsFrame(frame))
+    return 0;
+  session.sendRef(kDAddEntry, frame);
+  DockEvent answer = session.receive(kDAnyEvent);
+  if (answer.command == kDAddedID) {
+    SetFrameSlot(frame, SYMA(_uniqueId), MAKEINT(answer.value()));
+    SetFrameSlot(frame, SYMA(_modTime), MAKEINT(session.currentTime()));
+    UpdateEntry(ioFile, ioSoup, ioEntry, frame);
+    return 0;
+  }
+  if (answer.command == kDResult && answer.value() == 0 && ioDock.newton().newton1) {
+    ioFile.deleteEntry(ioEntry.pk);
+    return 0;
+  }
+  if (answer.command == kDOperationCanceled) {
+    session.send(kDOpCanceledAck);
+    return kDockErrAborted;
+  }
+  int error = answer.command == kDResult ? answer.value() : kDockErrProtocolError;
+  Log(kLogMinimum, "the Newton didn't add an entry made on the desktop ('%s' %d)", CmdName(answer.command).c_str(), error);
+  return error;
+}
+
+
 /*-- the ids -----------------------------------------------------------------*/
 
 void BackupIds::addCoded(const std::vector<uint8_t> & inData)
@@ -130,6 +168,8 @@ void BackupIds::addCoded(const std::vector<uint8_t> & inData)
 
 int Backup::run(Progress * ioProgress)
 {
+  if (mDock.newton().newton1)
+    return backupNewton1(ioProgress);
   mDock.setDesktopControl(true);
   mDock.session().send(kDRequestToSync);
   int error = mDock.session().receiveResult();
@@ -437,12 +477,8 @@ void Backup::synchronise(SoupRecord & ioSoup, const StoreRecord & inStore, bool 
   for (EntryRecord entry : mFile.entries(ioSoup.pk, true)) {
     if (entry.uniqueId < kImportIdBase)
       continue;
-    RefVar frame(EntryFrame(entry));
-    if (!IsFrame(frame))
-      continue;
-    session.addEntry(frame);
-    UpdateEntry(mFile, ioSoup, entry, frame);
-    ++mCounts.added;
+    if (SendImportedEntry(mDock, mFile, ioSoup, entry) == 0)
+      ++mCounts.added;
   }
 }
 

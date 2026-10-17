@@ -60,6 +60,7 @@ add_library (ncx_core STATIC
   dock/FileBrowser.cc dock/FileBrowser.h
   dock/Keyboard.cc dock/Keyboard.h
   dock/MemoryDump.cc dock/MemoryDump.h
+  dock/Newton1.cc
   dock/Packages.cc dock/Packages.h
   dock/Restore.cc dock/Restore.h
   dock/Screenshot.cc dock/Screenshot.h

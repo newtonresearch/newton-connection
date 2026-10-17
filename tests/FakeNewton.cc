@@ -355,8 +355,8 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
   if (!expect(kDInitiateDocking))
     return false;
   std::vector<uint8_t> name;
-  const uint32_t info[] = { 0x01020304, 0x01000000, 0x10003000, 0x00020002, 0x00008000, 4 << 20,
-                            480, 320, 0, 0x00020002, 1234567, 100, 100, 4, 0, 0, 0, 0 };
+  const uint32_t info[] = { 0x01020304, 0x01000000, 0x10003000, inOptions.newton1 ? 0x00010003u : 0x00020002u,
+                            0x00008000, 4 << 20, 480, 320, 0, 0x00020002, 1234567, 100, 100, 4, 0, 0, 0, 0 };
   PutLong(name, sizeof(info));
   for (uint32_t v : info)
     PutLong(name, v);
@@ -369,50 +369,57 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
   name.push_back(0);
   wire->send(DockEvent::MakeData(kDNewtonName, std::move(name)));
 
-  if (!expect(kDDesktopInfo))
-    return false;
-  uint32_t deskHi = event.longAt(8), deskLo = event.longAt(12);
-  RefVar apps(UnflattenBytes(event.data, 24));
-  if (!IsArray(apps) || Length(apps) != 1) {
-    mWhy = "the desktop's info has no app";
-    return false;
-  }
-  uint32_t newtHi = 0x11223344, newtLo = 0x55667788;
-  std::vector<uint8_t> newtonInfo;
-  PutLong(newtonInfo, kDanteProtocolVersion);
-  PutLong(newtonInfo, newtHi);
-  PutLong(newtonInfo, newtLo);
-  wire->send(DockEvent::MakeData(kDNewtonInfo, std::move(newtonInfo)));
-  if (!expect(kDWhichIcons))
-    return false;
-  wire->send(DockEvent::MakeValue(kDResult, 0));
-  if (!expect(kDSetTimeout))
-    return false;
+  if (inOptions.newton1) {
+    // the old protocol: the timeout, and the session is on
+    if (!expect(kDSetTimeout))
+      return false;
+    wire->send(DockEvent::MakeValue(kDResult, 0));
+  } else {
+    if (!expect(kDDesktopInfo))
+      return false;
+    uint32_t deskHi = event.longAt(8), deskLo = event.longAt(12);
+    RefVar apps(UnflattenBytes(event.data, 24));
+    if (!IsArray(apps) || Length(apps) != 1) {
+      mWhy = "the desktop's info has no app";
+      return false;
+    }
+    uint32_t newtHi = 0x11223344, newtLo = 0x55667788;
+    std::vector<uint8_t> newtonInfo;
+    PutLong(newtonInfo, kDanteProtocolVersion);
+    PutLong(newtonInfo, newtHi);
+    PutLong(newtonInfo, newtLo);
+    wire->send(DockEvent::MakeData(kDNewtonInfo, std::move(newtonInfo)));
+    if (!expect(kDWhichIcons))
+      return false;
+    wire->send(DockEvent::MakeValue(kDResult, 0));
+    if (!expect(kDSetTimeout))
+      return false;
 
-  // the password: the desktop's nonce, encrypted with ours
-  EncryptNonce(deskHi, deskLo, inOptions.password);
-  for (;;) {
-    std::vector<uint8_t> password;
-    PutLong(password, deskHi);
-    PutLong(password, deskLo);
-    wire->send(DockEvent::MakeData(kDPassword, std::move(password)));
-    if (!wire->receive(event, 30)) {
-      mWhy = "no answer to the password";
+    // the password: the desktop's nonce, encrypted with ours
+    EncryptNonce(deskHi, deskLo, inOptions.password);
+    for (;;) {
+      std::vector<uint8_t> password;
+      PutLong(password, deskHi);
+      PutLong(password, deskLo);
+      wire->send(DockEvent::MakeData(kDPassword, std::move(password)));
+      if (!wire->receive(event, 30)) {
+        mWhy = "no answer to the password";
+        return false;
+      }
+      mReceived.push_back(CmdName(event.command));
+      if (event.command == kDPassword)
+        break;
+      if (event.command != kDPWWrong) {
+        mWhy = "the desktop refused the password ('" + CmdName(event.command) + "')";
+        return false;
+      }
+      // a wrong password: try again with the same (a test of the retries)
+    }
+    EncryptNonce(newtHi, newtLo, inOptions.password);
+    if (event.longAt(0) != newtHi || event.longAt(4) != newtLo) {
+      mWhy = "the desktop's answer to our nonce is wrong";
       return false;
     }
-    mReceived.push_back(CmdName(event.command));
-    if (event.command == kDPassword)
-      break;
-    if (event.command != kDPWWrong) {
-      mWhy = "the desktop refused the password ('" + CmdName(event.command) + "')";
-      return false;
-    }
-    // a wrong password: try again with the same (a test of the retries)
-  }
-  EncryptNonce(newtHi, newtLo, inOptions.password);
-  if (event.longAt(0) != newtHi || event.longAt(4) != newtLo) {
-    mWhy = "the desktop's answer to our nonce is wrong";
-    return false;
   }
 
   if (inOptions.browseInstall)
@@ -459,6 +466,12 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     AddArraySlot(packages, icon);
   }
   std::string currentSoup;
+  auto findSoup = [&soups](const std::string & inName) -> const FakeSoup * {
+    for (const FakeSoup & soup : soups)
+      if (soup.name == inName)
+        return &soup;
+    return nullptr;
+  };
   std::set<std::string> createdSoups;       // restore: made by the desktop
   std::vector<uint32_t> maps;               // NDmp: the windows mapped
   auto hasExtension = [this](const char * inId) {
@@ -506,6 +519,17 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     EventType c = event.command;
     if (c == kDDisconnect)
       return true;
+    if (inOptions.newton1) {
+      static const EventType kNewton2Only[] = { kDDesktopInControl, kDOperationDone, kDGetSyncOptions, kDGetAppNames,
+        kDBackupSoup, kDSendSoup, kDCallGlobalFunction, kDAddEntryWithUniqueID, kDSetSoupSignature, kDRequestToRestore,
+        kDSourceVersion, kDRequestToSync, kDStartKeyboardPassthrough, kDRegProtocolExtension, kDGetChangedInfo,
+        kDGetChangedIndex };
+      for (EventType only : kNewton2Only)
+        if (c == only) {
+          mWhy = "'" + CmdName(c) + "' (NewtonOS 2 only) to a NewtonOS 1 Newton";
+          return false;
+        }
+    }
     if (c == kDDesktopInControl || c == kDOperationDone || c == kDHello)
       continue;
     if (c == kDOpCanceledAck) {
@@ -562,15 +586,32 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       std::vector<uint8_t> data = FlattenToBytes(names), more = FlattenToBytes(signatures);
       data.insert(data.end(), more.begin(), more.end());
       wire->send(DockEvent::MakeData(kDSoupNames, std::move(data)));
-    } else if (c == kDGetSoupIDs) {
+    } else if (c == kDGetSoupIDs || c == kDGetChangedIDs) {
+      // the current soup's ids (Names' 100 and 101 without one); changed
+      // since the last sync: round 2's Names 102
+      std::vector<int32_t> soupIds;
+      const FakeSoup * soup = findSoup(currentSoup);
+      if (!soup)
+        soupIds = { 100, 101 };
+      else
+        for (ArrayIndex i = 0; i < Length(soup->entries); ++i) {
+          int32_t id = (int32_t)RINT(GetFrameSlot(RefVar(GetArraySlot(soup->entries, i)), SYMA(_uniqueId)));
+          if (c == kDGetSoupIDs || id == 102)
+            soupIds.push_back(id);
+        }
       std::vector<uint8_t> ids;
-      PutLong(ids, 2);
-      PutLong(ids, 100);
-      PutLong(ids, 101);
-      wire->send(DockEvent::MakeData(kDSoupIDs, std::move(ids)));
+      PutLong(ids, (uint32_t)soupIds.size());
+      for (int32_t id : soupIds)
+        PutLong(ids, (uint32_t)id);
+      wire->send(DockEvent::MakeData(c == kDGetSoupIDs ? kDSoupIDs : kDChangedIDs, std::move(ids)));
     } else if (c == kDReturnEntry) {
       int id = event.value();
-      wire->send(MakeRefEvent(kDEntry, id == 101 ? GetArraySlot(entries, 1) : GetArraySlot(entries, 0)));
+      RefVar entry(id == 101 ? GetArraySlot(entries, 1) : GetArraySlot(entries, 0));
+      if (const FakeSoup * soup = findSoup(currentSoup))
+        for (ArrayIndex i = 0; i < Length(soup->entries); ++i)
+          if (RINT(GetFrameSlot(RefVar(GetArraySlot(soup->entries, i)), SYMA(_uniqueId))) == id)
+            entry = GetArraySlot(soup->entries, i);
+      wire->send(MakeRefEvent(kDEntry, entry));
     } else if (c == kDQuery) {
       cursorPosition = 0;
       wire->send(DockEvent::MakeValue(kDLongData, 7));          // the cursor's id
@@ -789,8 +830,18 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     } else if (c == kDAddEntry) {
       RefVar entry(UnflattenBytes(event.data));
       RefVar title(IsFrame(entry) ? GetFrameSlot(entry, SYMA(title)) : (Ref)NILREF);
-      mAdded.push_back(IsString(title) ? UTF8FromString(title) : std::string("?"));
-      wire->send(DockEvent::MakeValue(kDAddedID, 1000 + (int32_t)mAdded.size() - 1));
+      RefVar id(IsFrame(entry) ? GetFrameSlot(entry, SYMA(_uniqueId)) : (Ref)NILREF);
+      if (inOptions.newton1 && ISINT(id) && RINT(id) >= 0 && RINT(id) < 100000) {
+        // NewtonOS 1's restore: a backed-up entry, with its id
+        mRestored.push_back("entry " + currentSoup + " " + std::to_string(RINT(id)));
+      } else {
+        mAdded.push_back(IsString(title) ? UTF8FromString(title) : std::string("?"));
+      }
+      // NewtonOS 1: a result only
+      if (inOptions.newton1)
+        wire->send(DockEvent::MakeValue(kDResult, 0));
+      else
+        wire->send(DockEvent::MakeValue(kDAddedID, 1000 + (int32_t)mAdded.size() - 1));
     } else if (c == kDCallGlobalFunction) {
       size_t end = 0;
       RefVar function(UnflattenBytes(event.data, 0, &end));

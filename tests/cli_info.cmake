@@ -2,10 +2,15 @@
 # (the fake Newton keeps trying to connect while ncx-cli starts listening),
 # then what ncx-cli printed.
 #
-#   cmake -DCLI=<ncx-cli> -DFAKE=<ncx-fake-newton> -DPORT=<port> [-DPLAIN=ON] -P cli_info.cmake
+#   cmake -DCLI=<ncx-cli> -DFAKE=<ncx-fake-newton> -DPORT=<port> [-DPLAIN=ON] [-DNEWTON1=ON] -P cli_info.cmake
 
+set (rom "ROM:      2.2")
 if (PLAIN)
   set (plain_arg --plain)
+endif ()
+if (NEWTON1)
+  set (plain_arg --newton1)
+  set (rom "ROM:      1.3 (NewtonOS 1)")
 endif ()
 execute_process (
   COMMAND "${FAKE}" --port ${PORT} --password test ${plain_arg}
@@ -19,7 +24,7 @@ message ("${output}")
 if (NOT results STREQUAL "0;0")
   message (FATAL_ERROR "exit codes ${results} (fake Newton; ncx-cli):\n${errors}")
 endif ()
-foreach (expected "Newton:   Ada Lovelace" "Machine:  MessagePad 2000/2100" "ROM:      2.2"
+foreach (expected "Newton:   Ada Lovelace" "Machine:  MessagePad 2000/2100" "${rom}"
                   "Store:    Internal (Internal), signature 1234567, 262144 of 1048576 bytes used"
                   "Soups:    Names, Notes")
   string (FIND "${output}" "${expected}" found)

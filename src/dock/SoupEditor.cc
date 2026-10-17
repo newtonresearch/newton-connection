@@ -5,6 +5,7 @@
  */
 
 #include "dock/SoupEditor.h"
+#include "dock/Backup.h"
 #include "dock/DockController.h"
 #include "base/Log.h"
 #include "base/NewtonStrings.h"
@@ -53,14 +54,10 @@ int SoupEditor::add(int64_t inSoupPk, const std::vector<int64_t> & inEntryPks)
   int error = selectSoup(inSoupPk);
   if (error == 0) {
     DeviceFile::Transaction transaction(mFile);
-    Session & session = mDock.session();
-    for (EntryRecord & entry : entries) {
-      RefVar frame(EntryFrame(entry));
-      if (!IsFrame(frame))
-        continue;
-      session.addEntry(frame);          // it gets the Newton's _uniqueId
-      UpdateEntry(mFile, *soup, entry, frame);
-      ++mCounts.added;
+    for (size_t i = 0; i < entries.size() && error == 0; ++i) {
+      error = SendImportedEntry(mDock, mFile, *soup, entries[i]);     // it gets the Newton's _uniqueId
+      if (error == 0)
+        ++mCounts.added;
     }
     transaction.commit();
   }

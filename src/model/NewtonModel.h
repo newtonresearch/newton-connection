@@ -59,6 +59,11 @@ std::vector<StoreRecord> SortedStores(DeviceFile & ioFile);
 /** The app of that name, made if there is none (NCDocument findApp:). */
 AppRecord FindOrAddApp(DeviceFile & ioFile, const std::string & inName);
 
+/** NewtonOS 1 has no apps: the app a soup belongs to, as the NewtonOS 2
+    apps have them (the Cocoa app's appslot.plist: "Calendar" is Dates'),
+    or the soup's own name. */
+std::string Newton1AppName(const std::string & inSoupName);
+
 /*-- soups -------------------------------------------------------------------*/
 
 /** A new soup on a store (NCStore addSoup:...): its name, description and

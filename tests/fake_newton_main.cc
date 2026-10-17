@@ -7,13 +7,14 @@
  process).
 
    ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--browse-install]
-                   [--keyboard] [--round <n>] [--report <file>]
+                   [--keyboard] [--newton1] [--round <n>] [--report <file>]
 
  --plain: as a Newton with the Internet Enabler (plain TCP), not Einstein's
  serial port (MNP). --no-toolkit: without the Toolkit app (no
  screenshots). --browse-install: browse the desktop and install a
  package, as Dock's Install does, then disconnect. --keyboard: start
- keyboard passthrough, end it after the first text. --round 2: its soups at
+ keyboard passthrough, end it after the first text. --newton1: a
+ NewtonOS 1 Newton (the old protocol). --round 2: its soups at
  a later backup (FakeNewton.h). --report: what the desktop did, into a file: a line
  "received <command>" per event, "package <bytes>", "why <text>". Exit 0
  if it docked and the desktop disconnected.
@@ -42,6 +43,8 @@ int main(int argc, char * argv[])
       options.toolkit = false;
     else if (arg == "--browse-install")
       options.browseInstall = true;
+    else if (arg == "--newton1")
+      options.newton1 = true;
     else if (arg == "--keyboard")
       options.keyboard = true;
     else if (arg == "--round" && i + 1 < argc)
@@ -49,7 +52,7 @@ int main(int argc, char * argv[])
     else if (arg == "--report" && i + 1 < argc)
       report = argv[++i];
     else {
-      std::fprintf(stderr, "Usage: ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--browse-install] [--keyboard] [--round <n>] [--report <file>]\n");
+      std::fprintf(stderr, "Usage: ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--browse-install] [--keyboard] [--newton1] [--round <n>] [--report <file>]\n");
       return 2;
     }
   }

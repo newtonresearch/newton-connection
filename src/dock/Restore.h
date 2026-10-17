@@ -13,6 +13,10 @@
  on the desktop (imported, kImportIdBase and up) are added (adde) and take
  the id the Newton gives them. The packages are removed and installed again.
 
+ NewtonOS 1 (Newton1.cc): no request, source version or control; the
+ soups as above, the entries added (adde) with their ids; no packages (its
+ backup has none).
+
  It replaces what is on the Newton: the UI asks first. On the dock thread.
  */
 
@@ -58,6 +62,7 @@ public:
 
 private:
   int restoreSoup(SoupRecord & ioSoup, Progress * ioProgress);
+  int restoreNewton1(const RestoreSelection & inSelection, Progress * ioProgress);   // Newton1.cc
   int restorePackage(const EntryRecord & inPackage, Progress * ioProgress);
   int answer(Progress * ioProgress);
 

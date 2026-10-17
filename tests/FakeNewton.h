@@ -35,6 +35,10 @@
    keyboard kybd: answered with kybd; kbdc, kbds remembered; --keyboard:
             after docking it starts passthrough itself (kybd), and ends it
             (opca, expecting ocaa) after the first text
+   --newton1: NewtonOS 1 (ROM 1.3): no desktop info or password; gets,
+            gids (the current soup's ids), gcid (round 2: Names' 102),
+            rete; adde answered with a result only; a NewtonOS 2 request
+            (dsnc, gsyn, cgfn, ...) ends it with an error
    --browse-install: after docking, as Dock's Install: rtbr 'packages,
             dpth, gfil, spth into a folder "sub" and back, gfin and lpfl of
             the first file; then it disconnects
@@ -60,6 +64,7 @@ struct FakeNewtonOptions
   bool browseInstall = false;         // browse the desktop and install a package (Dock's Install)
   int round = 1;                      // its soups at the first backup (1) or a later one (2)
   bool keyboard = false;              // start keyboard passthrough, end it after the first text
+  bool newton1 = false;               // NewtonOS 1: the old protocol
 };
 
 /** The fake Newton's physical memory: a byte; 0x1000 ... 0x1FFF all 0xFF. */

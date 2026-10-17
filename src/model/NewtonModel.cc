@@ -219,6 +219,17 @@ AppRecord FindOrAddApp(DeviceFile & ioFile, const std::string & inName)
 }
 
 
+std::string Newton1AppName(const std::string & inSoupName)
+{
+  static const std::map<std::string, std::string> kApps = {
+    { "calendar", "Dates" }, { "calendar notes", "Dates" }, { "repeat meetings", "Dates" }, { "repeat notes", "Dates" },
+    { "to do", "Dates" }, { "to do list", "Dates" }, { "inbox", "InOut Box" }, { "outbox", "InOut Box" },
+    { "system", "System Information" }, { "directory", "System Information" }, { "library", "System Information" } };
+  std::string key = inSoupName;
+  std::transform(key.begin(), key.end(), key.begin(), [](char c) { return (char)std::tolower((unsigned char)c); });
+  auto app = kApps.find(key);
+  return app != kApps.end() ? app->second : inSoupName;
+}
 /*-- soups -------------------------------------------------------------------*/
 
 SoupRecord MakeSoup(int64_t inStorePk, const std::string & inName, int64_t inSignature, RefArg inIndexes, RefArg inInfo)

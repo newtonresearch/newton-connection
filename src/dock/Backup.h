@@ -24,6 +24,14 @@
  Each soup is a transaction of its own: a backup that breaks keeps what it
  got. In the Packages soup only packages count (entries with a pkgRef).
 
+ NewtonOS 1 (the Cocoa app's NCNewton1Component, Newton1.cc) has no apps,
+ sync options or selective backup: every soup of every store, each in an app
+ of its name (Newton1AppName); the ids of all its entries, then those that
+ changed since its last backup (kDGetSoupIDs, kDGetChangedIDs), fetched one
+ by one (kDReturnEntry); then synchronised as above. No packages (as the
+ Cocoa app). The desktop is never "in control", and the session ends after
+ the backup.
+
  On the dock thread.
  */
 
@@ -52,6 +60,14 @@ class DeviceFile;
     Newton's clock to the desktop's (the SetNewtonTime preference). Takes
     control and gives it back. */
 void UpdateDevice(DockController & ioDock, DeviceFile & ioFile, bool inSetClock = false);
+
+/** An entry made on the desktop (an imported id) to the Newton's current
+    soup: it takes the id the Newton gives it, in the file too. NewtonOS 1
+    may answer with a result only: then the entry leaves the file, and
+    comes back with its id at the next backup (it changed after that
+    backup's sync time). 0 (also for an entry that can't be read: left
+    out), kDockErrAborted (cancelled on the Newton), or the Newton's error. */
+int SendImportedEntry(DockController & ioDock, DeviceFile & ioFile, SoupRecord & ioSoup, EntryRecord & ioEntry);
 
 /** The ids of a soup's entries, as a Newton sends them while it backs up:
     kDSetBaseID, then kDBackupIDs (big-endian 16-bit codes: n is base + n,
@@ -138,6 +154,9 @@ public:
 
 private:
   int backup(Progress * ioProgress);
+  // NewtonOS 1 (Newton1.cc)
+  int backupNewton1(Progress * ioProgress);
+  int backupNewton1Soup(const StoreRecord & inStore, RefArg inSoupName, int64_t inSignature, Progress * ioProgress);
   int backupSoup(const StoreRecord & inStore, const AppRecord & inApp, bool inPackages, RefArg inSoupName,
                  int64_t inSignature, Progress * ioProgress);
   int receiveEntries(SoupRecord & ioSoup, bool inPackages, BackupIds * ioIds, Progress * ioProgress, EventType & outEnd);

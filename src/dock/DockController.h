@@ -101,7 +101,8 @@ public:
   Session & session() { return *mSession; }
   const DockedNewton & newton() const { return mNewton; }
   /** kDDesktopInControl (true) or kDOperationDone (false); the latter
-      also lets the session time out again (screenshot, keyboard). */
+      also lets the session time out again (screenshot, keyboard).
+      Nothing for NewtonOS 1 (it has no desktop control). */
   void setDesktopControl(bool inControl);
   /** An extension (Extensions.h) to the Newton, once a session. */
   void loadExtension(EventType inId);

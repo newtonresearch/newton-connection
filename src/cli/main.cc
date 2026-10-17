@@ -240,8 +240,6 @@ int Info(int argc, char * argv[])
     std::printf("RAM:      %u KB\n", newton.info.fRAMSize / 1024);
     std::printf("Screen:   %u x %u\n", newton.info.fScreenWidth, newton.info.fScreenHeight);
     std::printf("Protocol: %u\n", newton.protocolVersion);
-    if (newton.newton1)
-      return 0;
     ncx::Session & session = dock.session();
     dock.setDesktopControl(true);
     RefVar stores(session.getAllStores());

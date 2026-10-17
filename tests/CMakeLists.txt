@@ -36,6 +36,9 @@ add_test (NAME ncx_cli_info_mnp COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx
           -DPORT=${cli_port} -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
 add_test (NAME ncx_cli_info_plain COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_plain} -DPLAIN=ON -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
+math (EXPR cli_port_newton1 "43000 + ${port_base} + 2500")
+add_test (NAME ncx_cli_info_newton1 COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
+          -DPORT=${cli_port_newton1} -DNEWTON1=ON -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
 
 # The model (PORTING.md Phase 4): device files, entries, backups
 add_executable (ncx_model_test model_test.cc)
@@ -51,7 +54,7 @@ add_test (NAME ncx_model_fixture COMMAND ncx_model_test fixture ${CMAKE_CURRENT_
 add_executable (ncx_dock_test dock_test.cc)
 target_link_libraries (ncx_dock_test PRIVATE ncx_fake_newton)
 add_dependencies (ncx_dock_test ncx-fake-newton)
-foreach (section extensions bits controller screenshot onepiece notoolkit memory packagefiles install browse backup deletions restore edit keyboard)
+foreach (section extensions bits controller screenshot onepiece notoolkit memory packagefiles install browse backup deletions restore edit keyboard newton1)
   add_test (NAME ncx_dock_${section} COMMAND ncx_dock_test ${section} $<TARGET_FILE:ncx-fake-newton>)
 endforeach ()
 math (EXPR cli_port_screenshot "43000 + ${port_base} + 2000")

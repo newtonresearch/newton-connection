@@ -412,17 +412,32 @@ Ref Session::getEntry(int32_t inUniqueId)
 }
 
 
-Ref Session::getEntryIds()
+namespace {
+
+/** kDSoupIDs, kDChangedIDs: the number of ids, the ids. */
+Ref IdsOf(const DockEvent & inEvent)
 {
-  // the number of ids, the ids
-  DockEvent event = sendAndReceive(kDGetSoupIDs, kDSoupIDs);
-  uint32_t count = event.longAt(0);
-  if (event.data.size() < 4 + (size_t)count * 4)
+  uint32_t count = inEvent.data.size() >= 4 ? inEvent.longAt(0) : 0;
+  if (inEvent.data.size() < 4 + (size_t)count * 4)
     return NILREF;
   RefVar ids(MakeArray(count));
   for (uint32_t i = 0; i < count; ++i)
-    SetArraySlot(ids, i, MAKEINT((int32_t)event.longAt(4 + i * 4)));
+    SetArraySlot(ids, i, MAKEINT((int32_t)inEvent.longAt(4 + i * 4)));
   return ids;
+}
+
+} // namespace
+
+
+Ref Session::getEntryIds()
+{
+  return IdsOf(sendAndReceive(kDGetSoupIDs, kDSoupIDs));
+}
+
+
+Ref Session::getChangedIds()
+{
+  return IdsOf(sendAndReceive(kDGetChangedIDs, kDChangedIDs));
 }
 
 

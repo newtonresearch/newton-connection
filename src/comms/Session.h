@@ -125,6 +125,9 @@ public:
   int32_t deleteEntryIdList(RefArg inIds);
   Ref getEntry(int32_t inUniqueId);
   Ref getEntryIds();
+  /** The ids of the entries changed since the last sync time
+      (setLastSyncTime): NewtonOS 1's backup. */
+  Ref getChangedIds();
 
   /*-- queries --*/
 

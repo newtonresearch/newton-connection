@@ -933,6 +933,119 @@ void TestKeyboard()
         && fake3.typed[2] == "s " + std::string(44, 'k'), "keyboard: a long text in pieces");
 }
 
+/*-- newton1 -----------------------------------------------------------------*/
+
+void TestNewton1()
+{
+  std::filesystem::path folder = TempFolder("newton1");
+  std::filesystem::path path;
+
+  // the first backup: every soup, all of it, no NewtonOS 2 requests
+  FakeProcess fake;
+  BackupCounts counts;
+  int backedUp = -1;
+  bool newton1 = false;
+  int result = DockWithFake(Port(22), "--newton1", fake, [&](DockController & dock) {
+    newton1 = dock.newton().newton1;
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(folder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    path = file->path();
+    UpdateDevice(dock, *file);
+    Backup backup(dock, *file);
+    backedUp = backup.run();
+    counts = backup.counts();
+  });
+  Check(result == 0 && newton1 && backedUp == 0 && counts.soups == 4 && counts.entries == 6,
+        "newton1: the first backup (" + std::to_string(counts.soups) + " soups, " + std::to_string(counts.entries)
+        + " entries) " + fake.why);
+  Check(Received(fake, "gets") && Received(fake, "gids") && Received(fake, "rete") && !Received(fake, "gcid")
+        && fake.soupInfos.size() == 4, "newton1: soup names, ids, entries; the backup time in every soup");
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file) {
+      Check(false, "newton1: the file " + error);
+      return;
+    }
+    std::optional<AppRecord> system = file->findApp("System Information");
+    std::optional<SoupRecord> systemSoup = file->findSoup(file->stores().at(0).pk, "System");
+    Check(system && systemSoup && systemSoup->appPk == system->pk && file->findApp("Names"),
+          "newton1: soups in apps as NewtonOS 2 has them, or of their name");
+    Check(SoupIds(*file, "Names") == std::vector<int64_t>({ 100, 101 }), "newton1: the entries");
+    // on the desktop: Ada deleted, a note made
+    StoreRecord store = file->stores().at(0);
+    std::optional<SoupRecord> names = file->findSoup(store.pk, "Names");
+    std::optional<SoupRecord> notes = file->findSoup(store.pk, "Notes");
+    DeviceFile::Transaction transaction(*file);
+    file->deleteEntry(file->findEntry(names->pk, 100, false)->pk);
+    RefVar note(AllocateFrame());
+    SetFrameSlot(note, SYMA(title), MakeStringFromUTF8("Made on the desktop"));
+    AddImportedEntry(*file, *notes, note);
+    transaction.commit();
+  }
+
+  // the second: what changed (Somerville new, Babbage gone); Ada deleted
+  // on the Newton when asked; the note sent (the Newton only says it took it)
+  FakeProcess fake2;
+  int asked = 0;
+  result = DockWithFake(Port(23), "--newton1 --round 2", fake2, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(folder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    UpdateDevice(dock, *file);
+    Backup backup(dock, *file);
+    backup.setDecide([&](const DeletionPlan &) {
+      ++asked;
+      return Deletions::kDelete;
+    });
+    backedUp = backup.run();
+    counts = backup.counts();
+  });
+  Check(result == 0 && backedUp == 0 && counts.entries == 1 && counts.removed == 1 && Received(fake2, "gcid"),
+        "newton1: the second backup, what changed " + fake2.why);
+  Check(asked == 1 && fake2.deleted == std::vector<int64_t>({ 100 }) && counts.deletedOnNewton == 1,
+        "newton1: Ada deleted on the Newton, as asked");
+  Check(fake2.added == std::vector<std::string>({ "Made on the desktop" }) && counts.added == 1, "newton1: the note sent");
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadOnly, error);
+    Check(file && SoupIds(*file, "Names") == std::vector<int64_t>({ 102 }) && SoupIds(*file, "Notes") == std::vector<int64_t>({ 200 }),
+          "newton1: the file; the note comes back with its id at the next backup");
+  }
+
+  // restore (its apps: Packages is not one): the soups afresh, the entries
+  // with their ids, no NewtonOS 2 requests
+  FakeProcess fake3;
+  int restored = -1;
+  RestoreCounts restoreCounts;
+  result = DockWithFake(Port(24), "--newton1 --round 2", fake3, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file)
+      return;
+    std::vector<RestoreChoice> choices = RestoreChoices(*file, file->stores());
+    if (choices.empty() || choices[0].sources.empty())
+      return;
+    RestoreSelection selection;
+    selection.target = choices[0].store;
+    selection.source = choices[0].sources[0].store;
+    selection.apps = choices[0].sources[0].apps;
+    Restore restore(dock, *file);
+    restored = restore.run(selection);
+    restoreCounts = restore.counts();
+  });
+  auto did = [&](const std::string & inLine) {
+    return std::find(fake3.restored.begin(), fake3.restored.end(), inLine) != fake3.restored.end();
+  };
+  Check(result == 0 && restored == 0 && restoreCounts.soups == 3 && restoreCounts.entries == 3 && did("deletesoup Names") && did("createsoup Names")
+        && did("entry Names 102") && did("entry Notes 200"), "newton1: restored (" + std::to_string(restoreCounts.soups)
+        + " soups, " + std::to_string(restoreCounts.entries) + " entries) " + fake3.why);
+  std::filesystem::remove_all(folder);
+}
+
 } // namespace
 
 
@@ -954,7 +1067,8 @@ int main(int argc, char * argv[])
     { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
     { "browse", TestBrowse }, { "backup", TestBackup }, { "deletions", TestDeletions }, { "restore", TestRestore },
-    { "edit", TestEdit }, { "keyboard", TestKeyboard } };
+    { "edit", TestEdit }, { "keyboard", TestKeyboard },
+    { "newton1", TestNewton1 } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

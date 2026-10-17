@@ -117,6 +117,8 @@ int Keyboard::begin()
 {
   if (active())
     return 0;
+  if (mDock.newton().newton1)
+    return kDockErrIncompatibleProtocol;   // NewtonOS 2 only (as the Cocoa app)
   Session & session = mDock.session();
   mDock.setDesktopControl(true);
   session.send(kDStartKeyboardPassthrough);
