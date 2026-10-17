@@ -81,6 +81,8 @@ public:
   /** Until the dock thread ends (with once: after the session). */
   void wait();
   bool isDocked() const { return mDocked; }
+  /** Counts the sessions: 1 for the first, ... (0 before any). */
+  unsigned sessionNumber() const { return mSessionNumber; }
   /** How the last session ended: 0 if the desktop or the Newton ended it
       as they should, else the DockFailure's code (and why()). */
   int result() const { return mResult; }
@@ -129,6 +131,7 @@ private:
   std::string mWhy;
   std::atomic<bool> mStopping { false };
   std::atomic<bool> mDocked { false };
+  std::atomic<unsigned> mSessionNumber { 0 };
   std::atomic<int> mResult { 0 };
 };
 

@@ -156,6 +156,7 @@ void DockController::run()
     mExtensions.clear();
     try {
       CallNewton([this] { mNewton = Handshake(*mSession, mSettings.password, mSettings.app, 60); });
+      ++mSessionNumber;
       mDocked = true;
       mResult = 0;
       if (mEvents.docked)

@@ -471,6 +471,32 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
   SetArraySlot(entries, 0, MakeEntry(100, "Ada", "Lovelace"));
   SetArraySlot(entries, 1, MakeEntry(101, "Charles", "Babbage"));
   int cursorPosition = 0;
+  // keyboard passthrough: big-endian UniChars as text, control characters as \xNN
+  auto keyboardText = [](const std::vector<uint8_t> & inData, size_t inCount) {
+    std::u16string text;
+    for (size_t i = 0; i < inCount && 2 * i + 1 < inData.size(); ++i) {
+      char16_t ch = (char16_t)(inData[2 * i] << 8 | inData[2 * i + 1]);
+      if (ch == 0)
+        break;
+      text.push_back(ch);
+    }
+    std::string out;
+    for (char16_t ch : text) {
+      if (ch < 0x20) {
+        char hex[8];
+        std::snprintf(hex, sizeof(hex), "\\x%02X", (unsigned)ch);
+        out += hex;
+      } else {
+        out += UTF8FromUTF16(std::u16string(1, ch));
+      }
+    }
+    return out;
+  };
+  bool keyboardOn = false, keyboardEnding = false;
+  if (inOptions.keyboard) {
+    wire->send(DockEvent::Make(kDStartKeyboardPassthrough));
+    keyboardOn = true;
+  }
   for (;;) {
     if (!wire->receive(event, 60)) {
       mWhy = "the desktop went away without 'disc'";
@@ -482,6 +508,31 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       return true;
     if (c == kDDesktopInControl || c == kDOperationDone || c == kDHello)
       continue;
+    if (c == kDOpCanceledAck) {
+      if (keyboardEnding)
+        mTyped.push_back("ended");
+      keyboardEnding = false;
+      continue;
+    }
+    if (c == kDStartKeyboardPassthrough) {
+      wire->send(DockEvent::Make(kDStartKeyboardPassthrough));
+      keyboardOn = true;
+      continue;
+    }
+    if (c == kDKeyboardChar || c == kDKeyboardString) {
+      if (!keyboardOn) {
+        mWhy = "keyboard text without passthrough";
+        return false;
+      }
+      mTyped.push_back((c == kDKeyboardChar ? "c " : "s ") + keyboardText(event.data, c == kDKeyboardChar ? 1 : event.data.size() / 2));
+      if (inOptions.keyboard && !keyboardEnding && mTyped.size() == 1) {
+        // the user closes the keyboard slip
+        wire->send(DockEvent::Make(kDOperationCanceled));
+        keyboardOn = false;
+        keyboardEnding = true;
+      }
+      continue;
+    }
     if (c == kDGetStoreNames) {
       wire->send(MakeRefEvent(kDStoreNames, MakeStores()));
     } else if (c == kDGetDefaultStore) {

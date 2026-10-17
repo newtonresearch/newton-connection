@@ -7,12 +7,13 @@
  process).
 
    ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--browse-install]
-                   [--round <n>] [--report <file>]
+                   [--keyboard] [--round <n>] [--report <file>]
 
  --plain: as a Newton with the Internet Enabler (plain TCP), not Einstein's
  serial port (MNP). --no-toolkit: without the Toolkit app (no
  screenshots). --browse-install: browse the desktop and install a
- package, as Dock's Install does, then disconnect. --round 2: its soups at
+ package, as Dock's Install does, then disconnect. --keyboard: start
+ keyboard passthrough, end it after the first text. --round 2: its soups at
  a later backup (FakeNewton.h). --report: what the desktop did, into a file: a line
  "received <command>" per event, "package <bytes>", "why <text>". Exit 0
  if it docked and the desktop disconnected.
@@ -41,12 +42,14 @@ int main(int argc, char * argv[])
       options.toolkit = false;
     else if (arg == "--browse-install")
       options.browseInstall = true;
+    else if (arg == "--keyboard")
+      options.keyboard = true;
     else if (arg == "--round" && i + 1 < argc)
       options.round = std::atoi(argv[++i]);
     else if (arg == "--report" && i + 1 < argc)
       report = argv[++i];
     else {
-      std::fprintf(stderr, "Usage: ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--browse-install] [--round <n>] [--report <file>]\n");
+      std::fprintf(stderr, "Usage: ncx-fake-newton [--port <port>] [--plain] [--password <text>] [--no-toolkit] [--browse-install] [--keyboard] [--round <n>] [--report <file>]\n");
       return 2;
     }
   }
@@ -76,6 +79,8 @@ int main(int argc, char * argv[])
       out << "added " << title << "\n";
     for (const std::string & line : newton.restored())
       out << "restored " << line << "\n";
+    for (const std::string & line : newton.typed())
+      out << "typed " << line << "\n";
     out << "why " << newton.why() << "\n";
   }
   return ok ? 0 : 1;

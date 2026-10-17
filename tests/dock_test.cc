@@ -33,6 +33,7 @@
 #include "dock/DockController.h"
 #include "dock/Extensions.h"
 #include "dock/FileBrowser.h"
+#include "dock/Keyboard.h"
 #include "dock/Packages.h"
 #include "dock/Restore.h"
 #include "dock/MemoryDump.h"
@@ -846,6 +847,92 @@ void TestEdit()
   std::filesystem::remove_all(folder);
 }
 
+/*-- keyboard ----------------------------------------------------------------*/
+
+/** Keyboard passthrough with a fake Newton: inOnChanged when it goes on or
+    off (on the dock thread). The controller's result. */
+int KeyboardWithFake(int inPort, const std::string & inOptions, FakeProcess & ioFake, bool inDesktopStarts,
+                     std::function<void(DockController &, Keyboard &, bool)> inOnChanged)
+{
+  ioFake.start(gFakeNewton, inPort, "--password test " + inOptions);
+  DockController dock;
+  Keyboard keyboard(dock);
+  keyboard.setChanged([&](bool inOn) { inOnChanged(dock, keyboard, inOn); });
+  DockController::Events events;
+  events.docked = [&](const DockedNewton &) {
+    if (inDesktopStarts)
+      keyboard.start();
+  };
+  dock.setEvents(events);
+  DockController::Settings settings;
+  settings.targets = { "tcp:" + std::to_string(inPort) };
+  settings.password = "test";
+  settings.once = true;
+  settings.waitSeconds = 20;
+  std::string error;
+  if (!dock.start(settings, error)) {
+    std::printf("        can't listen: %s\n", error.c_str());
+    ioFake.finish();
+    return -1;
+  }
+  dock.wait();
+  ioFake.finish();
+  if (dock.result() != 0)
+    std::printf("        %s (%d)\n", dock.why().c_str(), dock.result());
+  return dock.result();
+}
+
+void TestKeyboard()
+{
+  Check(NewtonKeyboardText("a\nb\r\nc\rd") == u"a\rb\rc\rd", "keyboard: a line's end is a CR");
+  Check(NewtonKeyboardText("x\xF0\x9F\x98\x80y") == u"x?y", "keyboard: beyond 16 bits a '?'");
+
+  // the desktop starts it, types, ends it
+  FakeProcess fake;
+  std::vector<bool> changes;
+  int result = KeyboardWithFake(Port(18), "", fake, true, [&](DockController & dock, Keyboard & keyboard, bool inOn) {
+    changes.push_back(inOn);
+    if (inOn) {
+      keyboard.type("Hello\nNewton");
+      keyboard.key(newtonkey::kBackspace);
+      keyboard.type("x");
+      keyboard.stop();
+    } else {
+      dock.disconnect();
+    }
+  });
+  Check(result == 0 && changes == std::vector<bool>({ true, false }), "keyboard: on and off " + fake.why);
+  Check(fake.typed == std::vector<std::string>({ "s Hello\\x0DNewton", "c \\x08", "c x" }),
+        "keyboard: a string, a key, a character");
+  Check(Received(fake, "dsnc") && Received(fake, "kybd") && Received(fake, "opdn"), "keyboard: in control, asked, done");
+
+  // the Newton starts it, and ends it after the first text
+  FakeProcess fake2;
+  std::vector<bool> changes2;
+  result = KeyboardWithFake(Port(20), "--keyboard", fake2, false, [&](DockController & dock, Keyboard & keyboard, bool inOn) {
+    changes2.push_back(inOn);
+    if (inOn)
+      keyboard.type("Hi");
+    else
+      dock.disconnect();
+  });
+  Check(result == 0 && changes2 == std::vector<bool>({ true, false }), "keyboard: the Newton starts and ends it " + fake2.why);
+  Check(fake2.typed == std::vector<std::string>({ "s Hi", "ended" }), "keyboard: its end acknowledged");
+
+  // a long text in pieces
+  FakeProcess fake3;
+  std::string text(300, 'k');
+  result = DockWithFake(Port(21), "", fake3, [&](DockController & dock) {
+    Keyboard keyboard(dock);
+    if (keyboard.begin() == 0) {
+      keyboard.send(text);
+      keyboard.end();
+    }
+  });
+  Check(result == 0 && fake3.typed.size() == 3 && fake3.typed[0] == "s " + std::string(128, 'k')
+        && fake3.typed[2] == "s " + std::string(44, 'k'), "keyboard: a long text in pieces");
+}
+
 } // namespace
 
 
@@ -867,7 +954,7 @@ int main(int argc, char * argv[])
     { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
     { "browse", TestBrowse }, { "backup", TestBackup }, { "deletions", TestDeletions }, { "restore", TestRestore },
-    { "edit", TestEdit } };
+    { "edit", TestEdit }, { "keyboard", TestKeyboard } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

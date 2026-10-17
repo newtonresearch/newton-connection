@@ -36,6 +36,11 @@
                                      delete entries (by _uniqueId or title)
                                      on the Newton and in its backup; in
                                      Packages: remove packages (by name)
+   ncx-cli type <text>... [--file <file>] [options]
+                                     type on the Newton (keyboard
+                                     passthrough), where its insertion point
+                                     is: the texts (a space between), or
+                                     the file's text (UTF-8); \n is a return
    ncx-cli install <package>... [--replace] [options]
                                      install packages (on the default store);
                                      --replace: those of the same name too
@@ -58,7 +63,7 @@
                                      a new .newtondevice file
 
  Options for the commands that dock (info, screenshot, backup, restore,
- add, delete, install, serve, rom):
+ add, delete, type, install, serve, rom):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -78,6 +83,7 @@
 #include "dock/Backup.h"
 #include "dock/DockController.h"
 #include "dock/FileBrowser.h"
+#include "dock/Keyboard.h"
 #include "dock/Packages.h"
 #include "dock/Restore.h"
 #include "dock/MemoryDump.h"
@@ -101,6 +107,7 @@
 #include <chrono>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <memory>
 #include <optional>
@@ -129,6 +136,7 @@ int Usage()
     "               [<dock options>]\n"
     "       ncx-cli add [--folder <folder>] [--store <store>] [<soup>...] [<dock options>]\n"
     "       ncx-cli delete [--folder <folder>] [--store <store>] <soup> <entry>... [<dock options>]\n"
+    "       ncx-cli type <text>... [--file <file>] [<dock options>]\n"
     "       ncx-cli install <package>... [--replace] [<dock options>]\n"
     "       ncx-cli serve [--folder <folder>] [--backups <folder>] [<dock options>]\n"
     "       ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>] [--resume] [<dock options>]\n"
@@ -713,6 +721,50 @@ int DeleteCommand(int argc, char * argv[])
 }
 
 
+int TypeCommand(int argc, char * argv[])
+{
+  std::string fileName;
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--file") == 0 && i + 1 < argc)
+      fileName = argv[++i];
+    else
+      args.push_back(argv[i]);
+  }
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || (rest.empty() == fileName.empty()))
+    return Usage();
+  std::string text;
+  if (!fileName.empty()) {
+    std::ifstream in(ncx::PathFromUTF8(fileName), std::ios::binary);
+    if (!in) {
+      std::fprintf(stderr, "ncx-cli: can't read %s\n", fileName.c_str());
+      return 1;
+    }
+    text.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+  } else {
+    for (const std::string & part : rest)
+      text += (text.empty() ? "" : " ") + part;
+    // \n on the command line: a return
+    for (size_t at; (at = text.find("\\n")) != std::string::npos;)
+      text.replace(at, 2, "\n");
+  }
+  return Dock(settings, [&](ncx::DockController & dock) {
+    ncx::Keyboard keyboard(dock);
+    int error = keyboard.begin();
+    if (error != 0) {
+      std::fprintf(stderr, "ncx-cli: the Newton didn't start keyboard passthrough (%d)\n", error);
+      return 1;
+    }
+    keyboard.send(text);
+    keyboard.end();
+    std::printf("%zu characters typed\n", ncx::NewtonKeyboardText(text).size());
+    return 0;
+  });
+}
+
+
 int Serve(int argc, char * argv[])
 {
   // dock and wait: the Newton browses the folder (Dock's Install) and
@@ -873,6 +925,8 @@ int main(int argc, char * argv[])
     return AddCommand(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "delete") == 0)
     return DeleteCommand(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "type") == 0)
+    return TypeCommand(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "install") == 0)
     return Install(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "serve") == 0)

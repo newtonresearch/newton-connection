@@ -675,8 +675,8 @@ clean under ThreadSanitizer and ASan/UBSan.
 ### Phase 5: dock controller and components (no GUI)
 
 In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
-Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.6 against the fake Newton
-(backup and restore round-trip its stores), 5.2.4 against Einstein too. 51
+Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.7 against the fake Newton
+(backup and restore round-trip its stores), 5.2.4 against Einstein too. 53
 ctests, clean under ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
@@ -847,6 +847,17 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
      Import (`impt`, `tran`), comes with the translators (Phase 6) and uses
      `add`. Still to do: against Einstein and a real Newton.
   7. keyboard passthrough (an API only; `ncx-cli type "text"`)
+     ✅ (fake Newton) `dock/Keyboard.h`, the Cocoa app's
+     NCPassthruComponent: the desktop starts it (in control, `kybd`, the
+     Newton answers `kybd`) or the Newton does (Dock's Keyboard: `kybd`
+     from it); text as `kbdc` (one character and the command key) or
+     `kbds` (big-endian UniChars, in pieces of 128), unanswered; a return
+     is a CR, a character beyond 16 bits a '?'; the keys that aren't text
+     as NCPassthruView mapped them (`newtonkey::`: arrows, backspace, F1
+     ...). The desktop ends it (`opdn`), or the Newton (`opca`, acknowledged).
+     No timeout while it's on. Calls from any thread post to the dock
+     thread; the UI hears on and off (`setChanged`). `ncx-cli type <text>...
+     [--file]`. Still to do: against Einstein and a real Newton.
   8. the Newton 1 session (`Newton1Component`)
   9. later: PCMCIA card dumps (CIS, attribute and common memory), taken
      from newtdump (`CIS.cc`, the `PhysMap`/`PhysRead`/`CardPower`

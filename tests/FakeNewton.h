@@ -32,6 +32,9 @@
             2): Names has 100 and 102 (Mary Somerville), the others aren't
             dirty. Deleted ids and added entries are remembered.
    restore  rrst, sver, ssos: dres 0; dsou, csop, auni remembered
+   keyboard kybd: answered with kybd; kbdc, kbds remembered; --keyboard:
+            after docking it starts passthrough itself (kybd), and ends it
+            (opca, expecting ocaa) after the first text
    --browse-install: after docking, as Dock's Install: rtbr 'packages,
             dpth, gfil, spth into a folder "sub" and back, gfin and lpfl of
             the first file; then it disconnects
@@ -56,6 +59,7 @@ struct FakeNewtonOptions
   bool toolkit = true;                // it has the Toolkit app (screenshots)
   bool browseInstall = false;         // browse the desktop and install a package (Dock's Install)
   int round = 1;                      // its soups at the first backup (1) or a later one (2)
+  bool keyboard = false;              // start keyboard passthrough, end it after the first text
 };
 
 /** The fake Newton's physical memory: a byte; 0x1000 ... 0x1FFF all 0xFF. */
@@ -100,6 +104,10 @@ public:
   /** Restores: "deletesoup <soup>", "createsoup <soup>", "entry <soup>
       <id>" (auni), in order. */
   const std::vector<std::string> & restored() const { return mRestored; }
+  /** Keyboard passthrough: "c <text>" (kbdc), "s <text>" (kbds), control
+      characters as \xNN; "ended" when it ended it and the desktop
+      acknowledged. */
+  const std::vector<std::string> & typed() const { return mTyped; }
   /** What it saw browsing (--browse-install): "path <element>", "file
       <name> <type>", "subfile <name>", "info <kind> <size>". */
   const std::vector<std::string> & browsed() const { return mBrowsed; }
@@ -121,6 +129,7 @@ private:
   std::vector<int64_t> mDeleted;
   std::vector<std::string> mAdded;
   std::vector<std::string> mRestored;
+  std::vector<std::string> mTyped;
 };
 
 } // namespace ncx

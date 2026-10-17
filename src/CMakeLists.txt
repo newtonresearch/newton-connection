@@ -58,6 +58,7 @@ add_library (ncx_core STATIC
   dock/DockController.cc dock/DockController.h
   dock/Extensions.cc dock/Extensions.h ${ncx_extension_data}
   dock/FileBrowser.cc dock/FileBrowser.h
+  dock/Keyboard.cc dock/Keyboard.h
   dock/MemoryDump.cc dock/MemoryDump.h
   dock/Packages.cc dock/Packages.h
   dock/Restore.cc dock/Restore.h
