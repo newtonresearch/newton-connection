@@ -459,6 +459,7 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     AddArraySlot(packages, icon);
   }
   std::string currentSoup;
+  bool inSync = false;                      // kDLastSyncTime only then
   std::set<std::string> createdSoups;       // restore: made by the desktop
   std::vector<uint32_t> maps;               // NDmp: the windows mapped
   auto hasExtension = [this](const char * inId) {
@@ -655,14 +656,20 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       mRestored.push_back("entry " + currentSoup + " " + (ISINT(id) ? std::to_string(RINT(id)) : std::string("?")));
       wire->send(DockEvent::MakeValue(kDResult, 0));
     } else if (c == kDRequestToSync) {
+      inSync = true;
       wire->send(DockEvent::MakeValue(kDResult, 0));
     } else if (c == kDGetSyncOptions) {
+      inSync = true;
       RefVar options(AllocateFrame());
       SetFrameSlot(options, MakeSymbol("packages"), TRUEREF);
       SetFrameSlot(options, MakeSymbol("stores"), MakeStores());
       wire->send(MakeRefEvent(kDSyncOptions, options));
     } else if (c == kDLastSyncTime) {
-      wire->send(DockEvent::MakeValue(kDCurrentTime, 50000000 + inOptions.round));
+      // as Einstein's Newton: only in a sync (bad header otherwise)
+      if (inSync)
+        wire->send(DockEvent::MakeValue(kDCurrentTime, 50000000 + inOptions.round));
+      else
+        wire->send(DockEvent::MakeValue(kDResult, kDockErrBadHeader));
     } else if (c == kDGetAppNames) {
       RefVar apps(MakeArray(0));
       for (const FakeSoup & soup : soups) {
@@ -749,6 +756,8 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       RefVar result;
       if (name == "GetUserConfig")
         result = IsSymbol(first) && UTF8FromSymbol(first) == "hexade" ? (Ref)NILREF : MAKEINT(12290);
+      else if (name == "Time")
+        result = MAKEINT(50000000 + inOptions.round);
       else if (name == "Gestalt") {
         result = AllocateFrame();
         SetFrameSlot(result, MakeSymbol("ROMversionString"), MakeStringFromUTF8("2.1 (717006)"));

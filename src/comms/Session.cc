@@ -73,10 +73,21 @@ Session::~Session()
 
 /*-- events ------------------------------------------------------------------*/
 
+std::string Session::gone() const
+{
+  std::string why = mQueue.why();
+  std::string after = mLastSent ? " after '" + CmdName(mLastSent) + "'" : std::string();
+  if (why == "the Newton disconnected")
+    return "the Newton disconnected" + after;
+  return "the connection is gone" + after + " (" + why + ")";
+}
+
+
 void Session::send(const DockEvent & inEvent)
 {
+  mLastSent = inEvent.command;
   if (!mQueue.send(inEvent))
-    throw DockFailure(kDockErrDisconnected, "the Newton is gone (" + mQueue.why() + ")");
+    throw DockFailure(kDockErrDisconnected, gone());
 }
 
 
@@ -89,14 +100,19 @@ DockEvent Session::receive(EventType inExpected, int inSeconds)
   for (;;) {
     EventQueue::Result result = mQueue.next(event, seconds < 0 ? -1 : seconds * 1000);
     if (result == EventQueue::kClosed)
-      throw DockFailure(kDockErrDisconnected, "the Newton is gone (" + mQueue.why() + ")");
+      throw DockFailure(kDockErrDisconnected, gone());
     if (result == EventQueue::kTimeout)
-      throw DockFailure(kDockErrIdleTooLong, "no reply from the Newton (waiting for '" + CmdName(inExpected) + "')");
+      throw DockFailure(kDockErrIdleTooLong, "no answer from the Newton to '" + CmdName(mLastSent) + "' (waiting for '"
+                                             + CmdName(inExpected) + "')");
     if (event.command != kDHello)
       break;
   }
-  if (inExpected != kDAnyEvent && event.command != inExpected)
+  if (inExpected != kDAnyEvent && event.command != inExpected) {
+    // an error instead of the answer: the Newton refused the request
+    if (event.command == kDResult && event.value() != 0)
+      throw DockFailure(event.value(), "the Newton refused '" + CmdName(mLastSent) + "': " + DockErrorText(event.value()));
     Log(kLogMinimum, "#### expected '%s', received '%s'", CmdName(inExpected).c_str(), CmdName(event.command).c_str());
+  }
   return event;
 }
 
@@ -164,9 +180,12 @@ void Session::getHexade()
   SetArraySlot(args, 0, MakeSymbol("hexade"));
   Ref hexade = callGlobalFunction("GetUserConfig", args);
   mHexade = ISINT(hexade) ? (int)RVALUE(hexade) : 0;
-  // and how far the Newton's clock is from ours
+  // and how far the Newton's clock is from ours: Time(), without Fix2010's
+  // hexade (the Cocoa app sent kDLastSyncTime, which a Newton refuses
+  // outside a sync: -28016)
+  Ref minutes = callGlobalFunction("Time", RefVar(MakeArray(0)));
   int32_t now = (int32_t)NewtonFromTime(Now());
-  mDelta = (int32_t)setLastSyncTime(0) - now;
+  mDelta = ISINT(minutes) ? (int32_t)(RINT(minutes) + mHexade * kLengthOfHexade) - now : 0;
 }
 
 
@@ -497,6 +516,7 @@ void Session::sendWithProgress(const DockEvent & inEvent, Progress * ioProgress)
   // comes soon
   const size_t kPiece = 4096, kAhead = 8192;
   std::vector<uint8_t> bytes = inEvent.encode();
+  mLastSent = inEvent.command;
   if (ioProgress) {
     ioProgress->setTotal((int64_t)inEvent.data.size());
     ioProgress->setCompleted(0);
@@ -511,7 +531,7 @@ void Session::sendWithProgress(const DockEvent & inEvent, Progress * ioProgress)
     size_t count = std::min(kPiece, bytes.size() - sent);
     std::vector<uint8_t> piece(bytes.begin() + (long)sent, bytes.begin() + (long)(sent + count));
     if (mQueue.isClosed() || !mQueue.sendBytes(piece))
-      throw DockFailure(kDockErrDisconnected, "the Newton is gone (" + mQueue.why() + ")");
+      throw DockFailure(kDockErrDisconnected, gone());
     sent += count;
     if (ioProgress) {
       size_t arrived = sent - std::min(sent, mQueue.pending());

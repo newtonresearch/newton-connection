@@ -56,7 +56,8 @@ public:
 
   /** The next event from the Newton ('helo' skipped). inExpected: what it
       should be (kDAnyEvent: anything; a different one is logged and
-      returned). Throws when the connection is gone or nothing came in
+      returned, but an error result throws: the Newton refused the last
+      request). Throws when the connection is gone or nothing came in
       inSeconds (default kDefaultTimeout; -1: no limit, as while the user
       types on the keyboard). */
   DockEvent receive(EventType inExpected, int inSeconds = 0);
@@ -153,7 +154,11 @@ private:
   int32_t deleteEntries(RefArg inIds);
   void sendWithProgress(const DockEvent & inEvent, Progress * ioProgress);
 
+  /** Why the session can't go on: the connection is gone, after what. */
+  std::string gone() const;
+
   EventQueue & mQueue;
+  EventType mLastSent = 0;     // for the messages
   bool mNoTimeout = false;
   int mHexade = 0;
   int32_t mDelta = 0;          // the Newton's clock - ours (minutes)

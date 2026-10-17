@@ -32,6 +32,10 @@ constexpr EventType Cmd(const char (&inName)[5])
 /** 0x7274646B -> "rtdk" (other bytes as '.') */
 std::string CmdName(EventType inCommand);
 
+/** A dock error as text: "-28016 (bad header)"; the number alone if it isn't
+    one of the Docking Protocol's. */
+std::string DockErrorText(int inError);
+
 inline constexpr EventType kNewtEventClass = Cmd("newt");
 inline constexpr EventType kDockEventId    = Cmd("dock");
 inline constexpr uint32_t kIndeterminateLength = 0xFFFFFFFF;

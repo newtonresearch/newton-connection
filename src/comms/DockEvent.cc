@@ -36,6 +36,56 @@ std::string CmdName(EventType inCommand)
 }
 
 
+std::string DockErrorText(int inError)
+{
+  static const struct { int error; const char * text; } kTexts[] = {
+    { kDockErrBadStoreSignature, "bad store signature" },
+    { kDockErrBadEntry, "bad entry" },
+    { kDockErrAborted, "aborted" },
+    { kDockErrBadQuery, "bad query" },
+    { kDockErrReadEntryError, "error reading an entry" },
+    { kDockErrBadCurrentSoup, "no current soup" },
+    { kDockErrBadCommandLength, "bad command length" },
+    { kDockErrEntryNotFound, "entry not found" },
+    { kDockErrBadConnection, "bad connection" },
+    { kDockErrFileNotFound, "file not found" },
+    { kDockErrIncompatibleProtocol, "incompatible protocol" },
+    { kDockErrProtocolError, "protocol error" },
+    { kDockErrDockingCanceled, "docking cancelled" },
+    { kDockErrStoreNotFound, "store not found" },
+    { kDockErrSoupNotFound, "soup not found" },
+    { kDockErrBadHeader, "bad header" },
+    { kDockErrOutOfMemory, "out of memory" },
+    { kDockErrNewtonVersionTooNew, "Newton version too new" },
+    { kDockErrPackageCantLoad, "the package can't be loaded" },
+    { kDockErrProtocolExtAlreadyRegistered, "protocol extension already registered" },
+    { kDockErrRemoteImportError, "import error" },
+    { kDockErrBadPasswordError, "bad password" },
+    { kDockErrRetryPW, "retry the password" },
+    { kDockErrIdleTooLong, "idle too long" },
+    { kDockErrOutOfPower, "out of power" },
+    { kDockErrBadCursor, "bad cursor" },
+    { kDockErrAlreadyBusy, "already busy" },
+    { kDockErrDesktopError, "desktop error" },
+    { kDockErrCantConnectToModem, "can't connect to the modem" },
+    { kDockErrDisconnected, "disconnected" },
+    { kDockErrAccessDenied, "access denied" },
+    { kDockErrDisconnectDuringRead, "disconnected while reading" },
+    { kDockErrReadFailed, "read failed" },
+    { kDockErrCommunicationsToolNotFound, "communications tool not found" },
+    { kDockErrInvalidModemToolVersion, "invalid modem tool version" },
+    { kDockErrCardNotInstalled, "card not installed" },
+    { kDockErrBrowserFileNotFound, "file not found (browsing)" },
+    { kDockErrBrowserVolumeNotFound, "volume not found (browsing)" },
+    { kDockErrBrowserPathNotFound, "path not found (browsing)" },
+  };
+  for (const auto & entry : kTexts)
+    if (entry.error == inError)
+      return std::to_string(inError) + " (" + entry.text + ")";
+  return std::to_string(inError);
+}
+
+
 DockEvent DockEvent::Make(EventType inCommand)
 {
   return DockEvent(inCommand);
