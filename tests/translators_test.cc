@@ -7,7 +7,8 @@
  the entries of a .newtondevice file. One section per ctest:
 
    ncx_translators_test <section> [<fixture file>]
-       lines, names, dates, notes, builtin, transfer <fixture>, or all
+       lines, names, dates, notes, builtin, graphics, transfer <fixture>,
+       or all (graphics needs a display on Linux)
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok. Files
  go to a folder in the temp folder, removed afterwards.
@@ -20,7 +21,9 @@
 #include "model/DeviceFile.h"
 #include "model/NewtonModel.h"
 #include "platform/AppFolders.h"
+#include "translators/Canvas.h"
 #include "translators/ContentLines.h"
+#include "translators/Render.h"
 #include "translators/Transfer.h"
 #include "translators/Translator.h"
 
@@ -512,6 +515,97 @@ void TestTransfer()
   Check(!wrong.error.empty() && wrong.entries == 0, "transfer: an app that doesn't take the file says so: " + wrong.error);
 }
 
+/*-- graphics ----------------------------------------------------------------*/
+
+/** An icon: 8 by 8, 1 bit, its left half black (bits: a FramBitmap: the
+    base address, row bytes, a short, the bounds top left bottom right,
+    big-endian; then the rows). */
+Ref Icon()
+{
+  const unsigned char header[] = { 0,0,0,0, 0,2, 0,0, 0,0, 0,0, 0,8, 0,8 };
+  RefVar bits(AllocateBinary(SYMA(bits), sizeof(header) + 16));
+  std::memcpy(BinaryData(bits), header, sizeof(header));
+  for (int i = 0; i < 8; ++i) {
+    ((unsigned char *)BinaryData(bits))[sizeof(header) + 2 * i] = 0xF0;
+    ((unsigned char *)BinaryData(bits))[sizeof(header) + 2 * i + 1] = 0x00;
+  }
+  RefVar icon(AllocateFrame());
+  SetFrameSlot(icon, SYMA(bits), bits);
+  return icon;
+}
+
+void TestGraphics()
+{
+  TempFolder folder("graphics");
+  Pixels white;
+  {
+    Canvas canvas(20, 10);
+    white = canvas.take();
+  }
+  int l, t, r, b;
+  Check(white.width == 20 && white.height == 10 && white.gray(5, 5) == 255 && !white.inkBounds(l, t, r, b),
+        "graphics: a white canvas");
+  Pixels pattern = white;
+  for (int x = 0; x < 10; ++x)
+    pattern.rgb[(5 * 20 + x) * 3] = pattern.rgb[(5 * 20 + x) * 3 + 1] = pattern.rgb[(5 * 20 + x) * 3 + 2] = 0;
+  Check(WritePNG(folder.path / "p.png", pattern), "graphics: a PNG written");
+  Pixels back = ReadPNG(folder.path / "p.png");
+  Check(back.width == 20 && back.height == 10 && back.gray(3, 5) == 0 && back.gray(15, 5) == 255 && back.gray(3, 4) == 255,
+        "graphics: and read back");
+  std::string png = PNGData(pattern);
+  Check(png.size() > 8 && png.compare(1, 3, "PNG") == 0, "graphics: PNG data");
+  Pixels part = Crop(pattern, 2, 4, 8, 7);
+  Check(part.width == 6 && part.height == 3 && part.gray(0, 1) == 0 && part.gray(0, 0) == 255, "graphics: cropped");
+
+  // a note: text, a polygon (NCX's ink: 0, the number of points, the points
+  // as v, h; big-endian), a picture
+  RefVar data(MakeArray(0));
+  AddArraySlot(data, RefVar(MakeParagraph("text", 0, 0, 300, 20, 0)));
+  RefVar poly(AllocateFrame());
+  SetFrameSlot(poly, SYMA(viewStationery), MakeSymbol("poly"));
+  SetFrameSlot(poly, SYMA(viewBounds), RefVar(MakeBounds(100, 40, 140, 90)));
+  const unsigned char points[] = { 0,0, 0,3, 0,20, 0,10, 0,20, 0,30, 0,40, 0,30 };
+  RefVar pointsBinary(AllocateBinary(MakeSymbol("polygonShape"), sizeof(points)));
+  std::memcpy(BinaryData(pointsBinary), points, sizeof(points));
+  SetFrameSlot(poly, MakeSymbol("points"), pointsBinary);
+  AddArraySlot(data, poly);
+  RefVar pict(AllocateFrame());
+  SetFrameSlot(pict, SYMA(viewStationery), MakeSymbol("pict"));
+  SetFrameSlot(pict, SYMA(viewBounds), RefVar(MakeBounds(10, 50, 18, 58)));
+  SetFrameSlot(pict, SYMA(icon), RefVar(Icon()));
+  AddArraySlot(data, pict);
+  RefVar pict2(Clone(pict));                         // an icon with its bounds
+  RefVar icon2(Icon());
+  SetFrameSlot(icon2, SYMA(bounds), RefVar(MakeBounds(0, 0, 8, 8)));
+  SetFrameSlot(pict2, SYMA(icon), icon2);
+  SetFrameSlot(pict2, SYMA(viewBounds), RefVar(MakeBounds(30, 50, 60, 80)));
+  AddArraySlot(data, pict2);
+  int left = -1, top = -1;
+  Pixels note = RenderGraphics(data, &left, &top);
+  Check(IsGraphicParagraph(poly) && IsGraphicParagraph(pict) && !IsGraphicParagraph(RefVar(GetArraySlot(data, 0))),
+        "graphics: which paragraphs are graphics");
+  Check(left == 8 && top == 38 && note.width == 142 - 8 && note.height == 92 - 38, "graphics: a note's graphics, cropped to them ("
+        + std::to_string(left) + ", " + std::to_string(top) + ", " + std::to_string(note.width) + " x " + std::to_string(note.height) + ")");
+  auto dark = [&](int x, int y) { return note.gray(x - left, y - top) < 64; };
+  Check(dark(10, 50) && dark(13, 57) && !dark(15, 50) && !dark(17, 57), "graphics: the picture, at its place");
+  Check(dark(30, 50) && dark(33, 57) && !dark(35, 50) && !dark(33, 59), "graphics: an icon, its size at the corner");
+  Check(dark(110, 60) && dark(130, 70) && !dark(110, 80), "graphics: the polygon, at its place");
+  Check(RenderGraphics(RefVar(MakeArray(0))).empty(), "graphics: none, no image");
+
+  Pixels bitmap = RenderBitmap(RefVar(Icon()));
+  Check(bitmap.width == 8 && bitmap.height == 8 && bitmap.gray(0, 0) < 64 && bitmap.gray(3, 7) < 64 && bitmap.gray(4, 0) > 192,
+        "graphics: a bitmap at its size");
+
+  RefVar image(AllocateFrame());
+  SetFrameSlot(image, MakeSymbol("image"), RefVar(Icon()));
+  SetFrameSlot(image, SYMA(title), RefVar(Str("Sketch")));
+  Check(ExportClassOf(image) == "*image*", "graphics: an image entry");
+  std::vector<fs::path> files = Export(folder.path, "Paint", { image });
+  Pixels exported = files.size() == 1 ? ReadPNG(files[0]) : Pixels();
+  Check(files.size() == 1 && files[0].filename() == "Sketch.png" && exported.width == 8 && exported.gray(1, 1) < 64
+        && exported.gray(6, 1) > 192, "graphics: exported as a PNG");
+}
+
 } // namespace
 
 
@@ -523,7 +617,7 @@ int main(int argc, char * argv[])
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "lines", TestLines }, { "names", TestNames }, { "dates", TestDates }, { "notes", TestNotes },
-    { "builtin", TestBuiltin }, { "transfer", TestTransfer } };
+    { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "transfer", TestTransfer } };
   bool found = false;
   for (auto & s : sections)
     if (section == s.name || (section == "all" && (std::string(s.name) != "transfer" || !gFixture.empty()))) {

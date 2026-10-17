@@ -14,6 +14,7 @@ namespace ncx {
 
 std::unique_ptr<Exporter> MakeTextExporter();
 std::unique_ptr<Exporter> MakePackageExporter();
+std::unique_ptr<Exporter> MakeImageExporter();
 std::unique_ptr<Exporter> MakeNameToVCard();
 std::unique_ptr<Importer> MakeNameFromVCard();
 std::unique_ptr<Exporter> MakeDateToICal();
@@ -26,6 +27,7 @@ const std::vector<ExportFormat> & ExportFormats()
   static const std::vector<ExportFormat> formats = {
     { "package", "*package*", "newtonpkg", "Newton package", MakePackageExporter },
     { "text", "text", "text", "Text", MakeTextExporter },
+    { "image", "*image*", "png", "PNG image", MakeImageExporter },
     { "vcard", "person", "vcf", "vCard", MakeNameToVCard },
     { "vcard", "owner", "vcf", "vCard", MakeNameToVCard },
     { "vcard", "company", "vcf", "vCard", MakeNameToVCard },

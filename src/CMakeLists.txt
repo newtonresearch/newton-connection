@@ -77,11 +77,13 @@ add_library (ncx_core STATIC
   platform/AppFolders.cc platform/AppFolders.h
   platform/SerialPorts.cc platform/SerialPorts.h
   translators/Builtin.cc
+  translators/Canvas.cc translators/Canvas.h
   translators/ContentLines.cc translators/ContentLines.h
   translators/Dates.cc
   translators/Formats.cc
   translators/Names.cc
   translators/Notes.cc
+  translators/Render.cc translators/Render.h
   translators/Transfer.cc translators/Transfer.h
   translators/Translator.cc translators/Translator.h
   # newtdump's CIS decoder (newton-framework), for PCMCIA cards

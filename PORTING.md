@@ -974,6 +974,20 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
   - Export as PNG (`fl_write_png`).
   - Note: `Fl_Image_Surface` needs a display on Linux, so CI uses
     `xvfb-run` for these tests (as the framework's CI does since 0.5).
+  ✅ (but ink: no ink in the fixture yet) `translators/Canvas.h`: an
+  `Fl_Image_Surface` made current and white, its pixels taken back,
+  cropped, written as PNG (`fl_write_png`; PNG data through a temp file);
+  it holds `Fl::lock()` while it lives (the translators run on the dock
+  thread, the app's main thread draws windows). FLTK's headers only there
+  (they clash with the framework's). `translators/Render.h`, the Cocoa
+  app's renderShapes: a note's paragraphs with ink (`InkDrawInRect`),
+  pictures ('pict: an icon with its bounds by `DrawPicture`, bits only by
+  `DrawBitmap`) and polygons ('poly: `DrawPolygon`) in one image cropped
+  to them; a bitmap at its size (its bounds from a bounds slot or its
+  FramBitmap header). Image entries (NewtPaint) export as PNG (the Cocoa
+  app: TIFF). The Notes and Works exports use this with the RTF writer
+  (6.4). CI's Linux tests run under `xvfb-run`. Still to do: ink, from a
+  note drawn on Einstein.
 - **6.4 Rich text:**
   - An RTF writer (styles, fonts, paragraphs, tabs, embedded PNG via
     `\pngblip`) for Notes, checklists, outlines and Works.

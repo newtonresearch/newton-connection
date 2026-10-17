@@ -43,7 +43,7 @@ add_test (NAME ncx_cli_info_newton1 COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE
 # The translators (PORTING.md Phase 6): vCard, iCalendar, text, packages
 add_executable (ncx_translators_test translators_test.cc)
 target_link_libraries (ncx_translators_test PRIVATE ncx_core)
-foreach (section lines names dates notes builtin)
+foreach (section lines names dates notes builtin graphics)
   add_test (NAME ncx_translators_${section} COMMAND ncx_translators_test ${section})
 endforeach ()
 add_test (NAME ncx_translators_transfer COMMAND ncx_translators_test transfer

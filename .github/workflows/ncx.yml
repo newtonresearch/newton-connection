@@ -34,7 +34,7 @@ jobs:
       - uses: actions/checkout@v5
 
       # FLTK on Linux: X11 and Wayland (one binary for both), Xvfb for the
-      # screenshot
+      # tests that draw and the screenshot
       - name: Packages (Linux)
         if: runner.os == 'Linux'
         run: |
@@ -52,8 +52,15 @@ jobs:
       - name: Build
         run: cmake --build build --config RelWithDebInfo --parallel 4
 
+      # Linux: the translators draw into FLTK image surfaces, which need a
+      # display (Xvfb)
       - name: Test
+        if: runner.os != 'Linux'
         run: ctest --test-dir build -C RelWithDebInfo --output-on-failure
+
+      - name: Test (Linux, Xvfb)
+        if: runner.os == 'Linux'
+        run: xvfb-run -a ctest --test-dir build -C RelWithDebInfo --output-on-failure
 
       - name: Install
         run: cmake --install build --config RelWithDebInfo --component ncx --prefix dist

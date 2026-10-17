@@ -7,9 +7,12 @@
      into "Newton <app>.text" (PrintObject, depth 16)
    - text: an entry with a text slot as "<title>.text"
    - a package: its pkgRef as "<packageName>.newtonpkg"
+ - an image (a NewtPaint picture: an image slot with a bitmap) as
+   "<title>.png" (the Cocoa app wrote TIFF)
  */
 
 #include "translators/Translator.h"
+#include "translators/Render.h"
 #include "base/NewtonStrings.h"
 
 #include "Globals.h"
@@ -119,9 +122,25 @@ public:
   }
 };
 
+
+class ImageExporter : public Exporter
+{
+public:
+  std::filesystem::path exportEntry(RefArg inEntry) override
+  {
+    Pixels pixels = RenderBitmap(RefVar(GetFrameSlot(inEntry, MakeSymbol("image"))));
+    std::string png = PNGData(pixels);
+    if (png.empty())
+      return std::filesystem::path();
+    std::string title = StringSlot(inEntry, "title");
+    return write(png, title.empty() ? "Newton Image" : title, "png");
+  }
+};
+
 } // namespace
 
 
+std::unique_ptr<Exporter> MakeImageExporter() { return std::make_unique<ImageExporter>(); }
 std::unique_ptr<Exporter> MakeDefaultExporter() { return std::make_unique<DefaultExporter>(); }
 std::unique_ptr<Exporter> MakeTextExporter() { return std::make_unique<TextExporter>(); }
 std::unique_ptr<Exporter> MakePackageExporter() { return std::make_unique<PackageExporter>(); }
