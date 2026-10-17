@@ -62,6 +62,7 @@ add_library (ncx_core STATIC
   dock/Packages.cc dock/Packages.h
   dock/Restore.cc dock/Restore.h
   dock/Screenshot.cc dock/Screenshot.h
+  dock/SoupEditor.cc dock/SoupEditor.h
   model/BackupImport.cc model/BackupImport.h
   model/CoreDataModel.cc model/CoreDataModel.h
   model/DeviceFile.cc model/DeviceFile.h

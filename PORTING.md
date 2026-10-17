@@ -675,9 +675,9 @@ clean under ThreadSanitizer and ASan/UBSan.
 ### Phase 5: dock controller and components (no GUI)
 
 In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
-Windows, Matt, 2026-10-16/17); 5.2.3, 5.2.4 and 5.2.5 against the fake
-Newton (backup and restore round-trip its stores). 54 ctests, clean under
-ThreadSanitizer and ASan/UBSan.
+Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.6 against the fake Newton
+(backup and restore round-trip its stores), 5.2.4 against Einstein too. 51
+ctests, clean under ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
   - `src/dock/DockController.h`: a dock thread that listens, docks
@@ -832,6 +832,20 @@ ThreadSanitizer and ASan/UBSan.
      `.nbku`-style files only, and was unfinished. Still to do: against
      Einstein and a real Newton.
   6. import of entries and soup modification (delete entries or packages)
+     ✅ (fake Newton) `dock/SoupEditor.h`, the Cocoa app's do_IMPT,
+     do_DIDL and do_DPKL: with the Newton docked, entries made on the
+     desktop (imported ids) go to it (`adde`) and take its ids; entries are
+     deleted on it (`dele`) and in the file, packages removed by name
+     (`rmvp`, after setting their store and then the default one, as the
+     Cocoa app); what the Newton refuses stays in the file, entries never
+     sent only leave the file. Without a Newton the UI changes only the
+     file and the next backup does the rest (it sends what was made, and
+     deletes what the file no longer has: `DeletionPlan`); packages only
+     with the Newton docked, as the Cocoa app. `ncx-cli add [--store]
+     [<soup>...]`, `ncx-cli delete [--store] <soup> <id or title>...`.
+     Importing a file through a translator, on the desktop or the Newton's
+     Import (`impt`, `tran`), comes with the translators (Phase 6) and uses
+     `add`. Still to do: against Einstein and a real Newton.
   7. keyboard passthrough (an API only; `ncx-cli type "text"`)
   8. the Newton 1 session (`Newton1Component`)
   9. later: PCMCIA card dumps (CIS, attribute and common memory), taken

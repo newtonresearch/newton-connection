@@ -26,6 +26,16 @@
                                      (Internal), from a backed-up one of the
                                      kind, those apps (all) and the packages;
                                      without --yes it only says what
+   ncx-cli add [--folder <folder>] [--store <store>] [<soup>...] [options]
+                                     send the entries made on the desktop
+                                     (imported) in its backup in the folder
+                                     (as backup) to the Newton now, of those
+                                     soups (all), on that store (all)
+   ncx-cli delete [--folder <folder>] [--store <store>] <soup> <entry>...
+               [options]
+                                     delete entries (by _uniqueId or title)
+                                     on the Newton and in its backup; in
+                                     Packages: remove packages (by name)
    ncx-cli install <package>... [--replace] [options]
                                      install packages (on the default store);
                                      --replace: those of the same name too
@@ -48,7 +58,7 @@
                                      a new .newtondevice file
 
  Options for the commands that dock (info, screenshot, backup, restore,
- install, serve, rom):
+ add, delete, install, serve, rom):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -72,6 +82,7 @@
 #include "dock/Restore.h"
 #include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
+#include "dock/SoupEditor.h"
 #include "model/BackupImport.h"
 #include "model/DeviceFile.h"
 #include "model/DeviceList.h"
@@ -91,6 +102,8 @@
 #include <cstring>
 #include <filesystem>
 #include <functional>
+#include <memory>
+#include <optional>
 #include <thread>
 
 #if defined(_WIN32)
@@ -114,6 +127,8 @@ int Usage()
     "       ncx-cli backup [--folder <folder>] [--delete | --only-add] [<dock options>]\n"
     "       ncx-cli restore [--folder <folder>] [--to <store>] [--from <store>] [--apps <a,b,...>] [--packages] [--yes]\n"
     "               [<dock options>]\n"
+    "       ncx-cli add [--folder <folder>] [--store <store>] [<soup>...] [<dock options>]\n"
+    "       ncx-cli delete [--folder <folder>] [--store <store>] <soup> <entry>... [<dock options>]\n"
     "       ncx-cli install <package>... [--replace] [<dock options>]\n"
     "       ncx-cli serve [--folder <folder>] [--backups <folder>] [<dock options>]\n"
     "       ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>] [--resume] [<dock options>]\n"
@@ -494,6 +509,23 @@ std::vector<std::string> Split(const std::string & inText, char inSeparator)
 }
 
 
+/** The docked Newton's backup in inFolder (there must be one), up to date
+    with its stores; null (and said why) if there is none. */
+std::unique_ptr<ncx::DeviceFile> OpenBackupOf(ncx::DockController & ioDock, const std::string & inFolder)
+{
+  std::filesystem::path path = ncx::FindDeviceFile(BackupFolder(inFolder), ncx::DeviceId(ioDock.newton().info));
+  std::string error;
+  std::unique_ptr<ncx::DeviceFile> file = path.empty() ? nullptr : ncx::DeviceFile::Open(path, ncx::DeviceFile::kReadWrite, error);
+  if (!file) {
+    std::fprintf(stderr, "ncx-cli: no backup of this Newton in %s %s\n", ncx::UTF8FromPath(BackupFolder(inFolder)).c_str(),
+                 error.c_str());
+    return nullptr;
+  }
+  ncx::UpdateDevice(ioDock, *file);
+  return file;
+}
+
+
 int RestoreCommand(int argc, char * argv[])
 {
   std::string folder, to, from, appList;
@@ -521,16 +553,9 @@ int RestoreCommand(int argc, char * argv[])
   if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || !rest.empty())
     return Usage();
   return Dock(settings, [&](ncx::DockController & dock) {
-    // the Newton's backup (not made: there must be one)
-    std::filesystem::path path = ncx::FindDeviceFile(BackupFolder(folder), ncx::DeviceId(dock.newton().info));
-    std::string error;
-    std::unique_ptr<ncx::DeviceFile> file = path.empty() ? nullptr : ncx::DeviceFile::Open(path, ncx::DeviceFile::kReadWrite, error);
-    if (!file) {
-      std::fprintf(stderr, "ncx-cli: no backup of this Newton in %s %s\n", ncx::UTF8FromPath(BackupFolder(folder)).c_str(),
-                   error.c_str());
+    std::unique_ptr<ncx::DeviceFile> file = OpenBackupOf(dock, folder);
+    if (!file)
       return 1;
-    }
-    ncx::UpdateDevice(dock, *file);
     // the Newton's stores now, as the file has them
     std::vector<ncx::StoreRecord> newtonStores;
     dock.setDesktopControl(true);
@@ -579,6 +604,110 @@ int RestoreCommand(int argc, char * argv[])
     const ncx::RestoreCounts & counts = restore.counts();
     std::printf("%zu soups, %zu entries, %zu packages restored%s\n", counts.soups, counts.entries, counts.packages,
                 result == 0 ? "" : (" (" + std::to_string(result) + ")").c_str());
+    return result == 0 ? 0 : 1;
+  });
+}
+
+
+/** add and delete: their options; the arguments left in outRest. */
+bool EditOptions(int argc, char * argv[], std::string & outFolder, std::string & outStore,
+                 ncx::DockController::Settings & outSettings, std::vector<std::string> & outRest)
+{
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    if (std::strcmp(argv[i], "--folder") == 0 && i + 1 < argc)
+      outFolder = argv[++i];
+    else if (std::strcmp(argv[i], "--store") == 0 && i + 1 < argc)
+      outStore = argv[++i];
+    else
+      args.push_back(argv[i]);
+  }
+  return DockOptions((int)args.size(), args.data(), 2, outSettings, outRest);
+}
+
+
+int AddCommand(int argc, char * argv[])
+{
+  std::string folder, storeName;
+  ncx::DockController::Settings settings;
+  std::vector<std::string> soupNames;
+  if (!EditOptions(argc, argv, folder, storeName, settings, soupNames))
+    return Usage();
+  return Dock(settings, [&](ncx::DockController & dock) {
+    std::unique_ptr<ncx::DeviceFile> file = OpenBackupOf(dock, folder);
+    if (!file)
+      return 1;
+    size_t added = 0;
+    int result = 0;
+    for (const ncx::StoreRecord & store : ncx::SortedStores(*file)) {
+      if (!storeName.empty() && store.name != storeName)
+        continue;
+      for (const ncx::SoupRecord & soup : file->soups(store.pk)) {
+        if (!soupNames.empty() && std::find(soupNames.begin(), soupNames.end(), soup.name) == soupNames.end())
+          continue;
+        ncx::SoupEditor editor(dock, *file);
+        int error = editor.add(soup.pk);
+        if (editor.counts().added)
+          std::printf("%s: %s: %zu entries sent\n", store.name.c_str(), soup.name.c_str(), editor.counts().added);
+        added += editor.counts().added;
+        if (error != 0) {
+          std::printf("%s: %s: not sent (%d)\n", store.name.c_str(), soup.name.c_str(), error);
+          result = 1;
+        }
+      }
+    }
+    std::printf("%zu entries made on the desktop sent to the Newton\n", added);
+    return result;
+  });
+}
+
+
+int DeleteCommand(int argc, char * argv[])
+{
+  std::string folder, storeName;
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!EditOptions(argc, argv, folder, storeName, settings, rest) || rest.size() < 2)
+    return Usage();
+  std::string soupName = rest[0];
+  std::vector<std::string> wanted(rest.begin() + 1, rest.end());
+  return Dock(settings, [&](ncx::DockController & dock) {
+    std::unique_ptr<ncx::DeviceFile> file = OpenBackupOf(dock, folder);
+    if (!file)
+      return 1;
+    // the soup on the store (the first that has it: Internal first)
+    std::optional<ncx::SoupRecord> soup;
+    for (const ncx::StoreRecord & store : ncx::SortedStores(*file))
+      if (!soup && (storeName.empty() || store.name == storeName))
+        soup = file->findSoup(store.pk, soupName);
+    if (!soup) {
+      std::fprintf(stderr, "ncx-cli: the backup has no soup %s%s\n", soupName.c_str(),
+                   storeName.empty() ? "" : (" on " + storeName).c_str());
+      return 1;
+    }
+    // the entries: by _uniqueId, or by title
+    std::vector<int64_t> pks;
+    std::vector<ncx::EntryRecord> entries = file->entries(soup->pk);
+    for (const std::string & what : wanted) {
+      char * end = nullptr;
+      long long id = std::strtoll(what.c_str(), &end, 10);
+      bool byId = !what.empty() && *end == 0;
+      size_t found = 0;
+      for (const ncx::EntryRecord & entry : entries)
+        if (byId ? entry.uniqueId == id : entry.title && *entry.title == what) {
+          pks.push_back(entry.pk);
+          ++found;
+        }
+      if (!found) {
+        std::fprintf(stderr, "ncx-cli: %s has no entry %s\n", soupName.c_str(), what.c_str());
+        return 1;
+      }
+    }
+    ncx::SoupEditor editor(dock, *file);
+    int result = editor.remove(soup->pk, pks);
+    const ncx::SoupEditCounts & counts = editor.counts();
+    std::printf("%zu entries and %zu packages deleted on the Newton, %zu never sent deleted%s\n", counts.deleted,
+                counts.packages, counts.fileOnly, result == 0 ? "" : (" (" + std::to_string(result) + ")").c_str());
     return result == 0 ? 0 : 1;
   });
 }
@@ -740,6 +869,10 @@ int main(int argc, char * argv[])
     return BackupCommand(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "restore") == 0)
     return RestoreCommand(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "add") == 0)
+    return AddCommand(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "delete") == 0)
+    return DeleteCommand(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "install") == 0)
     return Install(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "serve") == 0)

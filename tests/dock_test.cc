@@ -37,6 +37,7 @@
 #include "dock/Restore.h"
 #include "dock/MemoryDump.h"
 #include "dock/Screenshot.h"
+#include "dock/SoupEditor.h"
 
 #include "RSSymbols.h"
 
@@ -761,6 +762,90 @@ void TestRestore()
   std::filesystem::remove_all(folder);
 }
 
+/*-- edit --------------------------------------------------------------------*/
+
+void TestEdit()
+{
+  std::filesystem::path folder = TempFolder("edit");
+  std::filesystem::path path;
+
+  // a backup, then on the desktop: a note made, a name made
+  FakeProcess fake;
+  int result = DockWithFake(Port(10), "", fake, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(folder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    path = file->path();
+    UpdateDevice(dock, *file);
+    Backup(dock, *file).run();
+  });
+  int64_t notesPk = 0, namesPk = 0, packagesPk = 0, madeNamePk = 0, babbagePk = 0, tetrisPk = 0;
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file) {
+      Check(false, "edit: the backup " + error + " " + fake.why);
+      return;
+    }
+    int64_t store = file->stores().at(0).pk;
+    std::optional<SoupRecord> notes = file->findSoup(store, "Notes");
+    std::optional<SoupRecord> names = file->findSoup(store, "Names");
+    std::optional<SoupRecord> packages = file->findSoup(store, "Packages");
+    if (!notes || !names || !packages) {
+      Check(false, "edit: the backup's soups");
+      return;
+    }
+    notesPk = notes->pk;
+    namesPk = names->pk;
+    packagesPk = packages->pk;
+    babbagePk = file->findEntry(namesPk, 101, false)->pk;
+    tetrisPk = file->findEntry(packagesPk, 300, false)->pk;
+    DeviceFile::Transaction transaction(*file);
+    RefVar note(AllocateFrame());
+    SetFrameSlot(note, SYMA(title), MakeStringFromUTF8("Made on the desktop"));
+    AddImportedEntry(*file, *notes, note);
+    RefVar name(AllocateFrame());
+    SetFrameSlot(name, SYMA(title), MakeStringFromUTF8("Not sent"));
+    madeNamePk = AddImportedEntry(*file, *names, name).pk;
+    transaction.commit();
+  }
+
+  // docked: the note to the Newton; Babbage, the name not sent and Tetris
+  // deleted
+  FakeProcess fake2;
+  int added = -1, deleted = -1, removed = -1;
+  SoupEditCounts addCounts, deleteCounts, removeCounts;
+  result = DockWithFake(Port(11), "", fake2, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file)
+      return;
+    SoupEditor editor(dock, *file);
+    added = editor.add(notesPk);
+    addCounts = editor.counts();
+    deleted = editor.remove(namesPk, { babbagePk, madeNamePk });
+    deleteCounts = editor.counts();
+    removed = editor.remove(packagesPk, { tetrisPk });
+    removeCounts = editor.counts();
+  });
+  Check(result == 0 && added == 0 && addCounts.added == 1 && fake2.added == std::vector<std::string>({ "Made on the desktop" }),
+        "edit: the note made on the desktop sent " + fake2.why);
+  Check(deleted == 0 && deleteCounts.deleted == 1 && deleteCounts.fileOnly == 1
+        && fake2.deleted == std::vector<int64_t>({ 101 }), "edit: Babbage deleted on the Newton, the name never sent not");
+  Check(removed == 0 && removeCounts.packages == 1 && fake2.removed == std::vector<std::string>({ "Tetris" }),
+        "edit: the package removed by name");
+  Check(Received(fake2, "ssto") && Received(fake2, "ssou") && Received(fake2, "sdef") && Received(fake2, "opdn"),
+        "edit: store, soup, the default store for packages, done");
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadOnly, error);
+    Check(file && SoupIds(*file, "Notes") == std::vector<int64_t>({ 200, 1000 }) && SoupIds(*file, "Names") == std::vector<int64_t>({ 100 })
+          && SoupIds(*file, "Packages").empty(), "edit: the file as the Newton is now");
+  }
+  std::filesystem::remove_all(folder);
+}
+
 } // namespace
 
 
@@ -781,7 +866,8 @@ int main(int argc, char * argv[])
     { "extensions", TestExtensions }, { "bits", TestBits }, { "controller", TestController },
     { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
-    { "browse", TestBrowse }, { "backup", TestBackup }, { "deletions", TestDeletions }, { "restore", TestRestore } };
+    { "browse", TestBrowse }, { "backup", TestBackup }, { "deletions", TestDeletions }, { "restore", TestRestore },
+    { "edit", TestEdit } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {
