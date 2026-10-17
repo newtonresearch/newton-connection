@@ -783,9 +783,16 @@ ThreadSanitizer and ASan/UBSan.
        has leave the file; entries made on the desktop (imported) go to the
        Newton and take the ids it gives; and entries the Newton has that
        the file doesn't are deleted on the Newton (taken for deleted on the
-       desktop). The last one is the Cocoa app's behaviour and deletes data
-       on the Newton if a file is incomplete: decide before the UI (Phase 7)
-       whether NCX keeps it.
+       desktop). The Cocoa app deleted those at once, also when the file was
+       only incomplete. Decided with Matt (2026-10-17): they wait until all
+       soups are backed up (`DeletionPlan`); never in a soup whose backup
+       never finished (no `NCKLastBackupTime`: one that broke off, a
+       converted `.nbku`), which is a warning (the file is incomplete or
+       damaged); a few on purpose (at most 10, no soup losing more than a
+       fifth) are deleted without asking; otherwise the user is asked
+       ("About to delete 120 entries": Delete / Only Add: `setDecide`, a
+       dialog in Phase 7; `ncx-cli backup` asks on the terminal, or takes
+       `--delete`, `--only-add`).
      - Selective backup is the sync options': the Newton's Backup slip says
        which stores and whether packages; from the desktop everything.
      `ncx-cli backup [--folder]` (into the file of the docked Newton in the

@@ -14,9 +14,11 @@
      (kDBackupSoup, kDSetBaseID, kDBackupIDs); then, as the Cocoa app
      synchronises:
        entries the Newton no longer has are deleted from the file;
+       entries made on the desktop (imported) are added on the Newton;
        entries the Newton has but the file doesn't are deleted on the
-       Newton (the Cocoa app takes them for deleted on the desktop);
-       entries made on the desktop (imported) are added on the Newton
+       Newton (the Cocoa app takes them for deleted on the desktop), but
+       after all soups, and only if that is clear or the user says so
+       (DeletionPlan), never in a soup whose backup never finished
    - its info gets the time of this backup (NCKLastBackupTime), in the
      file and on the Newton
  Each soup is a transaction of its own: a backup that breaks keeps what it
@@ -34,6 +36,7 @@
 #include "Objects.h"
 
 #include <cstdint>
+#include <functional>
 #include <set>
 #include <string>
 #include <vector>
@@ -68,6 +71,39 @@ private:
   std::set<int64_t> mIds;
 };
 
+/** The entries a backup would delete on the Newton: those it has that the
+    file doesn't (the Cocoa app took them for deleted on the desktop). */
+struct DeletionPlan
+{
+  struct Soup
+  {
+    std::string store;            // its store's name
+    std::string name;
+    int64_t storePk = 0;
+    std::vector<int64_t> ids;     // to delete on the Newton
+    size_t onNewton = 0;          // entries the Newton has in it
+  };
+  std::vector<Soup> soups;        // with entries to delete
+  size_t total = 0;               // entries to delete, in all
+  /** Soups whose backup never finished (no NCKLastBackupTime: one that broke
+      off, a converted .nbku): the file is incomplete there, nothing of them
+      is deleted. */
+  std::vector<std::string> incomplete;
+  /** A few entries only (at most kClearTotal, no soup losing more than
+      1/kClearShare of its entries): deleted without asking, as deleted on
+      purpose. */
+  bool clear = false;
+
+  static constexpr size_t kClearTotal = 10;
+  static constexpr size_t kClearShare = 5;
+
+  /** Set clear from the soups and incomplete. */
+  void assess();
+};
+
+/** What to do about them. */
+enum class Deletions { kDelete, kOnlyAdd };
+
 struct BackupCounts
 {
   size_t soups = 0;               // backed up
@@ -82,6 +118,13 @@ class Backup
 public:
   Backup(DockController & ioDock, DeviceFile & ioFile) : mDock(ioDock), mFile(ioFile) { }
 
+  /** Entries the Newton has that the file doesn't are deleted on the Newton
+      after all soups are backed up: at once if it's clear (a few, on
+      purpose), otherwise as inDecide says (the UI asks "About to delete 120
+      entries": Delete, Only Add; it also warns of incomplete soups). On the
+      dock thread, the Newton waits. Without one: only clear cases. */
+  void setDecide(std::function<Deletions(const DeletionPlan &)> inDecide) { mDecide = std::move(inDecide); }
+
   /** The desktop asks for it (in control, kDRequestToSync), then backs up.
       0, or the error (kDockErrAborted: cancelled). ioProgress: apps done
       of all; cancel() stops it after the entry in hand. */
@@ -90,18 +133,23 @@ public:
   int answer(Progress * ioProgress = nullptr);
 
   const BackupCounts & counts() const { return mCounts; }
+  /** The last backup's deletions, as they were planned. */
+  const DeletionPlan & deletions() const { return mPlan; }
 
 private:
   int backup(Progress * ioProgress);
   int backupSoup(const StoreRecord & inStore, const AppRecord & inApp, bool inPackages, RefArg inSoupName,
                  int64_t inSignature, Progress * ioProgress);
   int receiveEntries(SoupRecord & ioSoup, bool inPackages, BackupIds * ioIds, Progress * ioProgress, EventType & outEnd);
-  void synchronise(SoupRecord & ioSoup, const BackupIds & inIds);
+  void synchronise(SoupRecord & ioSoup, const StoreRecord & inStore, bool inComplete, const BackupIds & inIds);
+  void deleteOnNewton();
   void done(int inError);
 
   DockController & mDock;
   DeviceFile & mFile;
   BackupCounts mCounts;
+  DeletionPlan mPlan;
+  std::function<Deletions(const DeletionPlan &)> mDecide;
 };
 
 } // namespace ncx

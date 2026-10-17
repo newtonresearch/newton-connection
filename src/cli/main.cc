@@ -11,10 +11,14 @@
                                      the Newton's screen (it needs the
                                      Toolkit app), as a PNG; --block: bytes
                                      a request (2048; 0: all at once)
-   ncx-cli backup [--folder <folder>] [options]
+   ncx-cli backup [--folder <folder>] [--delete | --only-add] [options]
                                      back up the Newton into its
                                      .newtondevice file in the folder (the
-                                     app's: NCX_DATA_DIR, or as NCX keeps them)
+                                     app's: NCX_DATA_DIR, or as NCX keeps them);
+                                     entries the Newton has that the file
+                                     doesn't: a few are deleted there, more
+                                     only if asked (on the terminal, or
+                                     --delete; --only-add leaves them)
    ncx-cli restore [--folder <folder>] [--to <store>] [--from <store>]
                [--apps <a,b,...>] [--packages] [--yes] [options]
                                      restore the Newton from its backup in
@@ -88,6 +92,14 @@
 #include <filesystem>
 #include <functional>
 #include <thread>
+
+#if defined(_WIN32)
+#include <io.h>
+#define isatty _isatty
+#define fileno _fileno
+#else
+#include <unistd.h>
+#endif
 #include <string>
 #include <vector>
 
@@ -99,7 +111,7 @@ int Usage()
     "Usage: ncx-cli --version | --selftest\n"
     "       ncx-cli info [<dock options>]\n"
     "       ncx-cli screenshot <file.png> [--block <bytes>] [<dock options>]\n"
-    "       ncx-cli backup [--folder <folder>] [<dock options>]\n"
+    "       ncx-cli backup [--folder <folder>] [--delete | --only-add] [<dock options>]\n"
     "       ncx-cli restore [--folder <folder>] [--to <store>] [--from <store>] [--apps <a,b,...>] [--packages] [--yes]\n"
     "               [<dock options>]\n"
     "       ncx-cli install <package>... [--replace] [<dock options>]\n"
@@ -395,9 +407,37 @@ std::filesystem::path BackupFolder(const std::string & inFolder)
 }
 
 
+/** What to do about entries the Newton has that the file doesn't: ask (on
+    the terminal), delete them, or only add. */
+enum class DeletePolicy { kAsk, kDelete, kOnlyAdd };
+
+ncx::Deletions Decide(const ncx::DeletionPlan & inPlan, DeletePolicy inPolicy)
+{
+  for (const std::string & soup : inPlan.incomplete)
+    std::fprintf(stderr, "Warning: the backup of %s never finished; the file may be incomplete there, "
+                 "nothing of it is deleted on the Newton\n", soup.c_str());
+  if (inPlan.total == 0)
+    return ncx::Deletions::kOnlyAdd;
+  std::fprintf(stderr, "About to delete %zu entries on the Newton that the backup doesn't have:", inPlan.total);
+  for (const ncx::DeletionPlan::Soup & soup : inPlan.soups)
+    std::fprintf(stderr, " %s %zu of %zu;", soup.name.c_str(), soup.ids.size(), soup.onNewton);
+  std::fprintf(stderr, "\n");
+  if (inPolicy == DeletePolicy::kAsk && isatty(fileno(stdin))) {
+    std::fprintf(stderr, "Delete them [d], or only add [a]? ");
+    int c = std::getchar();
+    return c == 'd' || c == 'D' ? ncx::Deletions::kDelete : ncx::Deletions::kOnlyAdd;
+  }
+  if (inPolicy == DeletePolicy::kDelete)
+    return ncx::Deletions::kDelete;
+  std::fprintf(stderr, "Not deleted (--delete deletes them)\n");
+  return ncx::Deletions::kOnlyAdd;
+}
+
+
 /** Back up the docked Newton into its file in inFolder (found by its id,
     or made); print what happened. 0 if all went well. */
-int BackUp(ncx::DockController & ioDock, const std::filesystem::path & inFolder, bool inNewtonAsked)
+int BackUp(ncx::DockController & ioDock, const std::filesystem::path & inFolder, bool inNewtonAsked,
+           DeletePolicy inPolicy = DeletePolicy::kAsk)
 {
   std::string error;
   std::unique_ptr<ncx::DeviceFile> file = ncx::OpenDeviceFileFor(inFolder, ioDock.newton().info, ioDock.newton().name, error);
@@ -408,6 +448,7 @@ int BackUp(ncx::DockController & ioDock, const std::filesystem::path & inFolder,
   if (!inNewtonAsked)
     ncx::UpdateDevice(ioDock, *file);
   ncx::Backup backup(ioDock, *file);
+  backup.setDecide([inPolicy](const ncx::DeletionPlan & inPlan) { return Decide(inPlan, inPolicy); });
   ncx::Progress progress;
   int result = inNewtonAsked ? backup.answer(&progress) : backup.run(&progress);
   const ncx::BackupCounts & counts = backup.counts();
@@ -421,10 +462,15 @@ int BackUp(ncx::DockController & ioDock, const std::filesystem::path & inFolder,
 int BackupCommand(int argc, char * argv[])
 {
   std::string folder;
+  DeletePolicy policy = DeletePolicy::kAsk;
   std::vector<char *> args(argv, argv + 2);
   for (int i = 2; i < argc; ++i) {
     if (std::strcmp(argv[i], "--folder") == 0 && i + 1 < argc)
       folder = argv[++i];
+    else if (std::strcmp(argv[i], "--delete") == 0)
+      policy = DeletePolicy::kDelete;
+    else if (std::strcmp(argv[i], "--only-add") == 0)
+      policy = DeletePolicy::kOnlyAdd;
     else
       args.push_back(argv[i]);
   }
@@ -432,7 +478,7 @@ int BackupCommand(int argc, char * argv[])
   std::vector<std::string> rest;
   if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || !rest.empty())
     return Usage();
-  return Dock(settings, [&](ncx::DockController & dock) { return BackUp(dock, BackupFolder(folder), false); });
+  return Dock(settings, [&](ncx::DockController & dock) { return BackUp(dock, BackupFolder(folder), false, policy); });
 }
 
 

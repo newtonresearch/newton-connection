@@ -150,6 +150,7 @@ int Backup::answer(Progress * ioProgress)
 int Backup::backup(Progress * ioProgress)
 {
   mCounts = BackupCounts();
+  mPlan = DeletionPlan();
   Session & session = mDock.session();
   if (ioProgress) {
     ioProgress->setTotal(-1);
@@ -264,6 +265,9 @@ int Backup::backup(Progress * ioProgress)
         ioProgress->setCompleted(++appsDone);
     }
   }
+  // what the file lacks, deleted on the Newton if that's clear or wanted
+  if (error == 0)
+    deleteOnNewton();
   done(error);
   return error;
 }
@@ -326,6 +330,9 @@ int Backup::backupSoup(const StoreRecord & inStore, const AppRecord & inApp, boo
 
   if (found) {
     SoupRecord soup = *found;
+    // its backup finished once (NCKLastBackupTime), else the file may lack
+    // some of it
+    bool complete = soup.lastBackupTime != 0;
     syncTime = session.setLastSyncTime((uint32_t)soup.lastBackupTime);
     // its info and indexes, if they changed
     DockEvent changed = session.sendAndReceive(kDGetChangedInfo, kDAnyEvent);
@@ -355,7 +362,7 @@ int Backup::backupSoup(const StoreRecord & inStore, const AppRecord & inApp, boo
       mCounts.removed += mFile.cropSoup(soup.pk, std::vector<int64_t>(ids.ids().begin(), ids.ids().end()));
     // packages can't be deleted or made on the desktop: nothing to send back
     if (error == 0 && !inPackages)
-      synchronise(soup, ids);
+      synchronise(soup, inStore, complete, ids);
     found = soup;
   } else {
     // a soup new to the file: all of it
@@ -398,22 +405,33 @@ int Backup::backupSoup(const StoreRecord & inStore, const AppRecord & inApp, boo
 }
 
 
-void Backup::synchronise(SoupRecord & ioSoup, const BackupIds & inIds)
+void Backup::synchronise(SoupRecord & ioSoup, const StoreRecord & inStore, bool inComplete, const BackupIds & inIds)
 {
   Session & session = mDock.session();
-  // the Newton's entries the file doesn't have: deleted on the desktop
+  // the Newton's entries the file doesn't have: to delete on the Newton,
+  // after all soups, if it's clear or the user says so
   std::set<int64_t> local;
   for (const EntryRecord & entry : mFile.entries(ioSoup.pk))
     if (entry.uniqueId < kImportIdBase)
       local.insert(entry.uniqueId);
-  RefVar deleted(MakeArray(0));
+  DeletionPlan::Soup soup;
+  soup.store = inStore.name;
+  soup.name = ioSoup.name;
+  soup.storePk = inStore.pk;
+  soup.onNewton = inIds.ids().size();
   for (int64_t id : inIds.ids())
     if (!local.count(id))
-      AddArraySlot(deleted, MAKEINT(id));
-  if (Length(deleted) > 0) {
-    Log(kLogMinimum, "backup: %s: deleting %d entries on the Newton", ioSoup.name.c_str(), (int)Length(deleted));
-    session.deleteEntryIdList(deleted);
-    mCounts.deletedOnNewton += Length(deleted);
+      soup.ids.push_back(id);
+  if (!soup.ids.empty()) {
+    if (!inComplete) {
+      // the file never had all of this soup: what it lacks isn't deleted
+      Log(kLogMinimum, "backup: %s: %d entries the file lacks; its backup never finished, none deleted",
+          ioSoup.name.c_str(), (int)soup.ids.size());
+      mPlan.incomplete.push_back(inStore.name + ": " + ioSoup.name);
+    } else {
+      mPlan.total += soup.ids.size();
+      mPlan.soups.push_back(soup);
+    }
   }
   // the entries made on the desktop: to the Newton, with the ids it gives
   for (EntryRecord entry : mFile.entries(ioSoup.pk, true)) {
@@ -425,6 +443,50 @@ void Backup::synchronise(SoupRecord & ioSoup, const BackupIds & inIds)
     session.addEntry(frame);
     UpdateEntry(mFile, ioSoup, entry, frame);
     ++mCounts.added;
+  }
+}
+
+
+void DeletionPlan::assess()
+{
+  // clear: a few entries, no soup losing much of itself, no incomplete soup
+  clear = incomplete.empty() && total <= kClearTotal;
+  for (const Soup & soup : soups)
+    if (soup.ids.size() * kClearShare > soup.onNewton)
+      clear = false;
+}
+
+
+void Backup::deleteOnNewton()
+{
+  if (mPlan.soups.empty() && mPlan.incomplete.empty())
+    return;
+  mPlan.assess();
+  Deletions decision = Deletions::kOnlyAdd;
+  if (mPlan.clear)
+    decision = Deletions::kDelete;
+  else if (mDecide)
+    decision = mDecide(mPlan);
+  if (decision != Deletions::kDelete || mPlan.soups.empty()) {
+    if (mPlan.total)
+      Log(kLogMinimum, "backup: %d entries the file lacks left on the Newton", (int)mPlan.total);
+    return;
+  }
+  Session & session = mDock.session();
+  for (const DeletionPlan::Soup & soup : mPlan.soups) {
+    std::vector<StoreRecord> stores = mFile.stores();
+    auto store = std::find_if(stores.begin(), stores.end(), [&](const StoreRecord & s) { return s.pk == soup.storePk; });
+    if (store == stores.end())
+      continue;
+    session.setCurrentStore(RefVar(StoreFrame(*store)), false);
+    if (session.setCurrentSoup(RefVar(MakeStringFromUTF8(soup.name))) != 0)
+      continue;
+    RefVar ids(MakeArray(0));
+    for (int64_t id : soup.ids)
+      AddArraySlot(ids, MAKEINT(id));
+    Log(kLogMinimum, "backup: %s: deleting %d entries on the Newton", soup.name.c_str(), (int)soup.ids.size());
+    session.deleteEntryIdList(ids);
+    mCounts.deletedOnNewton += soup.ids.size();
   }
 }
 

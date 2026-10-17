@@ -8,8 +8,8 @@
    ncx_dock_test <section> <ncx-fake-newton>   extensions, bits, controller,
                                                screenshot, onepiece, notoolkit,
                                                memory, packagefiles, install,
-                                               browse, backup, restore, or
-                                               all
+                                               browse, backup, deletions,
+                                               restore, or all
    ncx_dock_test make-package <file> <name>    a package to try things on
 
  Prints "ok <what>" or "FAIL <what>" per check; exit 0 if all are ok.
@@ -49,6 +49,7 @@
 #include <filesystem>
 #include <random>
 #include <fstream>
+#include <functional>
 #include <string>
 #include <thread>
 #include <vector>
@@ -69,10 +70,10 @@ void Check(bool inOk, const std::string & inWhat)
 
 /** A port of its own for each section, below 40000 (Windows). The sections
     run as processes of their own, at the same time: a base at random, a
-    multiple of 20, the sections' offsets below 20. */
+    multiple of 40, the sections' offsets below 40. */
 int Port(int inSection)
 {
-  static int base = 21000 + (int)(std::random_device()() % 900) * 20;
+  static int base = 21000 + (int)(std::random_device()() % 450) * 40;
   return base + inSection;
 }
 
@@ -543,8 +544,11 @@ void TestBackup()
     transaction.commit();
   }
 
-  // round 2: Babbage gone and Somerville new on the Newton
+  // round 2: Babbage gone and Somerville new on the Newton; Ada (deleted
+  // here) is 1 of the 2 Names entries there: not clear, so it asks
   FakeProcess fake2;
+  DeletionPlan asked;
+  int askedTimes = 0;
   result = DockWithFake(Port(14), "--round 2", fake2, [&](DockController & dock) {
     std::string error;
     std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(folder, dock.newton().info, dock.newton().name, error);
@@ -552,9 +556,17 @@ void TestBackup()
       return;
     UpdateDevice(dock, *file);
     Backup backup(dock, *file);
+    backup.setDecide([&](const DeletionPlan & inPlan) {
+      asked = inPlan;
+      ++askedTimes;
+      return Deletions::kDelete;
+    });
     backedUp = backup.run();
     counts = backup.counts();
   });
+  Check(askedTimes == 1 && asked.total == 1 && asked.soups.size() == 1 && asked.soups[0].name == "Names"
+        && asked.soups[0].ids == std::vector<int64_t>({ 100 }) && asked.soups[0].onNewton == 2 && !asked.clear
+        && asked.incomplete.empty(), "backup: asked once about deleting 1 of 2 Names entries");
   Check(result == 0 && backedUp == 0 && counts.soups == 4 && counts.entries == 1, "backup: the second " + fake2.why);
   Check(counts.removed == 1 && fake2.deleted == std::vector<int64_t>({ 100 }) && counts.deletedOnNewton == 1,
         "backup: gone from the Newton, gone from the file; deleted here, deleted there");
@@ -568,6 +580,107 @@ void TestBackup()
           && file->rowCount("ZDEVICE") == 1, "backup: the file afterwards (the note with the Newton's id)");
   }
   std::filesystem::remove_all(folder);
+}
+
+/*-- deletions on the Newton --------------------------------------------------*/
+
+/** A backup of the fake Newton into inFolder (round 1), Ada deleted here,
+    inPrepare done to the file, then round 2 with inDecision: the plan it
+    was asked about (asked: if it was), the counts, the fake's report. */
+void BackupTwice(const std::filesystem::path & inFolder, int inPort, std::function<void(DeviceFile &)> inPrepare,
+                 Deletions inDecision, DeletionPlan & outPlan, bool & outAsked, BackupCounts & outCounts,
+                 FakeProcess & outFake)
+{
+  FakeProcess first;
+  std::filesystem::path path;
+  DockWithFake(inPort, "--round 1", first, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(inFolder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    path = file->path();
+    UpdateDevice(dock, *file);
+    Backup(dock, *file).run();
+  });
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(path, DeviceFile::kReadWrite, error);
+    if (!file)
+      return;
+    std::optional<SoupRecord> names = file->findSoup(file->stores().at(0).pk, "Names");
+    DeviceFile::Transaction transaction(*file);
+    file->deleteEntry(file->findEntry(names->pk, 100, false)->pk);
+    if (inPrepare)
+      inPrepare(*file);
+    transaction.commit();
+  }
+  outAsked = false;
+  DockWithFake(inPort + 1, "--round 2", outFake, [&](DockController & dock) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = OpenDeviceFileFor(inFolder, dock.newton().info, dock.newton().name, error);
+    if (!file)
+      return;
+    Backup backup(dock, *file);
+    backup.setDecide([&](const DeletionPlan & inPlan) {
+      outAsked = true;
+      return inDecision;
+    });
+    backup.run();
+    outPlan = backup.deletions();
+    outCounts = backup.counts();
+  });
+}
+
+void TestDeletions()
+{
+  // "Only Add": Ada stays on the Newton
+  {
+    std::filesystem::path folder = TempFolder("onlyadd");
+    DeletionPlan plan;
+    bool asked = false;
+    BackupCounts counts;
+    FakeProcess fake;
+    BackupTwice(folder, Port(17), nullptr, Deletions::kOnlyAdd, plan, asked, counts, fake);
+    Check(asked && plan.total == 1 && fake.deleted.empty() && counts.deletedOnNewton == 0 && fake.exitCode == 0,
+          "deletions: only add, nothing deleted on the Newton " + fake.why);
+    std::filesystem::remove_all(folder);
+  }
+  // a soup whose backup never finished (no NCKLastBackupTime): a warning,
+  // nothing of it deleted, whatever the answer
+  {
+    std::filesystem::path folder = TempFolder("incomplete");
+    DeletionPlan plan;
+    bool asked = false;
+    BackupCounts counts;
+    FakeProcess fake;
+    BackupTwice(folder, Port(19), [](DeviceFile & ioFile) {
+      std::optional<SoupRecord> names = ioFile.findSoup(ioFile.stores().at(0).pk, "Names");
+      names->lastBackupTime = 0;
+      ioFile.update(*names);
+    }, Deletions::kDelete, plan, asked, counts, fake);
+    Check(asked && plan.incomplete == std::vector<std::string>({ "Internal: Names" }) && plan.total == 0
+          && fake.deleted.empty() && fake.exitCode == 0, "deletions: an unfinished soup: a warning, nothing deleted " + fake.why);
+    std::filesystem::remove_all(folder);
+  }
+  // what's clear
+  DeletionPlan plan;
+  plan.soups.push_back({ "Internal", "Names", 1, { 1, 2 }, 100 });
+  plan.total = 2;
+  plan.assess();
+  Check(plan.clear, "deletions: 2 of 100 is clear");
+  plan.soups[0].onNewton = 8;
+  plan.assess();
+  Check(!plan.clear, "deletions: 2 of 8 isn't (more than a fifth)");
+  plan.soups[0].onNewton = 1000;
+  plan.soups[0].ids.assign(11, 1);
+  plan.total = 11;
+  plan.assess();
+  Check(!plan.clear, "deletions: 11 isn't (more than 10)");
+  plan.soups[0].ids.assign(2, 1);
+  plan.total = 2;
+  plan.incomplete.push_back("Internal: Notes");
+  plan.assess();
+  Check(!plan.clear, "deletions: nothing is clear with an unfinished soup");
 }
 
 /*-- restore -----------------------------------------------------------------*/
@@ -668,7 +781,7 @@ int main(int argc, char * argv[])
     { "extensions", TestExtensions }, { "bits", TestBits }, { "controller", TestController },
     { "screenshot", TestScreenshot }, { "onepiece", TestOnePiece }, { "notoolkit", TestNoToolkit },
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
-    { "browse", TestBrowse }, { "backup", TestBackup }, { "restore", TestRestore } };
+    { "browse", TestBrowse }, { "backup", TestBackup }, { "deletions", TestDeletions }, { "restore", TestRestore } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

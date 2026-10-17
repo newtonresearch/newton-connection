@@ -51,7 +51,7 @@ add_test (NAME ncx_model_fixture COMMAND ncx_model_test fixture ${CMAKE_CURRENT_
 add_executable (ncx_dock_test dock_test.cc)
 target_link_libraries (ncx_dock_test PRIVATE ncx_fake_newton)
 add_dependencies (ncx_dock_test ncx-fake-newton)
-foreach (section extensions bits controller screenshot onepiece notoolkit memory packagefiles install browse backup restore)
+foreach (section extensions bits controller screenshot onepiece notoolkit memory packagefiles install browse backup deletions restore)
   add_test (NAME ncx_dock_${section} COMMAND ncx_dock_test ${section} $<TARGET_FILE:ncx-fake-newton>)
 endforeach ()
 math (EXPR cli_port_screenshot "43000 + ${port_base} + 2000")
