@@ -790,7 +790,16 @@ ThreadSanitizer and ASan/UBSan.
        which stores and whether packages; from the desktop everything.
      `ncx-cli backup [--folder]` (into the file of the docked Newton in the
      folder, the app's by default); `ncx-cli serve [--backups]` answers the
-     Newton's Backup. Still to do: against Einstein and a real Newton.
+     Newton's Backup. Against Einstein on macOS (Matt, 2026-10-17): 20
+     soups, 65 entries, all readable, Core Data opens the file; the soups
+     match the Cocoa NCX's backup of that Einstein but for the ones it kept
+     from older sessions (it never removes a soup gone from the Newton).
+     Found on the way: events of no set length (`cgfn`) must not be padded
+     (the Newton reads the padding as the next header: -28016, bad header;
+     since Phase 3, unseen until the first global function call), and a
+     refused request now says so ("the Newton refused 'stme': -28016 (bad
+     header)", "the Newton disconnected after 'ssyn'"). Still to do: a real
+     Newton.
   5. restore
      ✅ (fake Newton) `dock/Restore.h`, the Cocoa app's desktop half: what
      to restore from `model/Restore.h`'s choices (a store of the Newton, a
