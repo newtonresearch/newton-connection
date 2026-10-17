@@ -798,8 +798,17 @@ ThreadSanitizer and ASan/UBSan.
      (the Newton reads the padding as the next header: -28016, bad header;
      since Phase 3, unseen until the first global function call), and a
      refused request now says so ("the Newton refused 'stme': -28016 (bad
-     header)", "the Newton disconnected after 'ssyn'"). Still to do: a real
-     Newton.
+     header)", "the Newton disconnected after 'ssyn'"). The second,
+     incremental backup (Matt, 2026-10-17) failed at a soup's `sinf`: the
+     Newton rejected the same MNP frame again and again. Einstein's serial
+     drivers wrote everything the host sent into the receive DMA, also past
+     its count, overwriting bytes NewtonOS hadn't read; a whole MNP frame
+     comes at once over TCP. Fixed in Einstein (all its serial drivers read
+     no more than the DMA can take, and wake when NewtonOS starts it again);
+     then the incremental backup went through (20 soups, 2 entries came). A
+     big frame sent right after one of the Newton's is still refused once
+     and taken when sent again at once (its MNP, harmless). Still to do: a
+     real Newton.
   5. restore
      ✅ (fake Newton) `dock/Restore.h`, the Cocoa app's desktop half: what
      to restore from `model/Restore.h`'s choices (a store of the Newton, a
