@@ -276,8 +276,10 @@ void DockController::endSession(int inCode, const std::string & inWhy)
   }
   if (inCode != 0)
     Log(kLogMinimum, "dock: the session ended: %s (%d)", inWhy.c_str(), inCode);
+  // ended as it should ('disc', sent or received): the Newton drops the
+  // connection itself
   if (mQueue)
-    mQueue->close();
+    mQueue->close(inCode == 0);
   mDocked = false;
 }
 

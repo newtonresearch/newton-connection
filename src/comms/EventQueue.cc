@@ -117,8 +117,16 @@ size_t EventQueue::pending()
 }
 
 
-void EventQueue::close()
+void EventQueue::close(bool inByNewton)
 {
+  if (inByNewton && mReader.joinable()) {
+    // what is queued goes first (MNP waits for its acknowledgement), then
+    // the Newton drops the connection
+    std::unique_lock<std::mutex> lock(mLock);
+    mChanged.wait_for(lock, std::chrono::milliseconds(kNewtonEndsWait), [this] { return mClosed.load(); });
+    if (!mClosed)
+      NCX_LOG_MINIMUM("the Newton didn't end the connection after 'disc'");
+  }
   mStopping = true;
   if (mReader.joinable())
     mReader.join();

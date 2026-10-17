@@ -297,6 +297,8 @@ void TestMemory()
   });
   std::vector<uint8_t> bytes = ReadFile(file);
   Check(result == 0 && dumped == 0 && bytes.size() == 65536 && MatchesMemory(bytes, 0), "memory: 64 KB, every byte " + fake.why);
+  Check(!fake.status.empty() && fake.status.back() == "Reading memory: 64 KB of 64 KB",
+        "memory: the Newton's status text says what came");
   Check(progress.completed() == 65536 && fake.extensions == std::vector<std::string>({ "NDmp" }),
         "memory: the progress, the extension");
 
@@ -1094,6 +1096,8 @@ void TestCard()
         "card: the files, the memory byte for byte");
   Check(progress.total() == kFakeCardSize && progress.completed() == kFakeCardSize, "card: the progress");
   Check(fake.power == std::vector<std::string>({ "0 on", "0 off" }), "card: powered while read, then let go");
+  Check(!fake.status.empty() && fake.status.front() == "Reading card 0's CIS: 0 KB of 8 KB"
+        && fake.status.back() == "Reading card 0: 64 KB of 64 KB", "card: the Newton's status text, what is read");
   Check(empty == kDockErrCardNotInstalled, "card: an empty socket isn't touched");
   if (!std::getenv("NCX_KEEP"))
     std::filesystem::remove_all(folder);

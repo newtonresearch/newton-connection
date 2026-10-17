@@ -895,8 +895,18 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
      `CIS.cc` took the longest chain, and a CIS in the even bytes with 0 in
      the odd ones is a longer chain read as every byte; the layout with the
      most known tuples wins now (newton-framework B76; Einstein's CIS, whose
-     VERS_1 link is 3 bytes short, still decodes). Still to do: Einstein's
-     card and a real one.
+     VERS_1 link is 3 bytes short, still decodes). Against Einstein's card
+     (Matt, 2026-10-17): it came. Then, from what Matt saw on the Newton:
+     - The session ended with "your Mac OS computer disconnected": after
+       its 'disc' NCX dropped the link as soon as MNP had acknowledged it,
+       before the Newton's Dock had read it. Now, after a 'disc' (sent or
+       received), the Newton ends the connection itself; NCX waits for that
+       (3 s at most, `EventQueue::close`).
+     - While memory is read, the Dock said "Waiting for a response...". The
+       Connection app takes `stxt` (its status view's title; the idle
+       script leaves the title alone while an extension works): now "Reading
+       the ROM: 1.2 of 8 MB", "Reading card 0: ...", every 2 s
+       (`MemoryReader::setLabel`). Its gauge can't be reached that way.
 
   `SyncComponent` is dropped.
 - Done when: every command works against Einstein, and backup/restore

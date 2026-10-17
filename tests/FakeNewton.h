@@ -111,6 +111,8 @@ public:
   size_t blankBlocks() const { return mBlankBlocks; }
   /** The memory it was asked to read ('NDmp' read), in bytes. */
   size_t memoryRead() const { return mMemoryRead; }
+  /** The status texts the desktop set ('stxt'), in order. */
+  const std::vector<std::string> & statusTexts() const { return mStatusTexts; }
   /** Its card's power, in order: "0 on", "0 off". */
   const std::vector<std::string> & power() const { return mPower; }
   /** The packages it took ('lpkg'), and removed ('rmvp'), by name. */
@@ -151,6 +153,7 @@ private:
   std::vector<std::string> mRestored;
   std::vector<std::string> mTyped;
   std::vector<std::string> mPower;
+  std::vector<std::string> mStatusTexts;
 };
 
 } // namespace ncx

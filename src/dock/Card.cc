@@ -100,6 +100,7 @@ int CardReader::read(int inSocket, const std::filesystem::path & inFolder, const
   // the CIS: attribute memory, a byte at a time
   if (ioProgress)
     ioProgress->setDescription("Socket " + std::to_string(inSocket) + ": the CIS");
+  mReader.setLabel("Reading card " + std::to_string(inSocket) + "'s CIS");
   int error = DumpMemory(mReader, base + kCardAttributeOffset, kCardAttributeRead, outDump.attributeFile, false, inBlock,
                          nullptr, true);
   if (error != 0) {
@@ -153,6 +154,7 @@ int CardReader::read(int inSocket, const std::filesystem::path & inFolder, const
   }
   if (ioProgress)
     ioProgress->setDescription("Socket " + std::to_string(inSocket) + ": the memory");
+  mReader.setLabel("Reading card " + std::to_string(inSocket));
   error = DumpMemory(mReader, base + kCardCommonOffset, size, outDump.commonFile, inResume, inBlock, ioProgress);
   if (error != 0) {
     mWhy = error == kDockErrAborted ? "cancelled" : "reading the common memory failed";

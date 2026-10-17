@@ -7,9 +7,11 @@
 #include "dock/MemoryDump.h"
 #include "dock/DockController.h"
 #include "base/Log.h"
+#include "base/NewtonStrings.h"
 #include "comms/DockRefs.h"
 
 #include <algorithm>
+#include <cstdio>
 #include <fstream>
 #include <system_error>
 
@@ -184,6 +186,42 @@ int MemoryReader::power(int inSocket, bool inOn, int32_t * outResult)
 }
 
 
+int MemoryReader::showProgress(uint64_t inDone, uint64_t inTotal)
+{
+  // the Dock's Connection app takes 'stxt' (its status view's title) and
+  // answers with a result; not too often, it's a round trip
+  auto now = std::chrono::steady_clock::now();
+  if (mLabel.empty() || mNoStatus || (inDone < inTotal && inDone > 0 && now - mShown < std::chrono::seconds(2)))
+    return 0;
+  mShown = now;
+  auto size = [](uint64_t inBytes) {
+    char text[32];
+    if (inBytes >= 1 << 20)
+      std::snprintf(text, sizeof(text), "%.1f MB", inBytes / 1048576.0);
+    else
+      std::snprintf(text, sizeof(text), "%llu KB", (unsigned long long)(inBytes >> 10));
+    return std::string(text);
+  };
+  Session & session = mDock.session();
+  session.sendRef(kDSetStatusText, RefVar(MakeStringFromUTF8(mLabel + ": " + size(inDone) + " of " + size(inTotal))));
+  for (;;) {
+    DockEvent answer = session.receive(kDResult);
+    if (answer.command == kDResult)
+      return 0;
+    if (answer.command == kDOperationCanceled) {
+      session.send(kDOpCanceledAck);
+      return kDockErrAborted;
+    }
+    if (answer.command == kDUnknownCommand) {
+      mNoStatus = true;
+      return 0;
+    }
+    if (answer.command == kDDisconnect)
+      throw DockFailure(kDockErrDisconnected, "the Newton ended the connection");
+  }
+}
+
+
 uint32_t ROMSize(const NewtonInfo &)
 {
   // every NewtonOS 2 machine NCX knows (MessagePad 2x00, eMate 300,
@@ -196,6 +234,7 @@ int DumpMemory(DockController & ioDock, uint32_t inAddress, uint64_t inSize, con
                bool inResume, uint32_t inBlock, Progress * ioProgress)
 {
   MemoryReader reader(ioDock);
+  reader.setLabel(inAddress == 0 && inSize == ROMSize(ioDock.newton().info) ? "Reading the ROM" : "Reading memory");
   int error = reader.begin();
   if (error == 0)
     error = DumpMemory(reader, inAddress, inSize, inFile, inResume, inBlock, ioProgress);
@@ -227,6 +266,9 @@ int DumpMemory(MemoryReader & ioReader, uint32_t inAddress, uint64_t inSize, con
   uint64_t done = start;
   std::vector<uint8_t> bytes;
   while (error == 0 && done < inSize) {
+    error = ioReader.showProgress(done, inSize);
+    if (error != 0)
+      break;
     if (ioProgress && ioProgress->cancelled()) {
       error = kDockErrAborted;
       break;
@@ -248,6 +290,8 @@ int DumpMemory(MemoryReader & ioReader, uint32_t inAddress, uint64_t inSize, con
       ioProgress->setCompleted((int64_t)done);
   }
   file.close();
+  if (error == 0)
+    error = ioReader.showProgress(done, inSize);    // all of it
   return error;
 }
 

@@ -567,6 +567,13 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       keyboardEnding = false;
       continue;
     }
+    if (c == kDSetStatusText) {
+      // the Dock's Connection app: its status view's title
+      RefVar text(UnflattenBytes(event.data));
+      mStatusTexts.push_back(IsString(text) ? UTF8FromString(text) : std::string("?"));
+      wire->send(DockEvent::MakeValue(kDResult, 0));
+      continue;
+    }
     if (c == kDStartKeyboardPassthrough) {
       wire->send(DockEvent::Make(kDStartKeyboardPassthrough));
       keyboardOn = true;

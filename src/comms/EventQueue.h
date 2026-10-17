@@ -35,6 +35,7 @@ public:
   EventQueue & operator=(const EventQueue &) = delete;
 
   enum Result { kEvent, kTimeout, kClosed };
+  static constexpr int kNewtonEndsWait = 3000;    // ms: close(true)
 
   /** The next event: waits at most inMilliseconds (-1: no limit). kClosed
       once the connection is gone and all its events are taken (why()). */
@@ -53,8 +54,11 @@ public:
   /** Bytes sent but not acknowledged yet (MNP). */
   size_t pending();
 
-  /** End the connection (MNP: with an LD) and the reading. */
-  void close();
+  /** End the connection (MNP: with an LD) and the reading. inByNewton:
+      after a 'disc' (sent or received), the Newton ends it itself; wait
+      for that (a few seconds at most). Ended under its Dock before that
+      has read the 'disc', the Newton says "your computer disconnected". */
+  void close(bool inByNewton = false);
 
   bool isClosed() const { return mClosed; }
   std::string why();

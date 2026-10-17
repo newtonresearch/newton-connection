@@ -20,9 +20,11 @@
 
 #include "Objects.h"
 
+#include <chrono>
 #include <cstdint>
 #include <filesystem>
 #include <map>
+#include <string>
 #include <vector>
 
 namespace ncx {
@@ -56,12 +58,22 @@ public:
   /** Give up control. */
   void end();
 
+  /** The Newton's status text while memory is read, instead of its Dock's
+      "Waiting for a response...": "<inLabel>: 1.2 of 8 MB" (DumpMemory). */
+  void setLabel(const std::string & inLabel) { mLabel = inLabel; }
+  /** inDone of inTotal bytes there: the status text, every few seconds
+      (and at the end). 0, or kDockErrAborted (cancelled on the Newton). */
+  int showProgress(uint64_t inDone, uint64_t inTotal);
+
 private:
   int ask(RefArg inRequest, RefVar & outAnswer);
   int map(uint32_t inBase, uint32_t inSize, int & outMap);
 
   DockController & mDock;
   std::map<uint64_t, int> mMaps;          // (base, size) -> the Newton's map
+  std::string mLabel;
+  std::chrono::steady_clock::time_point mShown;
+  bool mNoStatus = false;                 // the Newton doesn't take 'stxt'
 };
 
 /** The size of a Newton's ROM: 8 MB (MessagePad 2x00, eMate 300, Einstein). */
