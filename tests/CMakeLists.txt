@@ -40,6 +40,18 @@ math (EXPR cli_port_newton1 "43000 + ${port_base} + 2500")
 add_test (NAME ncx_cli_info_newton1 COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_newton1} -DNEWTON1=ON -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
 
+# The translators (PORTING.md Phase 6): vCard, iCalendar, text, packages
+add_executable (ncx_translators_test translators_test.cc)
+target_link_libraries (ncx_translators_test PRIVATE ncx_core)
+foreach (section lines names dates notes builtin)
+  add_test (NAME ncx_translators_${section} COMMAND ncx_translators_test ${section})
+endforeach ()
+add_test (NAME ncx_translators_transfer COMMAND ncx_translators_test transfer
+          ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice)
+add_test (NAME ncx_cli_transfer COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli>
+          -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice
+          -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_transfer -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_transfer.cmake)
+
 # The model (PORTING.md Phase 4): device files, entries, backups
 add_executable (ncx_model_test model_test.cc)
 target_link_libraries (ncx_model_test PRIVATE ncx_core)

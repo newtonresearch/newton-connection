@@ -76,6 +76,14 @@ add_library (ncx_core STATIC
   model/Restore.cc model/Restore.h
   platform/AppFolders.cc platform/AppFolders.h
   platform/SerialPorts.cc platform/SerialPorts.h
+  translators/Builtin.cc
+  translators/ContentLines.cc translators/ContentLines.h
+  translators/Dates.cc
+  translators/Formats.cc
+  translators/Names.cc
+  translators/Notes.cc
+  translators/Transfer.cc translators/Transfer.h
+  translators/Translator.cc translators/Translator.h
   # newtdump's CIS decoder (newton-framework), for PCMCIA cards
   "${newton_SOURCE_DIR}/Matt/NewtDump/CIS.cc"
 )

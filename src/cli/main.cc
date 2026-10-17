@@ -68,6 +68,20 @@
                                      how many soups and entries per store;
                                      --check: that every entry can be read
                                      (and packages are packages)
+   ncx-cli export <file> [--app <app>]... [--store <store>] [--to <folder>]
+                                     the entries of a .newtondevice file as
+                                     desktop files in the folder (the
+                                     current one): of those apps (all), on
+                                     that store (all); vCard, iCalendar,
+                                     packages, text, else NewtonScript
+   ncx-cli import <file> <source>... [--app <app>] [--store <store>]
+                                     desktop files into a .newtondevice
+                                     file (vCard into Names, iCalendar into
+                                     Dates, text into Notes; --app if more
+                                     than one app takes it), on the store
+                                     (Internal), as entries made on the
+                                     desktop: the next backup, or add,
+                                     sends them to the Newton
    ncx-cli convert <nbku> <file>     a Newton Connection 1 backup (.nbku) as
                                      a new .newtondevice file
 
@@ -85,6 +99,7 @@
 
 #include "base/Core.h"
 #include "base/Log.h"
+#include "base/NewtonCall.h"
 #include "base/NewtonStrings.h"
 #include "base/Prefs.h"
 #include "comms/Handshake.h"
@@ -105,6 +120,8 @@
 #include "model/Restore.h"
 #include "model/NewtonModel.h"
 #include "platform/AppFolders.h"
+#include "translators/Transfer.h"
+#include "translators/Translator.h"
 
 #include "RSSymbols.h"
 
@@ -154,6 +171,8 @@ int Usage()
     "               [<dock options>]\n"
     "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
+    "       ncx-cli export <file.newtondevice> [--app <app>]... [--store <store>] [--to <folder>]\n"
+    "       ncx-cli import <file.newtondevice> <file>... [--app <app>] [--store <store>]\n"
     "       ncx-cli convert <backup.nbku> <file.newtondevice>\n");
   return 2;
 }
@@ -1002,6 +1021,152 @@ int Device(int argc, char * argv[])
 }
 
 
+/** A .newtondevice file for export or import; null (and said why) if it
+    can't be opened. */
+std::unique_ptr<ncx::DeviceFile> OpenForTransfer(const char * inPath, ncx::DeviceFile::Mode inMode)
+{
+  std::string error;
+  std::unique_ptr<ncx::DeviceFile> file = ncx::DeviceFile::Open(ncx::PathFromUTF8(inPath), inMode, error);
+  if (!file)
+    std::fprintf(stderr, "ncx-cli: %s\n", error.c_str());
+  return file;
+}
+
+
+int ExportCommand(int argc, char * argv[])
+{
+  if (argc < 3)
+    return Usage();
+  std::vector<std::string> apps;
+  std::string storeName, to = ".";
+  for (int i = 3; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--app" && i + 1 < argc)
+      apps.push_back(argv[++i]);
+    else if (arg == "--store" && i + 1 < argc)
+      storeName = argv[++i];
+    else if (arg == "--to" && i + 1 < argc)
+      to = argv[++i];
+    else
+      return Usage();
+  }
+  ncx::InitCore();
+  std::unique_ptr<ncx::DeviceFile> file = OpenForTransfer(argv[2], ncx::DeviceFile::kReadOnly);
+  if (!file)
+    return 1;
+  int result = 0;
+  try {
+    ncx::CallNewton([&] {
+      int64_t storePk = 0;
+      if (!storeName.empty()) {
+        for (const ncx::StoreRecord & store : file->stores())
+          if (store.name == storeName)
+            storePk = store.pk;
+        if (!storePk) {
+          std::fprintf(stderr, "ncx-cli: the file has no store %s\n", storeName.c_str());
+          result = 1;
+          return;
+        }
+      }
+      for (const std::string & wanted : apps)
+        if (!file->findApp(wanted)) {
+          std::fprintf(stderr, "ncx-cli: the file has no app %s\n", wanted.c_str());
+          result = 1;
+        }
+      for (const ncx::AppRecord & app : file->apps()) {
+        if (!apps.empty() && std::find(apps.begin(), apps.end(), app.name) == apps.end())
+          continue;
+        ncx::ExportResult exported = ncx::ExportApp(*file, app, storePk, ncx::PathFromUTF8(to));
+        if (exported.entries == 0)
+          continue;
+        std::printf("%s: %zu entries ->", app.name.c_str(), exported.entries);
+        for (const std::filesystem::path & f : exported.files)
+          std::printf(" %s;", ncx::UTF8FromPath(f.filename()).c_str());
+        std::printf("\n");
+      }
+    });
+  } catch (const std::exception & e) {
+    std::fprintf(stderr, "ncx-cli: %s\n", e.what());
+    return 1;
+  }
+  return result;
+}
+
+
+int ImportCommand(int argc, char * argv[])
+{
+  if (argc < 4)
+    return Usage();
+  std::vector<std::string> sources;
+  std::string app, storeName;
+  for (int i = 3; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--app" && i + 1 < argc)
+      app = argv[++i];
+    else if (arg == "--store" && i + 1 < argc)
+      storeName = argv[++i];
+    else if (arg.size() > 2 && arg.compare(0, 2, "--") == 0)
+      return Usage();
+    else
+      sources.push_back(arg);
+  }
+  if (sources.empty())
+    return Usage();
+  ncx::InitCore();
+  std::unique_ptr<ncx::DeviceFile> file = OpenForTransfer(argv[2], ncx::DeviceFile::kReadWrite);
+  if (!file)
+    return 1;
+  int result = 0;
+  try {
+    ncx::CallNewton([&] {
+      std::vector<ncx::StoreRecord> stores = ncx::SortedStores(*file);
+      const ncx::StoreRecord * store = nullptr;
+      for (const ncx::StoreRecord & s : stores)
+        if (!store && (storeName.empty() || s.name == storeName))
+          store = &s;
+      if (!store) {
+        std::fprintf(stderr, "ncx-cli: the file has no store %s\n", storeName.empty() ? "" : storeName.c_str());
+        result = 1;
+        return;
+      }
+      for (const std::string & source : sources) {
+        std::filesystem::path path = ncx::PathFromUTF8(source);
+        std::string into = app;
+        if (into.empty()) {
+          std::vector<std::string> apps = ncx::ImportAppsFor(path);
+          if (apps.size() != 1) {
+            std::string list;
+            for (const std::string & a : apps)
+              list += (list.empty() ? "" : ", ") + a;
+            std::fprintf(stderr, "ncx-cli: %s: %s\n", source.c_str(),
+                         apps.empty() ? "no app imports files of its kind" : ("--app: " + list).c_str());
+            result = 1;
+            continue;
+          }
+          into = apps[0];
+        }
+        ncx::ImportResult imported = ncx::ImportFile(*file, *store, into, path);
+        if (!imported.error.empty()) {
+          std::fprintf(stderr, "ncx-cli: %s\n", imported.error.c_str());
+          result = 1;
+          continue;
+        }
+        std::printf("%s: %zu entries into %s:", source.c_str(), imported.entries, into.c_str());
+        for (const auto & soup : imported.soups)
+          std::printf(" %s %zu;", soup.first.c_str(), soup.second);
+        if (imported.skipped)
+          std::printf(" %zu left out (their soup isn't on %s)", imported.skipped, store->name.c_str());
+        std::printf("\n");
+      }
+    });
+  } catch (const std::exception & e) {
+    std::fprintf(stderr, "ncx-cli: %s\n", e.what());
+    return 1;
+  }
+  return result;
+}
+
+
 int Convert(int argc, char * argv[])
 {
   if (argc != 4)
@@ -1062,6 +1227,10 @@ int main(int argc, char * argv[])
     return Screenshot(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "device") == 0)
     return Device(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "export") == 0)
+    return ExportCommand(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "import") == 0)
+    return ImportCommand(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "convert") == 0)
     return Convert(argc, argv);
   return Usage();

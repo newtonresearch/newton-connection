@@ -53,11 +53,14 @@ void Check(bool inOk, const std::string & inWhat)
 }
 
 /** Ports below 40000: Windows hands out 49152 and up to programs on its own,
-    and CI runners reserve blocks there (a listener couldn't bind). */
+    and CI runners reserve blocks there (a listener couldn't bind). From
+    10000 to 19999: dock_test's are from 21000 on, and the tests run at the
+    same time (a fake Newton that connects to another test's listener
+    waits for its time-out). */
 int NextPort()
 {
   if (gPort == 0)
-    gPort = 20000 + (int)(getpid() % 4000) * 4;
+    gPort = 10000 + (int)(getpid() % 2500) * 4;
   return gPort++;
 }
 

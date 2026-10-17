@@ -71,4 +71,5 @@ Keeping it brief, so you can add your findings.
   real devices.
 - Keep the `.newtondevice` Core Data SQLite schema byte-compatible.
 - Rich-text export: RTF with embedded PNGs.
-- Open: menu bar with several document windows (D9).
+- Open: menu bar with several document windows (D9); no libical, an
+  iCalendar reader and writer of our own (D10).
