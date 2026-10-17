@@ -89,9 +89,22 @@ struct RichDocument
   std::string text() const;       // the paragraphs' text, a LF after each but the last
 };
 
+/** A picture of an RTFD document: its file's name in the bundle, its PNG. */
+struct Attachment
+{
+  std::string name;
+  std::string png;
+};
+
 /** The document as RTF (ANSI with \uN for the rest, a font table of the
-    families used, pictures as \pngblip). */
-std::string WriteRTF(const RichDocument & inDocument);
+    families used, pictures as \pngblip). outAttachments: an RTFD
+    document's TXT.rtf instead, its pictures as files of the bundle (as
+    Apple writes them: \NeXTGraphic, which TextEdit and Pages show and
+    \pngblip they don't). */
+std::string WriteRTF(const RichDocument & inDocument, std::vector<Attachment> * outAttachments = nullptr);
+
+/** A document has pictures. */
+bool HasPictures(const RichDocument & inDocument);
 
 /** An RTF text as a document: paragraphs, fonts by family, size, bold,
     italic, underline, super- and subscript, alignment, indents, tabs.

@@ -70,6 +70,7 @@ Keeping it brief, so you can add your findings.
   small chunks; NCX's `scrn`/`snap` extensions send chunks too large for
   real devices.
 - Keep the `.newtondevice` Core Data SQLite schema byte-compatible.
-- Rich-text export: RTF with embedded PNGs.
+- Rich-text export: RTF with embedded PNGs; on macOS also RTFD (its default
+  for documents with pictures).
 - No libical: an iCalendar (and vCard) reader and writer of our own (D10).
 - Open: menu bar with several document windows (D9).

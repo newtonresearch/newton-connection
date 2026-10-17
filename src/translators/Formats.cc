@@ -55,9 +55,9 @@ const std::vector<ImportFormat> & ImportFormats()
     { "Names", { "vcf", "vcard" }, "Names", "vCard", MakeNameFromVCard },
     { "Dates", { "ics", "ical", "ifb", "icalendar" }, "Calendar", "iCalendar", MakeDateFromICal },
     { "Notes", { "txt", "text" }, "Notes", "Text", MakeNoteFromText },
-    { "Notes", { "rtf" }, "Notes", "Rich Text (RTF)", MakeNoteFromRTF },
+    { "Notes", { "rtf", "rtfd" }, "Notes", "Rich Text (RTF)", MakeNoteFromRTF },
     { "Newton Works", { "txt", "text" }, "NewtWorks", "Text", MakeWorksFromText },
-    { "Newton Works", { "rtf" }, "NewtWorks", "Rich Text (RTF)", MakeWorksFromRTF },
+    { "Newton Works", { "rtf", "rtfd" }, "NewtWorks", "Rich Text (RTF)", MakeWorksFromRTF },
   };
   return formats;
 }

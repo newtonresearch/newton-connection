@@ -124,11 +124,13 @@ std::vector<std::pair<std::string, RefStruct>> Import(const std::string & inApp,
 }
 
 /** Entries exported into inFolder as inApp's; the files. */
-std::vector<fs::path> Export(const fs::path & inFolder, const std::string & inApp, const std::vector<Ref> & inEntries)
+std::vector<fs::path> Export(const fs::path & inFolder, const std::string & inApp, const std::vector<Ref> & inEntries,
+                            RichTextFormat inRichText = RichTextFormat::kRTF)
 {
   TranslatorContext context;
   context.folder = inFolder;
   context.appName = inApp;
+  context.richText = inRichText;
   ExportSession session(context);
   for (Ref entry : inEntries)
     session.add(RefVar(entry));
@@ -774,6 +776,18 @@ void TestNotesRTF()
         && list.find("\\li36\\fi-360") == std::string::npos && list.find("\\li720") != std::string::npos
         && ReadRTF(list).text() == "\xE2\x98\x90 Milk\n\xE2\x98\x91 Bread\n\xE2\x98\x90 Cheese",
         "notesrtf: a checklist, boxes checked when done, indented by level");
+
+  // RTFD: a folder, TXT.rtf and the pictures as its files (as Apple writes
+  // them), plain RTF for a note without pictures (auto)
+  files = Export(folder.path / "rtfd", "Notes", { note, checklist }, RichTextFormat::kRTFDWithPictures);
+  std::string txt = files.size() == 2 ? ReadFile(files[0] / "TXT.rtf") : std::string();
+  Check(files.size() == 2 && fs::is_directory(files[0]) && files[0].extension() == ".rtfd" && files[1].extension() == ".rtf"
+        && fs::exists(files[0] / "image3.png") && ReadPNG(files[0] / "image1.png").width == 234
+        && Count(txt, "{{\\NeXTGraphic image") == 3 && txt.find("\\appleaqc\n}\xAC}") != std::string::npos
+        && txt.find("pngblip") == std::string::npos, "notesrtf: RTFD with the pictures as files, RTF without pictures");
+  Check(ReadRTF(txt).text() == "\na\n&\na I  \na", "notesrtf: RTFD read back, the attachments left out");
+  auto fromBundle = files.size() == 2 ? Import("Notes", files[0]) : decltype(Import("", fs::path()))();
+  Check(fromBundle.size() == 1, "notesrtf: a note from an RTFD folder");
 
   // and back: a note from RTF keeps its styles
   WriteFile(folder.path / "Styled.rtf", "{\\rtf1\\ansi{\\fonttbl{\\f0\\fswiss Helvetica;}{\\f1\\fscript Casual;}}"

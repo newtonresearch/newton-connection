@@ -36,12 +36,22 @@
 
 namespace ncx {
 
+/** How notes and Works papers are written: RTF with the pictures in it
+    (decision D4), RTFD (a folder: TXT.rtf and the pictures as files, which
+    Apple's TextEdit and Pages show), or RTFD only if there are pictures
+    (the Cocoa app's way: the default on macOS). */
+enum class RichTextFormat { kRTF, kRTFD, kRTFDWithPictures };
+RichTextFormat DefaultRichTextFormat();
+
 struct TranslatorContext
 {
   std::filesystem::path folder;     // export: where the files go
   std::string appName;              // the Newton app ("Names")
   int64_t userFont = 0;             // the Newton's user font (a packed font spec), 0: none
+  RichTextFormat richText = DefaultRichTextFormat();
 };
+
+struct RichDocument;
 
 class Exporter
 {
@@ -60,6 +70,11 @@ protected:
       "<inName>-2" ... if the file exists already (nothing is overwritten).
       The file, or empty if it can't be written. */
   std::filesystem::path write(const std::string & inData, const std::string & inName, const std::string & inExtension);
+  /** A document as RTF or RTFD (the context's richText), named as write. */
+  std::filesystem::path writeRichText(const RichDocument & inDocument, const std::string & inName);
+  /** "<inName>.<inExtension>" in the folder, a name no file has yet (as
+      write); empty if there is none. */
+  std::filesystem::path freePath(const std::string & inName, const std::string & inExtension);
 
   TranslatorContext mContext;
 };

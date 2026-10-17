@@ -236,7 +236,7 @@ public:
       AddParagraphs(document, RefVar(IsFrame(paper) ? GetFrameSlot(paper, MakeSymbol("editView")) : (Ref)NILREF));
     } else
       return std::filesystem::path();
-    return write(WriteRTF(document), EntryFileName(inEntry), "rtf");
+    return writeRichText(document, EntryFileName(inEntry));
   }
 };
 
@@ -249,7 +249,9 @@ public:
   bool begin(const std::filesystem::path & inFile, const TranslatorContext & inContext) override
   {
     Importer::begin(inFile, inContext);
-    std::ifstream in(inFile, std::ios::binary);
+    std::error_code ec;
+    std::filesystem::path source = std::filesystem::is_directory(inFile, ec) ? inFile / "TXT.rtf" : inFile;   // RTFD
+    std::ifstream in(source, std::ios::binary);
     if (!in) {
       mWhy = "can't read the file";
       return false;

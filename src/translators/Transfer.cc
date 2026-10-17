@@ -15,12 +15,13 @@
 namespace ncx {
 
 ExportResult ExportApp(DeviceFile & inFile, const AppRecord & inApp, int64_t inStorePk, const std::filesystem::path & inFolder,
-                       const std::vector<int64_t> & inEntryPks)
+                       const std::vector<int64_t> & inEntryPks, RichTextFormat inRichText)
 {
   ExportResult result;
   TranslatorContext context;
   context.folder = inFolder;
   context.appName = inApp.name;
+  context.richText = inRichText;
   ExportSession session(context);
   for (const SoupRecord & soup : inFile.soups(inStorePk)) {
     if (soup.appPk != inApp.pk)

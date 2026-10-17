@@ -69,11 +69,17 @@
                                      --check: that every entry can be read
                                      (and packages are packages)
    ncx-cli export <file> [--app <app>]... [--store <store>] [--to <folder>]
+               [--rich rtf|rtfd|auto]
                                      the entries of a .newtondevice file as
                                      desktop files in the folder (the
                                      current one): of those apps (all), on
                                      that store (all); vCard, iCalendar,
-                                     packages, text, else NewtonScript
+                                     RTF, PNG, CSV, packages, text, else
+                                     NewtonScript; notes and Works papers as
+                                     RTF (pictures in it), RTFD (a folder:
+                                     TextEdit shows its pictures), or auto:
+                                     RTFD if they have pictures (macOS's
+                                     default; elsewhere rtf)
    ncx-cli import <file> <source>... [--app <app>] [--store <store>]
                                      desktop files into a .newtondevice
                                      file (vCard into Names, iCalendar into
@@ -171,7 +177,7 @@ int Usage()
     "               [<dock options>]\n"
     "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
-    "       ncx-cli export <file.newtondevice> [--app <app>]... [--store <store>] [--to <folder>]\n"
+    "       ncx-cli export <file.newtondevice> [--app <app>]... [--store <store>] [--to <folder>] [--rich rtf|rtfd|auto]\n"
     "       ncx-cli import <file.newtondevice> <file>... [--app <app>] [--store <store>]\n"
     "       ncx-cli convert <backup.nbku> <file.newtondevice>\n");
   return 2;
@@ -1039,6 +1045,7 @@ int ExportCommand(int argc, char * argv[])
     return Usage();
   std::vector<std::string> apps;
   std::string storeName, to = ".";
+  ncx::RichTextFormat richText = ncx::DefaultRichTextFormat();
   for (int i = 3; i < argc; ++i) {
     std::string arg = argv[i];
     if (arg == "--app" && i + 1 < argc)
@@ -1047,7 +1054,17 @@ int ExportCommand(int argc, char * argv[])
       storeName = argv[++i];
     else if (arg == "--to" && i + 1 < argc)
       to = argv[++i];
-    else
+    else if (arg == "--rich" && i + 1 < argc) {
+      std::string rich = argv[++i];
+      if (rich == "rtf")
+        richText = ncx::RichTextFormat::kRTF;
+      else if (rich == "rtfd")
+        richText = ncx::RichTextFormat::kRTFD;
+      else if (rich == "auto")
+        richText = ncx::RichTextFormat::kRTFDWithPictures;
+      else
+        return Usage();
+    } else
       return Usage();
   }
   ncx::InitCore();
@@ -1076,7 +1093,7 @@ int ExportCommand(int argc, char * argv[])
       for (const ncx::AppRecord & app : file->apps()) {
         if (!apps.empty() && std::find(apps.begin(), apps.end(), app.name) == apps.end())
           continue;
-        ncx::ExportResult exported = ncx::ExportApp(*file, app, storePk, ncx::PathFromUTF8(to));
+        ncx::ExportResult exported = ncx::ExportApp(*file, app, storePk, ncx::PathFromUTF8(to), {}, richText);
         if (exported.entries == 0)
           continue;
         std::printf("%s: %zu entries ->", app.name.c_str(), exported.entries);

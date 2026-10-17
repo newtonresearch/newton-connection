@@ -237,7 +237,7 @@ public:
     RefVar cls(GetFrameSlot(inEntry, SYMA(class)));
     std::string name = EntryFileName(inEntry);
     if (EQRef(cls, MakeSymbol("paper")))
-      return write(WriteRTF(PaperDocument(inEntry)), name, "rtf");
+      return writeRichText(PaperDocument(inEntry), name);
     if (EQRef(cls, MakeSymbol("drawPaper"))) {
       RefVar saveData(GetFrameSlot(inEntry, MakeSymbol("saveData")));
       std::string png = PNGData(RenderShapes(RefVar(GetFrameSlot(saveData, MakeSymbol("shapes")))));
@@ -306,7 +306,9 @@ public:
   bool begin(const std::filesystem::path & inFile, const TranslatorContext & inContext) override
   {
     Importer::begin(inFile, inContext);
-    std::ifstream in(inFile, std::ios::binary);
+    std::error_code ec;
+    std::filesystem::path source = std::filesystem::is_directory(inFile, ec) ? inFile / "TXT.rtf" : inFile;   // RTFD
+    std::ifstream in(source, std::ios::binary);
     if (!in) {
       mWhy = "can't read the file";
       return false;

@@ -163,7 +163,17 @@ std::string Hex(const std::string & inBytes)
 } // namespace
 
 
-std::string WriteRTF(const RichDocument & inDocument)
+bool HasPictures(const RichDocument & inDocument)
+{
+  for (const RichParagraph & para : inDocument.paragraphs)
+    for (const TextRun & run : para.runs)
+      if (!run.png.empty())
+        return true;
+  return false;
+}
+
+
+std::string WriteRTF(const RichDocument & inDocument, std::vector<Attachment> * outAttachments)
 {
   // the fonts used, numbered as they come: a family's, or one of its own
   auto nameOf = [](const TextStyle & inStyle) { return inStyle.font.empty() ? std::string(FontName(inStyle.family)) : inStyle.font; };
@@ -221,6 +231,16 @@ std::string WriteRTF(const RichDocument & inDocument)
     }
     rtf += " ";
     for (const TextRun & run : para.runs) {
+      if (!run.png.empty() && outAttachments) {
+        // RTFD: a file of the bundle, then the attachment character (0xAC)
+        Attachment attachment;
+        attachment.name = "image" + std::to_string(outAttachments->size() + 1) + ".png";
+        attachment.png = run.png;
+        outAttachments->push_back(attachment);
+        rtf += "{{\\NeXTGraphic " + attachment.name + " \\width" + std::to_string(run.width * 20) + " \\height"
+               + std::to_string(run.height * 20) + " \\appleattachmentpadding0 \\appleembedtype0 \\appleaqc\n}\xAC}";
+        continue;
+      }
       if (!run.png.empty()) {
         rtf += "{\\pict\\pngblip\\picw" + std::to_string(run.width) + "\\pich" + std::to_string(run.height) + "\\picwgoal"
                + std::to_string(run.width * 20) + "\\pichgoal" + std::to_string(run.height * 20) + "\n" + Hex(run.png) + "}";
@@ -315,6 +335,11 @@ private:
 
   void addChar(char16_t inChar)
   {
+    if (mAttachmentChar && !state().skip) {
+      mAttachmentChar = false;
+      if (inChar == 0xAC || inChar == 0xFFFC)
+        return;
+    }
     if (mSkipChars > 0) {
       --mSkipChars;
       return;
@@ -422,11 +447,13 @@ private:
                                           "footerl", "footerr", "footnote", "object", "listtable", "listoverridetable",
                                           "revtbl", "rsidtbl", "generator", "xmlnstbl", "themedata", "colorschememapping",
                                           "latentstyles", "datastore", "fldinst", "pntext", "pntxta", "pntxtb", "nonshppict",
-                                          "shp", "bkmkstart", "bkmkend", "field" };
+                                          "shp", "bkmkstart", "bkmkend", "field", "NeXTGraphic" };
     if (inDestinationStart || w == "pict")
       for (const char * skip : kSkip)
         if (w == skip) {
           s.skip = true;
+          if (w == "NeXTGraphic")
+            mAttachmentChar = true;       // (RTFD: 0xAC after its group)
           return;
         }
     if (w == "fonttbl") {
@@ -501,6 +528,7 @@ private:
   std::vector<ReaderState> mStack;
   bool mDestinationStart = false;
   int mSkipChars = 0;
+  bool mAttachmentChar = false;
   std::u16string mText;
   RichParagraph mParagraph;
   RichDocument mDocument;

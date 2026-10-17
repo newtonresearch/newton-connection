@@ -5,6 +5,7 @@
  */
 
 #include "translators/Translator.h"
+#include "translators/RichText.h"
 #include "base/Dates.h"
 #include "base/NewtonStrings.h"
 #include "base/Strings.h"
@@ -22,7 +23,17 @@ namespace ncx {
 
 /*-- Exporter, Importer ------------------------------------------------------*/
 
-std::filesystem::path Exporter::write(const std::string & inData, const std::string & inName, const std::string & inExtension)
+RichTextFormat DefaultRichTextFormat()
+{
+#if defined(__APPLE__)
+  return RichTextFormat::kRTFDWithPictures;
+#else
+  return RichTextFormat::kRTF;
+#endif
+}
+
+
+std::filesystem::path Exporter::freePath(const std::string & inName, const std::string & inExtension)
 {
   // a name every file system takes: no path separators, no characters
   // Windows refuses, no control characters, no blanks around it
@@ -41,15 +52,49 @@ std::filesystem::path Exporter::write(const std::string & inData, const std::str
   for (int sequence = 1; sequence < 1000; ++sequence) {
     std::string fileName = (sequence == 1 ? name : name + "-" + std::to_string(sequence)) + "." + inExtension;
     std::filesystem::path path = mContext.folder / PathFromUTF8(fileName);
-    if (std::filesystem::exists(path, ec))
-      continue;
-    std::ofstream out(path, std::ios::binary);
-    out.write(inData.data(), (std::streamsize)inData.size());
-    if (!out)
-      return std::filesystem::path();
-    return path;
+    if (!std::filesystem::exists(path, ec))
+      return path;
   }
   return std::filesystem::path();
+}
+
+
+namespace {
+
+bool WriteFile(const std::filesystem::path & inPath, const std::string & inData)
+{
+  std::ofstream out(inPath, std::ios::binary);
+  out.write(inData.data(), (std::streamsize)inData.size());
+  return (bool)out;
+}
+
+} // namespace
+
+
+std::filesystem::path Exporter::write(const std::string & inData, const std::string & inName, const std::string & inExtension)
+{
+  std::filesystem::path path = freePath(inName, inExtension);
+  return !path.empty() && WriteFile(path, inData) ? path : std::filesystem::path();
+}
+
+
+std::filesystem::path Exporter::writeRichText(const RichDocument & inDocument, const std::string & inName)
+{
+  bool rtfd = mContext.richText == RichTextFormat::kRTFD
+              || (mContext.richText == RichTextFormat::kRTFDWithPictures && HasPictures(inDocument));
+  if (!rtfd)
+    return write(WriteRTF(inDocument), inName, "rtf");
+  // a folder: TXT.rtf, the pictures
+  std::vector<Attachment> attachments;
+  std::string rtf = WriteRTF(inDocument, &attachments);
+  std::filesystem::path folder = freePath(inName, "rtfd");
+  std::error_code ec;
+  if (folder.empty() || !std::filesystem::create_directory(folder, ec))
+    return std::filesystem::path();
+  bool written = WriteFile(folder / "TXT.rtf", rtf);
+  for (const Attachment & attachment : attachments)
+    written = written && WriteFile(folder / attachment.name, attachment.png);
+  return written ? folder : std::filesystem::path();
 }
 
 

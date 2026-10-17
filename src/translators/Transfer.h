@@ -14,6 +14,7 @@
 #define NCX_TRANSLATORS_TRANSFER_H
 
 #include "model/Records.h"
+#include "translators/Translator.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -32,9 +33,10 @@ struct ExportResult
 };
 
 /** The entries of the app's soups (on inStorePk, or every store) into files
-    in inFolder. inEntryPks: only those (empty: all). */
+    in inFolder. inEntryPks: only those (empty: all). inRichText: notes and
+    Works papers as RTF or RTFD. */
 ExportResult ExportApp(DeviceFile & inFile, const AppRecord & inApp, int64_t inStorePk, const std::filesystem::path & inFolder,
-                       const std::vector<int64_t> & inEntryPks = {});
+                       const std::vector<int64_t> & inEntryPks = {}, RichTextFormat inRichText = DefaultRichTextFormat());
 
 struct ImportResult
 {

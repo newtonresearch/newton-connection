@@ -1034,7 +1034,13 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
     which nothing is shared.
   - Checked: LibreOffice shows the pictures (Word and WordPad read
     `\pngblip` too); Apple's RTF reader (TextEdit, Pages, `textutil`) takes
-    pictures only from RTFD and shows the text without them.
+    pictures only from RTFD and shows the text without them. So NCX writes
+    either (Matt, 2026-10-18: "The Mac version can write both formats"):
+    RTF with the pictures in it, or RTFD (a folder: `TXT.rtf` with
+    `\NeXTGraphic` attachments, as Apple writes them, and the pictures as
+    files). The default on macOS is RTFD for a note or paper with
+    pictures, RTF without (the Cocoa app's way), elsewhere RTF;
+    `ncx-cli export --rich rtf|rtfd|auto`. RTFD folders import too.
 - **6.5 Audio:** Recordings → WAV/AIFF; MP3 import with dr_mp3/minimp3 and
   ID3 tags, converted to Newton sound frames and compressed with
   `FLBAllocCompressed`. That needs a store with large objects first:
@@ -1145,7 +1151,9 @@ Settled with Matt on 2026-10-16 (D10 on 2026-10-18), except D9.
 - **D3. Dragging files out of the app:** Export… / Save Screenshot… /
   Copy (images to the clipboard through `Fl_Copy_Surface`), until FLTK
   learns to drag out images and files. Matt plans to add that to FLTK.
-- **D4. Rich-text export: RTF with embedded PNGs** (`\pngblip`).
+- **D4. Rich-text export: RTF with embedded PNGs** (`\pngblip`); on macOS
+  also RTFD, the default for documents with pictures there (2026-10-18:
+  Apple's readers show pictures only from RTFD).
 - **D5. Backup file format: the Core Data SQLite schema, unchanged.**
   Existing backups open, and the old macOS NCX can still read new files.
   The two plist blobs in `ZUSERINFO` are left alone on read (the Newton
