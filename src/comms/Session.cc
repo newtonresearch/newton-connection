@@ -180,9 +180,9 @@ void Session::getHexade()
   SetArraySlot(args, 0, MakeSymbol("hexade"));
   Ref hexade = callGlobalFunction("GetUserConfig", args);
   mHexade = ISINT(hexade) ? (int)RVALUE(hexade) : 0;
-  // and how far the Newton's clock is from ours: Time(), without Fix2010's
-  // hexade (the Cocoa app sent kDLastSyncTime, which a Newton refuses
-  // outside a sync: -28016)
+  // (the hexade is AviD's Fix2010's: without it GetUserConfig gives nil, 0)
+  // and how far the Newton's clock is from ours: Time(), without the
+  // hexade (the Cocoa app used kDLastSyncTime; Time() needs no sync)
   Ref minutes = callGlobalFunction("Time", RefVar(MakeArray(0)));
   int32_t now = (int32_t)NewtonFromTime(Now());
   mDelta = ISINT(minutes) ? (int32_t)(RINT(minutes) + mHexade * kLengthOfHexade) - now : 0;

@@ -140,7 +140,10 @@ std::vector<uint8_t> DockEvent::encode() const
   PutLong(bytes, command);
   PutLong(bytes, length);
   bytes.insert(bytes.end(), data.begin(), data.end());
-  while (bytes.size() % 4 != 0)
+  // an event of no set length (two objects: cgfn, crmf) isn't padded: the
+  // Newton takes padding for the next event's header (-28016, bad header),
+  // as the Cocoa app knew ("we MUST NOT align the data")
+  while (length != kIndeterminateLength && bytes.size() % 4 != 0)
     bytes.push_back(0);
   return bytes;
 }

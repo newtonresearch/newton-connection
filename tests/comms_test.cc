@@ -73,6 +73,8 @@ void TestEvents()
   Check(bytes == std::vector<uint8_t>(expected, expected + sizeof(expected)), "encode: a result of -28012");
   DockEvent odd = DockEvent::MakeData(kDSetCurrentSoup, "\0N\0a\0m\0e\0s", 10);
   Check(odd.encode().size() == 16 + 12 && odd.length == 10, "encode: 10 bytes padded to 12");
+  DockEvent openEnded = DockEvent::MakeData(kDCallGlobalFunction, kIndeterminateLength, { 1, 2, 3, 4, 5, 6, 7 });
+  Check(openEnded.encode().size() == 16 + 7, "encode: an event of no set length isn't padded (the Newton: bad header)");
   Check(result.describe() == "dres [4] -28012", "describe: \"" + result.describe() + "\"");
 
   // a stream: garbage, the result, the padded event, an open-ended call, a

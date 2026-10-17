@@ -32,8 +32,6 @@
             2): Names has 100 and 102 (Mary Somerville), the others aren't
             dirty. Deleted ids and added entries are remembered.
    restore  rrst, sver, ssos: dres 0; dsou, csop, auni remembered
-   stme     answered in a sync only (after ssyn, gsyn), else dres -28016, as
-            Einstein's Newton does
    --browse-install: after docking, as Dock's Install: rtbr 'packages,
             dpth, gfil, spth into a folder "sub" and back, gfin and lpfl of
             the first file; then it disconnects

@@ -44,7 +44,8 @@ struct DockEvent
   /** The first 32 bits as a signed number: an error code, a value. */
   int32_t value() const { return (int32_t)longAt(0); }
 
-  /** The bytes on the wire: 'newt' 'dock', command, length, data, padding. */
+  /** The bytes on the wire: 'newt' 'dock', command, length, data, padding
+      to 4 bytes (none after an event of no set length). */
   std::vector<uint8_t> encode() const;
 
   /** For the log: "dres [4] -28012", "name [96] 00 00 00 40 ...". */
