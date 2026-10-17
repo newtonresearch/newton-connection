@@ -10,9 +10,11 @@
 #include "DrawShape.h"
 #include "Geometry.h"
 #include "Ink.h"
+#include "QDHost.h"
 #include "ViewFlags.h"
 
 #include <algorithm>
+#include <vector>
 
 namespace ncx {
 
@@ -38,6 +40,28 @@ bool BoundsOf(RefArg inBounds, Rect & outRect)
 bool IsEmpty(const Rect & inRect)
 {
   return inRect.right <= inRect.left || inRect.bottom <= inRect.top;
+}
+
+/** NCX's ink polygon ('poly's points: 0, the number of points, the points
+    as v, h; big-endian) from inLeft, inTop, inPen pixels wide (the
+    framework's DrawPolygon always draws 2). */
+void StrokePolygon(RefArg inPoints, int inLeft, int inTop, int inPen)
+{
+  const uint8_t * p = (const uint8_t *)BinaryData(inPoints);
+  size_t length = Length(inPoints);
+  size_t count = (size_t)(p[2] << 8 | p[3]);
+  if (count < 2 || 4 + count * 4 > length)
+    return;
+  std::vector<float> xy(2 * count);
+  for (size_t i = 0; i < count; ++i) {
+    const uint8_t * point = p + 4 + i * 4;
+    xy[2 * i + 1] = (float)(inTop + (short)(point[0] << 8 | point[1]));
+    xy[2 * i] = (float)(inLeft + (short)(point[2] << 8 | point[3]));
+  }
+  QDHostSaveState();
+  QDHostSetLineWidth((float)inPen);
+  QDHostStrokePolyline(xy.data(), count, false);
+  QDHostRestoreState();
 }
 
 } // namespace
@@ -81,12 +105,20 @@ Pixels RenderGraphics(RefArg inParagraphs, int * outLeft, int * outTop)
       Rect bounds;
       if (!BoundsOf(RefVar(GetFrameSlot(para, SYMA(viewBounds))), bounds))
         continue;
+      // the pen as the paragraph has it (viewFormat: vfPen(n)), else 2
+      // for ink (the Cocoa app's) and 1 for the rest
+      RefVar format(GetFrameSlot(para, SYMA(viewFormat)));
+      int pen = ISINT(format) ? (int)((RINT(format) & vfPenMask) >> vfPenShift) : 0;
+      bool isInk = NOTNIL(GetFrameSlot(para, SYMA(ink)));
+      if (pen == 0)
+        pen = isInk ? 2 : 1;
+      SetLineWidth((short)pen);
       newton_try
       {
         RefVar stationery(GetFrameSlot(para, SYMA(viewStationery)));
         RefVar ink(GetFrameSlot(para, SYMA(ink)));
         if (NOTNIL(ink)) {
-          InkDrawInRect(ink, 2, &bounds, &bounds, false);
+          InkDrawInRect(ink, (size_t)pen, &bounds, &bounds, false);
         } else if (EQRef(stationery, MakeSymbol("pict"))) {
           RefVar icon(GetFrameSlot(para, SYMA(icon)));
           bool isBitmap = IsFrame(icon) && (FrameHasSlot(icon, SYMA(bits)) || FrameHasSlot(icon, MakeSymbol("colorData")));
@@ -99,7 +131,7 @@ Pixels RenderGraphics(RefArg inParagraphs, int * outLeft, int * outTop)
         } else {
           RefVar points(GetFrameSlot(para, MakeSymbol("points")));
           if (IsBinary(points) && Length(points) >= 4)
-            DrawPolygon((char *)BinaryData(points), bounds.left, bounds.top);
+            StrokePolygon(points, bounds.left, bounds.top, pen);
         }
       }
       newton_catch_all
@@ -108,6 +140,7 @@ Pixels RenderGraphics(RefArg inParagraphs, int * outLeft, int * outTop)
       }
       end_try;
     }
+    SetLineWidth(1);
     pixels = canvas.take();
   }
   int left = std::max(0, all.left - kMargin), top = std::max(0, all.top - kMargin);

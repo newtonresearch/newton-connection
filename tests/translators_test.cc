@@ -18,6 +18,7 @@
 #include "base/Dates.h"
 #include "base/NewtonCall.h"
 #include "base/NewtonStrings.h"
+#include "comms/DockRefs.h"
 #include "model/DeviceFile.h"
 #include "model/NewtonModel.h"
 #include "platform/AppFolders.h"
@@ -29,6 +30,7 @@
 
 #include "RSSymbols.h"
 
+#include <algorithm>
 #include <cstdio>
 #include <cstdlib>
 #include <cstring>
@@ -568,6 +570,7 @@ void TestGraphics()
   RefVar pointsBinary(AllocateBinary(MakeSymbol("polygonShape"), sizeof(points)));
   std::memcpy(BinaryData(pointsBinary), points, sizeof(points));
   SetFrameSlot(poly, MakeSymbol("points"), pointsBinary);
+  SetFrameSlot(poly, SYMA(viewFormat), MAKEINT(2 << 8));           // vfPen(2)
   AddArraySlot(data, poly);
   RefVar pict(AllocateFrame());
   SetFrameSlot(pict, SYMA(viewStationery), MakeSymbol("pict"));
@@ -606,6 +609,53 @@ void TestGraphics()
         && exported.gray(6, 1) > 192, "graphics: exported as a PNG");
 }
 
+/*-- ink ---------------------------------------------------------------------*/
+
+std::string gInkNote;      // tests/fixtures/ink-note.nsof
+
+/** A note drawn on Einstein (Matt, 2026-10-18): text, ink text (inkWord
+    styles), polygons drawn with a 4-pixel pen, a box, a circle, a line,
+    and freehand ink ('ink2). */
+void TestInk()
+{
+  TempFolder folder("ink");
+  std::string bytes = ReadFile(PathFromUTF8(gInkNote));
+  RefVar note(UnflattenBytes(std::vector<uint8_t>(bytes.begin(), bytes.end())));
+  RefVar data(GetFrameSlot(note, SYMA(data)));
+  Check(IsArray(data) && Length(data) == 9, "ink: the note");
+  int left = -1, top = -1;
+  Pixels pixels = RenderGraphics(data, &left, &top);
+  if (const char * show = std::getenv("NCX_SHOW"))
+    WritePNG(PathFromUTF8(show), pixels);
+  int l, t, r, b;
+  bool drawn = pixels.inkBounds(l, t, r, b);
+  // the freehand stroke on the right: a vertical line from the top, as
+  // wide as the pen (vfPen(4)); the box's left edge, 4 wide too
+  auto darkRun = [&](int y, int fromX, int toX) {
+    int longest = 0, run = 0;
+    for (int x = fromX; x < toX; ++x) {
+      run = pixels.gray(x, y) < 128 ? run + 1 : 0;
+      longest = std::max(longest, run);
+    }
+    return longest;
+  };
+  Check(darkRun(20, 170, 200) >= 3 && darkRun(20, 170, 200) <= 6, "ink: the freehand ink, the paragraph's pen wide ("
+        + std::to_string(darkRun(20, 170, 200)) + ")");
+  auto darkRunDown = [&](int x, int fromY, int toY) {
+    int longest = 0, run = 0;
+    for (int y = fromY; y < toY; ++y) {
+      run = pixels.gray(x, y) < 128 ? run + 1 : 0;
+      longest = std::max(longest, run);
+    }
+    return longest;
+  };
+  // the triangle's bottom edge (a polygon) crosses x = 50 near y = 183
+  Check(darkRunDown(50, 170, 200) >= 3 && darkRunDown(50, 170, 200) <= 6, "ink: the polygons, the paragraph's pen wide ("
+        + std::to_string(darkRunDown(50, 170, 200)) + ")");
+  Check(drawn && left == 77 && top == 0, "ink: drawn, from the graphics' corner (" + std::to_string(left) + ", "
+        + std::to_string(top) + "; " + std::to_string(pixels.width) + " x " + std::to_string(pixels.height) + ")");
+}
+
 } // namespace
 
 
@@ -614,13 +664,14 @@ int main(int argc, char * argv[])
   std::setvbuf(stdout, nullptr, _IONBF, 0);
   std::string section = argc > 1 ? argv[1] : "all";
   gFixture = argc > 2 ? argv[2] : "";
+  gInkNote = argc > 2 ? argv[2] : "";
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "lines", TestLines }, { "names", TestNames }, { "dates", TestDates }, { "notes", TestNotes },
-    { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "transfer", TestTransfer } };
+    { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "ink", TestInk }, { "transfer", TestTransfer } };
   bool found = false;
   for (auto & s : sections)
-    if (section == s.name || (section == "all" && (std::string(s.name) != "transfer" || !gFixture.empty()))) {
+    if (section == s.name || (section == "all" && std::string(s.name) != "transfer" && std::string(s.name) != "ink")) {
       try {
         CallNewton([&] { s.test(); });
       } catch (const std::exception & e) {

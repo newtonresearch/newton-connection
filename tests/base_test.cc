@@ -363,7 +363,9 @@ void TestThreads()
         "Timer: every 20 ms (" + std::to_string(stoppedAt) + " in 170 ms), none after stop()");
   ticks = 0;
   timer.start(0.01, [&] { if (++ticks == 3) timer.stop(); });
-  Sleep(100);
+  for (int i = 0; i < 200 && ticks < 3; ++i)     // (a slow CI machine: up to 2 s)
+    Sleep(10);
+  Sleep(50);
   Check(ticks == 3, "Timer: stopped from its own task");
 
   SetMainThreadRunner(nullptr);

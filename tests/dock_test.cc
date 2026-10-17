@@ -80,7 +80,7 @@ void Check(bool inOk, const std::string & inWhat)
     multiple of 40, the sections' offsets below 40. */
 int Port(int inSection)
 {
-  static int base = 21000 + (int)(std::random_device()() % 450) * 40;
+  static int base = 21000 + (int)(std::random_device{}() % 450) * 40;      // {}: GCC reads ()() as a function type
   return base + inSection;
 }
 

@@ -48,6 +48,8 @@ foreach (section lines names dates notes builtin graphics)
 endforeach ()
 add_test (NAME ncx_translators_transfer COMMAND ncx_translators_test transfer
           ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice)
+# a note drawn on Einstein: ink, polygons, ink text (no personal data)
+add_test (NAME ncx_translators_ink COMMAND ncx_translators_test ink ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ink-note.nsof)
 add_test (NAME ncx_cli_transfer COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli>
           -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice
           -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_transfer -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_transfer.cmake)

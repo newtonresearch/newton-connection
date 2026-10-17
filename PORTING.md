@@ -974,7 +974,7 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
   - Export as PNG (`fl_write_png`).
   - Note: `Fl_Image_Surface` needs a display on Linux, so CI uses
     `xvfb-run` for these tests (as the framework's CI does since 0.5).
-  ✅ (but ink: no ink in the fixture yet) `translators/Canvas.h`: an
+  ✅ `translators/Canvas.h`: an
   `Fl_Image_Surface` made current and white, its pixels taken back,
   cropped, written as PNG (`fl_write_png`; PNG data through a temp file);
   it holds `Fl::lock()` while it lives (the translators run on the dock
@@ -986,8 +986,16 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
   to them; a bitmap at its size (its bounds from a bounds slot or its
   FramBitmap header). Image entries (NewtPaint) export as PNG (the Cocoa
   app: TIFF). The Notes and Works exports use this with the RTF writer
-  (6.4). CI's Linux tests run under `xvfb-run`. Still to do: ink, from a
-  note drawn on Einstein.
+  (6.4). CI's Linux tests run under `xvfb-run`.
+  Ink from a note Matt drew on Einstein (2026-10-18;
+  `tests/fixtures/ink-note.nsof`, the entry's NSOF): freehand ink ('ink2),
+  shapes as polygons, ink words in text. Each paragraph draws with its pen
+  (`viewFormat` vfPen(n); the framework's `DrawPolygon` always drew 2, so
+  NCX strokes the points itself). Found on the way: the framework's ink
+  decoder went from one code table to the next by their sizes, as in the
+  ROM, where they followed one another; ASan found the read past the
+  first (newton-framework B77: the tables as lists). Ink words in text
+  (inkWord styles) come with the RTF writer (6.4).
 - **6.4 Rich text:**
   - An RTF writer (styles, fonts, paragraphs, tabs, embedded PNG via
     `\pngblip`) for Notes, checklists, outlines and Works.
