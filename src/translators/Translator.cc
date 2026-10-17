@@ -5,6 +5,7 @@
  */
 
 #include "translators/Translator.h"
+#include "base/Dates.h"
 #include "base/NewtonStrings.h"
 #include "base/Strings.h"
 #include "platform/AppFolders.h"
@@ -230,6 +231,18 @@ std::string FullName(RefArg inName)
 {
   std::string first = StringSlot(inName, "first"), last = StringSlot(inName, "last");
   return first.empty() ? last : last.empty() ? first : first + " " + last;
+}
+
+
+std::string EntryFileName(RefArg inEntry)
+{
+  std::string title = StringSlot(inEntry, "title");
+  if (!title.empty())
+    return title;
+  RefVar timestamp(IsFrame(inEntry) ? GetFrameSlot(inEntry, SYMA(timestamp)) : (Ref)NILREF);
+  if (ISINT(timestamp))
+    return FormatDate(TimeFromNewton(RINT(timestamp)));
+  return "untitled";
 }
 
 } // namespace ncx

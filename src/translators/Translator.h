@@ -151,6 +151,9 @@ std::string ParagraphsText(RefArg inData);
 std::string StringSlot(RefArg inFrame, const char * inSlot);
 /** A name frame's "first last". */
 std::string FullName(RefArg inName);
+/** A file name for an entry (the Cocoa app's makeFilename): its title,
+    else the date of its timestamp ("Oct 18, 2026"), else "untitled". */
+std::string EntryFileName(RefArg inEntry);
 
 } // namespace ncx
 

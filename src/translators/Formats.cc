@@ -20,6 +20,11 @@ std::unique_ptr<Importer> MakeNameFromVCard();
 std::unique_ptr<Exporter> MakeDateToICal();
 std::unique_ptr<Importer> MakeDateFromICal();
 std::unique_ptr<Importer> MakeNoteFromText();
+std::unique_ptr<Exporter> MakeNoteToRTF();
+std::unique_ptr<Importer> MakeNoteFromRTF();
+std::unique_ptr<Exporter> MakeWorksExporter();
+std::unique_ptr<Importer> MakeWorksFromText();
+std::unique_ptr<Importer> MakeWorksFromRTF();
 
 
 const std::vector<ExportFormat> & ExportFormats()
@@ -32,6 +37,13 @@ const std::vector<ExportFormat> & ExportFormats()
     { "vcard", "owner", "vcf", "vCard", MakeNameToVCard },
     { "vcard", "company", "vcf", "vCard", MakeNameToVCard },
     { "icalendar", "meeting", "ics", "iCalendar", MakeDateToICal },
+    { "notes", "paperroll", "rtf", "Rich Text (RTF)", MakeNoteToRTF },
+    { "notes", "checklist", "rtf", "Rich Text (RTF)", MakeNoteToRTF },
+    { "notes", "list", "rtf", "Rich Text (RTF)", MakeNoteToRTF },
+    { "notes", "graphpaper:rsm", "rtf", "Rich Text (RTF)", MakeNoteToRTF },
+    { "works", "paper", "rtf", "Rich Text (RTF)", MakeWorksExporter },
+    { "works", "drawpaper", "png", "PNG image", MakeWorksExporter },
+    { "works", "qfnewt:donv", "csv", "Spreadsheet (CSV)", MakeWorksExporter },
   };
   return formats;
 }
@@ -43,6 +55,9 @@ const std::vector<ImportFormat> & ImportFormats()
     { "Names", { "vcf", "vcard" }, "Names", "vCard", MakeNameFromVCard },
     { "Dates", { "ics", "ical", "ifb", "icalendar" }, "Calendar", "iCalendar", MakeDateFromICal },
     { "Notes", { "txt", "text" }, "Notes", "Text", MakeNoteFromText },
+    { "Notes", { "rtf" }, "Notes", "Rich Text (RTF)", MakeNoteFromRTF },
+    { "Newton Works", { "txt", "text" }, "NewtWorks", "Text", MakeWorksFromText },
+    { "Newton Works", { "rtf" }, "NewtWorks", "Rich Text (RTF)", MakeWorksFromRTF },
   };
   return formats;
 }

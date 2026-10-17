@@ -1001,6 +1001,40 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
     `\pngblip`) for Notes, checklists, outlines and Works.
   - Replace RTFD (decision D4).
   - A minimal RTF/text reader for import.
+  ✅ `translators/RichText.h` (no Newton objects): a document of
+  paragraphs (alignment, indents, line spacing, tabs) of runs (a style:
+  the Newton's four families, or a font of its own, size, faces) and
+  pictures (PNG); `WriteRTF` (ANSI, `\uN` for the rest, `\pngblip`
+  pictures, margins) and `ReadRTF` (fonts by family, sizes, faces,
+  `\'hh` and `\uN`, alignment, indents, tabs; pictures, tables, headers
+  and other destinations left out). `translators/NewtonText.h`: a Newton
+  text with its styles as paragraphs (font specs packed or as frames,
+  Works' 'schoolBookFont and 'CourierFont as fonts of their own, ink words
+  and Works graphics as pictures) and back (`NewtonStyledText`).
+  - Notes as RTF: a note or graph paper top to bottom, its graphics as one
+    picture where they begin, ink words as pictures in their line;
+    checklists and outlines with boxes (checked when done) or bullets,
+    indented by level. Notes from RTF keep fonts, sizes and faces (the
+    Cocoa app kept only the text).
+  - Works: a paper as RTF (txText by txData, or text; styles; rulers;
+    margins), a drawing as PNG (its shapes and masked bitmaps), a
+    QuickFigure sheet as CSV; papers from text and RTF (their text in
+    saveData.text: the internal store has no large objects for a txText,
+    B55, as the Cocoa app did without them).
+  - Test data from Matt's Einstein (2026-10-18, no personal data): the ink
+    note, and Newton Works documents made with an eMate setup
+    (`tests/fixtures/works-*.nsof`: a styled paper, a drawing, an empty
+    paper). No QuickFigure sheet: its CSV is tested with a sheet made in
+    the test.
+  - Found on the way: the framework's `ExpandPackedInkWordInfo` is not
+    written yet (`#if 0`), so `GetInkWordInfo` gives nothing; NCX reads an
+    ink word's size from its last 8 bytes itself. And NSOF shares an object
+    that is in two places (a Works drawing's copied bitmap shares its bits):
+    `MungeBounds` turns byte order in place, so NCX draws from a copy in
+    which nothing is shared.
+  - Checked: LibreOffice shows the pictures (Word and WordPad read
+    `\pngblip` too); Apple's RTF reader (TextEdit, Pages, `textutil`) takes
+    pictures only from RTFD and shows the text without them.
 - **6.5 Audio:** Recordings → WAV/AIFF; MP3 import with dr_mp3/minimp3 and
   ID3 tags, converted to Newton sound frames and compressed with
   `FLBAllocCompressed`. That needs a store with large objects first:

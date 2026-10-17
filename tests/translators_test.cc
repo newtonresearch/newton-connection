@@ -24,7 +24,9 @@
 #include "platform/AppFolders.h"
 #include "translators/Canvas.h"
 #include "translators/ContentLines.h"
+#include "translators/NewtonText.h"
 #include "translators/Render.h"
+#include "translators/RichText.h"
 #include "translators/Transfer.h"
 #include "translators/Translator.h"
 
@@ -446,8 +448,9 @@ void TestNotes()
   entries = Import("Notes", folder.path / "wide.txt");
   Check(entries.size() == 1 && ParagraphsText(RefVar(GetFrameSlot(entries[0].second, SYMA(data)))) == "a\xC3\xA9",
         "notes: a UTF-16 file");
-  Check(ImportAppsFor("x.TXT") == std::vector<std::string>({ "Notes" }) && ImportAppsFor("x.vcf") == std::vector<std::string>({ "Names" })
-        && ImportAppsFor("x.doc").empty(), "notes: which app imports what");
+  Check(ImportAppsFor("x.TXT") == std::vector<std::string>({ "Newton Works", "Notes" })
+        && ImportAppsFor("x.vcf") == std::vector<std::string>({ "Names" }) && ImportAppsFor("x.doc").empty(),
+        "notes: which app imports what");
 }
 
 /*-- builtin -----------------------------------------------------------------*/
@@ -464,9 +467,9 @@ void TestBuiltin()
   SetFrameSlot(text, SYMA(text), RefVar(Str("Hello\rNewton")));
   SetFrameSlot(text, SYMA(title), RefVar(Str("Greeting")));
   RefVar note(AllocateFrame());
-  SetFrameSlot(note, SYMA(class), MakeSymbol("paperroll"));
+  SetFrameSlot(note, SYMA(class), MakeSymbol("gadget"));
   SetFrameSlot(note, MakeSymbol("height"), MAKEINT(52));
-  Check(ExportClassOf(package) == "*package*" && ExportClassOf(text) == "text" && ExportClassOf(note) == "paperroll",
+  Check(ExportClassOf(package) == "*package*" && ExportClassOf(text) == "text" && ExportClassOf(note) == "gadget",
         "builtin: the class an entry is exported by");
 
   std::vector<fs::path> files = Export(folder.path, "Extras", { package, text, note, package });
@@ -479,7 +482,7 @@ void TestBuiltin()
   Check(names.size() == 4 && ReadFile(files[0]) == std::string("package0 a test", 16) && ReadFile(files[1]) == "Hello\nNewton",
         "builtin: the package's bytes, the text");
   std::string printed = names.size() == 4 ? ReadFile(files[3]) : std::string();
-  Check(printed.find("paperroll") != std::string::npos && printed.find("52") != std::string::npos,
+  Check(printed.find("gadget") != std::string::npos && printed.find("52") != std::string::npos,
         "builtin: other entries printed as NewtonScript");
 }
 
@@ -652,8 +655,224 @@ void TestInk()
   // the triangle's bottom edge (a polygon) crosses x = 50 near y = 183
   Check(darkRunDown(50, 170, 200) >= 3 && darkRunDown(50, 170, 200) <= 6, "ink: the polygons, the paragraph's pen wide ("
         + std::to_string(darkRunDown(50, 170, 200)) + ")");
+  // the ink words: styles of class 'inkWord in the text of paragraph 3
+  RefVar styles(GetFrameSlot(RefVar(GetArraySlot(data, 3)), SYMA(styles)));
+  std::vector<Pixels> words;
+  for (ArrayIndex i = 1; IsArray(styles) && i < Length(styles); i += 2) {
+    Pixels word = RenderInkWord(RefVar(GetArraySlot(styles, i)));
+    if (!word.empty())
+      words.push_back(word);
+  }
+  if (const char * show = std::getenv("NCX_SHOW"))
+    for (size_t i = 0; i < words.size(); ++i)
+      WritePNG(PathFromUTF8(std::string(show) + "-word" + std::to_string(i) + ".png"), words[i]);
+  int wl, wt, wr, wb;
+  Check(words.size() == 2 && words[0].inkBounds(wl, wt, wr, wb) && words[1].inkBounds(wl, wt, wr, wb),
+        "ink: two ink words in the text, drawn (" + std::to_string(words.size()) + ")");
   Check(drawn && left == 77 && top == 0, "ink: drawn, from the graphics' corner (" + std::to_string(left) + ", "
         + std::to_string(top) + "; " + std::to_string(pixels.width) + " x " + std::to_string(pixels.height) + ")");
+}
+
+/*-- richtext ----------------------------------------------------------------*/
+
+void TestRichText()
+{
+  RichDocument document;
+  RichParagraph para;
+  TextStyle plain, bold, mono;
+  bold.bold = true;
+  bold.size = 18;
+  mono.font = "Courier";
+  para.addText("Caf\xC3\xA9 {braces} back\\slash ", plain);
+  para.addText("bold", bold);
+  para.addText("\ttab \xE2\x98\x91", mono);
+  para.addPicture(std::string("\x89PNG\r\n", 6), 4, 3);
+  para.style.alignment = Alignment::kCenter;
+  para.style.leftIndent = 36;
+  TabStop tab;
+  tab.position = 72;
+  tab.kind = TabStop::kRight;
+  para.style.tabs.push_back(tab);
+  document.paragraphs.push_back(para);
+  RichParagraph second;
+  TextStyle casual;
+  casual.family = FontFamily::kHandwriting;
+  casual.italic = casual.underline = true;
+  second.addText("second", casual);
+  document.paragraphs.push_back(second);
+  document.margins[0] = 72;
+  std::string rtf = WriteRTF(document);
+  Check(rtf.compare(0, 6, "{\\rtf1") == 0 && rtf.find("Caf\\u233?") != std::string::npos && rtf.find("\\{braces\\}") != std::string::npos
+        && rtf.find("back\\\\slash") != std::string::npos && rtf.find("\\u9745?") != std::string::npos
+        && rtf.find("\\tab ") != std::string::npos, "richtext: RTF, escaped, Unicode as \\uN");
+  Check(rtf.find("{\\pict\\pngblip\\picw4\\pich3\\picwgoal80\\pichgoal60\n89504e470d0a}") != std::string::npos
+        && rtf.find("\\qc\\li720\\tqr\\tx1440") != std::string::npos && rtf.find("\\margl1440") != std::string::npos
+        && rtf.find("\\fmodern\\fcharset0 Courier;") != std::string::npos && rtf.find("\\fscript\\fcharset0 Casual;") != std::string::npos,
+        "richtext: a picture, the paragraph's alignment, indent and tabs, margins, fonts");
+  RichDocument back = ReadRTF(rtf);
+  Check(back.paragraphs.size() == 2 && back.text() == "Caf\xC3\xA9 {braces} back\\slash bold\ttab \xE2\x98\x91\nsecond",
+        "richtext: read back, the text (pictures left out)");
+  if (back.paragraphs.size() == 2) {
+    const RichParagraph & p0 = back.paragraphs[0];
+    Check(p0.style.alignment == Alignment::kCenter && p0.style.leftIndent == 36 && p0.style.tabs.size() == 1
+          && p0.style.tabs[0].position == 72 && p0.style.tabs[0].kind == TabStop::kRight && back.margins[0] == 72,
+          "richtext: the paragraph's style, the margins");
+    Check(p0.runs.size() >= 3 && p0.runs[1].text == "bold" && p0.runs[1].style.bold && p0.runs[1].style.size == 18
+          && p0.runs[2].style.font == "Courier" && back.paragraphs[1].runs[0].style.family == FontFamily::kHandwriting
+          && back.paragraphs[1].runs[0].style.italic && back.paragraphs[1].runs[0].style.underline,
+          "richtext: the runs' styles and fonts");
+  }
+  // RTF from elsewhere: a Word-like header, \'hh, \uN with a fallback, destinations skipped
+  RichDocument word = ReadRTF("{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0\\froman Times New Roman;}{\\f1\\fswiss Arial;}}"
+                              "{\\colortbl;\\red0\\green0\\blue0;}{\\*\\generator Word;}{\\info{\\title x}}"
+                              "\\pard\\plain\\f1\\fs20 Gr\\'fc\\u223\\'dfe {\\i it}\\par\\pard\\f0 second\\line third}");
+  Check(word.paragraphs.size() == 3 && word.paragraphs[0].text() == "Gr\xC3\xBC\xC3\x9F" "e it"
+        && word.paragraphs[0].runs[0].style.size == 10 && word.paragraphs[0].runs.back().style.italic
+        && word.paragraphs[1].runs[0].style.family == FontFamily::kFancy && word.paragraphs[2].text() == "third",
+        "richtext: RTF from a word processor (" + word.text() + ")");
+}
+
+/*-- notesrtf ----------------------------------------------------------------*/
+
+Ref ReadEntry(const std::string & inFile)
+{
+  std::string bytes = ReadFile(PathFromUTF8(inFile));
+  return UnflattenBytes(std::vector<uint8_t>(bytes.begin(), bytes.end()));
+}
+
+std::string gFixtures;      // tests/fixtures
+
+void TestNotesRTF()
+{
+  TempFolder folder("notesrtf");
+  RefVar note(ReadEntry(gFixtures + "/ink-note.nsof"));
+  RefVar checklist(AllocateFrame());
+  SetFrameSlot(checklist, SYMA(class), MakeSymbol("checklist"));
+  SetFrameSlot(checklist, SYMA(title), RefVar(Str("Shopping")));
+  RefVar topics(MakeArray(0));
+  const char * const kItems[] = { "Milk", "Bread", "Cheese" };
+  for (int i = 0; i < 3; ++i) {
+    RefVar topic(AllocateFrame());
+    SetFrameSlot(topic, SYMA(text), RefVar(Str(kItems[i])));
+    SetFrameSlot(topic, MakeSymbol("level"), MAKEINT(i == 2 ? 2 : 1));
+    if (i == 1)
+      SetFrameSlot(topic, MakeSymbol("mtgDone"), RA(TRUEREF));
+    AddArraySlot(topics, topic);
+  }
+  SetFrameSlot(checklist, MakeSymbol("topics"), topics);
+  std::vector<fs::path> files = Export(folder.path, "Notes", { note, checklist });
+  Check(files.size() == 2 && files[1].filename() == "Shopping.rtf" && files[0].extension() == ".rtf",
+        "notesrtf: a file each, titled, or dated");
+  std::string rtf = files.size() == 2 ? ReadFile(files[0]) : std::string();
+  Check(Count(rtf, "{\\pict\\pngblip") == 3 && rtf.find("\\fscript\\fcharset0 Casual;") != std::string::npos
+        && rtf.find("{\\f1\\fs36 a I }") != std::string::npos,
+        "notesrtf: the drawing and two ink words as pictures, the text in its font");
+  RichDocument back = ReadRTF(rtf);
+  Check(back.text() == "\na\n&\na I  \na", "notesrtf: the text in order, the drawing first (" + back.text() + ")");
+  std::string list = files.size() == 2 ? ReadFile(files[1]) : std::string();
+  Check(list.find("\\u9744? ") != std::string::npos && list.find("\\u9745? ") != std::string::npos
+        && list.find("\\li36\\fi-360") == std::string::npos && list.find("\\li720") != std::string::npos
+        && ReadRTF(list).text() == "\xE2\x98\x90 Milk\n\xE2\x98\x91 Bread\n\xE2\x98\x90 Cheese",
+        "notesrtf: a checklist, boxes checked when done, indented by level");
+
+  // and back: a note from RTF keeps its styles
+  WriteFile(folder.path / "Styled.rtf", "{\\rtf1\\ansi{\\fonttbl{\\f0\\fswiss Helvetica;}{\\f1\\fscript Casual;}}"
+                                        "\\f0\\fs24 plain {\\b bold} {\\f1\\fs36 casual}\\par second}");
+  auto entries = Import("Notes", folder.path / "Styled.rtf");
+  RefVar para(entries.size() == 1 ? GetArraySlot(RefVar(GetFrameSlot(entries[0].second, SYMA(data))), 0) : (Ref)NILREF);
+  RefVar styles(GetFrameSlot(para, SYMA(styles)));
+  std::string text = Text(para, "text");
+  bool styled = IsArray(styles) && Length(styles) >= 8 && RINT(GetArraySlot(styles, 0)) == 6
+                && StyleOfFontSpec(RefVar(GetArraySlot(styles, 3))).bold
+                && StyleOfFontSpec(RefVar(GetArraySlot(styles, 7))).family == FontFamily::kHandwriting
+                && StyleOfFontSpec(RefVar(GetArraySlot(styles, 7))).size == 18;
+  Check(entries.size() == 1 && text == "plain bold casual\nsecond" && styled && Text(entries[0].second, "title") == "Styled",
+        "notesrtf: a note from RTF, its fonts, sizes and faces as styles");
+}
+
+/*-- works -------------------------------------------------------------------*/
+
+void TestWorks()
+{
+  TempFolder folder("works");
+  RefVar paper(ReadEntry(gFixtures + "/works-paper.nsof"));
+  RefVar drawing(ReadEntry(gFixtures + "/works-drawing.nsof"));
+  RefVar empty(ReadEntry(gFixtures + "/works-empty.nsof"));
+  std::vector<fs::path> files = Export(folder.path, "Newton Works", { paper, drawing, empty });
+  std::vector<std::string> names;
+  for (const fs::path & f : files)
+    names.push_back(UTF8FromPath(f.filename()));
+  Check(names == std::vector<std::string>({ "Untitled Paper 1.rtf", "Untitled Drawing.png", "Untitled Paper.rtf" }),
+        "works: a paper as RTF, a drawing as PNG, by their titles");
+  std::string rtf = files.size() == 3 ? ReadFile(files[0]) : std::string();
+  Check(rtf.find("Century Schoolbook;") != std::string::npos && rtf.find("\\fmodern\\fcharset0 Courier;") != std::string::npos
+        && rtf.find("\\fs36\\ul Geneva }") != std::string::npos && rtf.find("\\fs28\\b  NewYork}") != std::string::npos
+        && rtf.find("\\margl1440\\margt1440\\margr1440\\margb1440") != std::string::npos,
+        "works: the paper's fonts (Works' own too), faces, sizes, margins");
+  RichDocument back = ReadRTF(rtf);
+  Check(back.text() == "\n\nThis is a very important paper\nfor the future of all of humanity.\nCasual Courier Geneva New York NewYork\n",
+        "works: the paper's text, its paragraphs (txText by txData)");
+  Pixels picture = files.size() == 3 ? ReadPNG(files[1]) : Pixels();
+  if (const char * show = std::getenv("NCX_SHOW"))
+    WritePNG(PathFromUTF8(std::string(show) + "-drawing.png"), picture);
+  // the round rectangle's top edge; a football (a masked bitmap) dark inside
+  auto dark = [&](int x, int y) { return picture.gray(x, y) < 128; };
+  int darkCount = 0;
+  for (int y = 60; y < 120; ++y)
+    for (int x = 0; x < 80; ++x)
+      darkCount += dark(x, y);
+  Check(picture.width > 300 && picture.height > 140 && darkCount > 300, "works: the drawing, its shapes and bitmaps ("
+        + std::to_string(picture.width) + " x " + std::to_string(picture.height) + ", " + std::to_string(darkCount) + ")");
+  Check(files.size() == 3 && ReadRTF(ReadFile(files[2])).text().empty(), "works: an empty paper");
+
+  // a QuickFigure sheet: cell 0 "Item", 1 "Price", 40 "Tea, green", 41 =A2*2, 81 2.5
+  std::vector<uint8_t> cells(8, 0), addresses(4 * 82, 0);
+  auto addCell = [&](int inIndex, RefArg inCell) {
+    std::vector<uint8_t> nsof = FlattenToBytes(inCell);
+    uint32_t offset = (uint32_t)cells.size(), length = (uint32_t)nsof.size();
+    for (int k = 0; k < 4; ++k)
+      cells.push_back((uint8_t)(length >> (24 - 8 * k)));
+    cells.insert(cells.end(), 4, 0);
+    cells.insert(cells.end(), nsof.begin(), nsof.end());
+    for (int k = 0; k < 4; ++k)
+      addresses[inIndex * 4 + k] = (uint8_t)(offset >> (24 - 8 * k));
+  };
+  auto cell = [&](const char * inSlot, RefArg inValue) {
+    RefVar c(AllocateFrame());
+    SetFrameSlot(c, MakeSymbol(inSlot), inValue);
+    return Ref(c);
+  };
+  addCell(0, RefVar(cell("value", RefVar(Str("Item")))));
+  addCell(1, RefVar(cell("value", RefVar(Str("Price")))));
+  addCell(40, RefVar(cell("value", RefVar(Str("Tea, green")))));
+  addCell(41, RefVar(cell("viewFormula", RefVar(Str("A2*2")))));
+  addCell(81, RefVar(cell("value", RefVar(MakeReal(2.5)))));
+  RefVar sheet(AllocateFrame());
+  SetFrameSlot(sheet, SYMA(class), MakeSymbol("QFNewt:donv"));
+  SetFrameSlot(sheet, SYMA(title), RefVar(Str("Prices")));
+  RefVar cellsBinary(AllocateBinary(SYMA(binary), cells.size()));
+  std::memcpy(BinaryData(cellsBinary), cells.data(), cells.size());
+  RefVar addressesBinary(AllocateBinary(SYMA(binary), addresses.size()));
+  std::memcpy(BinaryData(addressesBinary), addresses.data(), addresses.size());
+  SetFrameSlot(sheet, MakeSymbol("cells"), cellsBinary);
+  SetFrameSlot(sheet, MakeSymbol("cellAddresses"), addressesBinary);
+  SetFrameSlot(sheet, MakeSymbol("lastCellIndex"), MAKEINT(81 * 4));
+  files = Export(folder.path, "Newton Works", { sheet });
+  Check(files.size() == 1 && files[0].filename() == "Prices.csv"
+        && ReadFile(files[0]) == "Item,Price\n\"Tea, green\",=A2*2\n,2.5\n", "works: a QuickFigure sheet as CSV ("
+        + (files.size() == 1 ? ReadFile(files[0]) : std::string()) + ")");
+
+  // and from a file: a paper
+  WriteFile(folder.path / "Memo.txt", "First line\nSecond line\n");
+  auto entries = Import("Newton Works", folder.path / "Memo.txt");
+  RefVar memo(entries.size() == 1 ? (Ref)entries[0].second : (Ref)NILREF);
+  RefVar saveData(GetFrameSlot(memo, MakeSymbol("saveData")));
+  Check(entries.size() == 1 && entries[0].first == "NewtWorks" && EQRef(GetFrameSlot(memo, SYMA(class)), MakeSymbol("paper"))
+        && Text(saveData, "text") == "First line\nSecond line\n" && Text(memo, "title") == "Memo"
+        && IsArray(GetFrameSlot(saveData, MakeSymbol("rulers"))), "works: a paper from text");
+  // and the paper back out
+  files = Export(folder.path / "again", "Newton Works", { memo });
+  Check(files.size() == 1 && ReadRTF(ReadFile(files[0])).text() == "First line\nSecond line", "works: and out again (its last line end ends the paragraph)");
 }
 
 } // namespace
@@ -665,13 +884,17 @@ int main(int argc, char * argv[])
   std::string section = argc > 1 ? argv[1] : "all";
   gFixture = argc > 2 ? argv[2] : "";
   gInkNote = argc > 2 ? argv[2] : "";
+  gFixtures = argc > 2 ? argv[2] : "";
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "lines", TestLines }, { "names", TestNames }, { "dates", TestDates }, { "notes", TestNotes },
-    { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "ink", TestInk }, { "transfer", TestTransfer } };
+    { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "richtext", TestRichText },
+    { "ink", TestInk }, { "notesrtf", TestNotesRTF }, { "works", TestWorks }, { "transfer", TestTransfer } };
   bool found = false;
-  for (auto & s : sections)
-    if (section == s.name || (section == "all" && std::string(s.name) != "transfer" && std::string(s.name) != "ink")) {
+  for (auto & s : sections) {
+    std::string name = s.name;
+    bool needsFixture = name == "transfer" || name == "ink" || name == "notesrtf" || name == "works";
+    if (section == s.name || (section == "all" && !needsFixture)) {
       try {
         CallNewton([&] { s.test(); });
       } catch (const std::exception & e) {
@@ -679,6 +902,7 @@ int main(int argc, char * argv[])
       }
       found = true;
     }
+  }
   if (!found) {
     std::fprintf(stderr, "no section \"%s\"\n", section.c_str());
     return 2;

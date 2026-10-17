@@ -33,6 +33,17 @@ bool IsGraphicParagraph(RefArg inParagraph);
     size; empty if it isn't one. */
 Pixels RenderBitmap(RefArg inBitmap);
 
+/** A shape, or an array of shapes and the style frames before them (a
+    Works drawing's shapes, a graphic in Works text), as drawn by the
+    framework's DrawShape, cropped to them with a margin of 2 pixels; empty
+    if there is nothing to draw. */
+Pixels RenderShapes(RefArg inShapes);
+
+/** An ink word (a text style of class 'inkWord: handwriting kept as ink
+    in a paragraph) at its size, a margin of 2 around; empty if it isn't
+    one. outBaseline: the baseline, from the top. */
+Pixels RenderInkWord(RefArg inInkWord, int * outBaseline = nullptr);
+
 } // namespace ncx
 
 #endif // NCX_TRANSLATORS_RENDER_H

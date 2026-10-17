@@ -43,13 +43,16 @@ add_test (NAME ncx_cli_info_newton1 COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE
 # The translators (PORTING.md Phase 6): vCard, iCalendar, text, packages
 add_executable (ncx_translators_test translators_test.cc)
 target_link_libraries (ncx_translators_test PRIVATE ncx_core)
-foreach (section lines names dates notes builtin graphics)
+foreach (section lines names dates notes builtin graphics richtext)
   add_test (NAME ncx_translators_${section} COMMAND ncx_translators_test ${section})
 endforeach ()
 add_test (NAME ncx_translators_transfer COMMAND ncx_translators_test transfer
           ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice)
 # a note drawn on Einstein: ink, polygons, ink text (no personal data)
 add_test (NAME ncx_translators_ink COMMAND ncx_translators_test ink ${CMAKE_CURRENT_SOURCE_DIR}/fixtures/ink-note.nsof)
+# Notes as RTF (the ink note), and Newton Works documents made on Einstein (eMate setup)
+add_test (NAME ncx_translators_notesrtf COMMAND ncx_translators_test notesrtf ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
+add_test (NAME ncx_translators_works COMMAND ncx_translators_test works ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
 add_test (NAME ncx_cli_transfer COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli>
           -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice
           -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_transfer -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_transfer.cmake)

@@ -82,10 +82,13 @@ add_library (ncx_core STATIC
   translators/Dates.cc
   translators/Formats.cc
   translators/Names.cc
+  translators/NewtonText.cc translators/NewtonText.h
   translators/Notes.cc
   translators/Render.cc translators/Render.h
+  translators/RichText.cc translators/RichText.h
   translators/Transfer.cc translators/Transfer.h
   translators/Translator.cc translators/Translator.h
+  translators/Works.cc
   # newtdump's CIS decoder (newton-framework), for PCMCIA cards
   "${newton_SOURCE_DIR}/Matt/NewtDump/CIS.cc"
 )
