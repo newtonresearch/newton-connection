@@ -55,6 +55,15 @@
                                      or --size bytes from --address), --block
                                      bytes a request (2048), --resume after
                                      what the file has
+   ncx-cli card [<socket>] [--folder <folder>] [--size <bytes>] [--block <bytes>]
+               [--resume] [--info] [options]
+                                     the Newton's PCMCIA cards (all, or the
+                                     one in the socket), into the folder
+                                     (the current one): the CIS decoded
+                                     (card<n>-cis.txt), attribute memory
+                                     (card<n>-attribute.bin), common memory
+                                     (card<n>-common.bin; --size if the CIS
+                                     doesn't say); --info: only the sockets
    ncx-cli device <file> [--check]   a .newtondevice file: its Newton, and
                                      how many soups and entries per store;
                                      --check: that every entry can be read
@@ -63,7 +72,7 @@
                                      a new .newtondevice file
 
  Options for the commands that dock (info, screenshot, backup, restore,
- add, delete, type, install, serve, rom):
+ add, delete, type, install, serve, rom, card):
    --target <target>   listen here (more than once for several): tcp-all:<port>,
                        tcp:<port>, serial:<device>[@<bps>], einstein-pipes.
                        Default: tcp-all:<the TCPIPPort preference, 3679> and
@@ -81,6 +90,7 @@
 #include "comms/Handshake.h"
 #include "comms/Session.h"
 #include "dock/Backup.h"
+#include "dock/Card.h"
 #include "dock/DockController.h"
 #include "dock/FileBrowser.h"
 #include "dock/Keyboard.h"
@@ -140,6 +150,8 @@ int Usage()
     "       ncx-cli install <package>... [--replace] [<dock options>]\n"
     "       ncx-cli serve [--folder <folder>] [--backups <folder>] [<dock options>]\n"
     "       ncx-cli rom <file> [--size <bytes>] [--address <addr>] [--block <bytes>] [--resume] [<dock options>]\n"
+    "       ncx-cli card [<socket>] [--folder <folder>] [--size <bytes>] [--block <bytes>] [--resume] [--info]\n"
+    "               [<dock options>]\n"
     "         dock options: [--target <target>]... [--password <text>] [--wait <seconds>] [--log <level>]\n"
     "       ncx-cli device <file.newtondevice> [--check]\n"
     "       ncx-cli convert <backup.nbku> <file.newtondevice>\n");
@@ -317,6 +329,45 @@ uint32_t Number(const char * inText)
 }
 
 
+/** Reading memory: what came, now and then, on stderr (from a thread of its
+    own: the work is on the dock thread). */
+class ProgressReport
+{
+public:
+  explicit ProgressReport(ncx::Progress & inProgress) : mProgress(inProgress), mThread([this] { run(); }) { }
+  ~ProgressReport()
+  {
+    mDone = true;
+    mThread.join();
+    if (mShown)
+      std::fprintf(stderr, "\n");
+  }
+
+private:
+  void run()
+  {
+    auto started = std::chrono::steady_clock::now();
+    int64_t last = -1;
+    while (!mDone) {
+      std::this_thread::sleep_for(std::chrono::milliseconds(500));
+      int64_t completed = mProgress.completed();
+      if (completed == last || mProgress.total() <= 0)
+        continue;
+      last = completed;
+      double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
+      std::fprintf(stderr, "\r%lld of %lld KB, %.1f KB/s   ", (long long)completed / 1024,
+                   (long long)mProgress.total() / 1024, seconds > 0 ? completed / 1024.0 / seconds : 0.0);
+      mShown = true;
+    }
+  }
+
+  ncx::Progress & mProgress;
+  std::atomic<bool> mDone { false };
+  bool mShown = false;
+  std::thread mThread;
+};
+
+
 int ROM(int argc, char * argv[])
 {
   // its own options: --size, --address, --block, --resume
@@ -348,32 +399,106 @@ int ROM(int argc, char * argv[])
   return Dock(settings, [&](ncx::DockController & dock) {
     uint32_t bytes = size ? size : ncx::ROMSize(dock.newton().info);
     ncx::Progress progress;
-    // progress now and then, on the dock thread (that's where it is)
-    std::atomic<bool> done { false };
-    std::thread reporter([&] {
-      auto started = std::chrono::steady_clock::now();
-      int64_t last = -1;
-      while (!done) {
-        std::this_thread::sleep_for(std::chrono::milliseconds(500));
-        int64_t completed = progress.completed();
-        if (completed == last || progress.total() <= 0)
-          continue;
-        last = completed;
-        double seconds = std::chrono::duration<double>(std::chrono::steady_clock::now() - started).count();
-        std::fprintf(stderr, "\r%lld of %lld KB, %.1f KB/s   ", (long long)completed / 1024,
-                     (long long)progress.total() / 1024, seconds > 0 ? completed / 1024.0 / seconds : 0.0);
-      }
-    });
-    int error = ncx::DumpMemory(dock, address, bytes, file, resume, block, &progress);
-    done = true;
-    reporter.join();
-    std::fprintf(stderr, "\n");
+    int error;
+    {
+      ProgressReport report(progress);
+      error = ncx::DumpMemory(dock, address, bytes, file, resume, block, &progress);
+    }
     if (error != 0) {
       std::fprintf(stderr, "ncx-cli: %s isn't complete (%d); --resume goes on\n", rest[0].c_str(), error);
       return 1;
     }
     std::printf("%s: %u bytes from 0x%08X\n", rest[0].c_str(), bytes, address);
     return 0;
+  });
+}
+
+
+int Card(int argc, char * argv[])
+{
+  // its own options: --folder, --size, --block, --resume, --info
+  std::string folder = ".";
+  uint32_t size = 0, block = ncx::MemoryReader::kBlock;
+  bool resume = false, info = false;
+  std::vector<char *> args(argv, argv + 2);
+  for (int i = 2; i < argc; ++i) {
+    std::string arg = argv[i];
+    if (arg == "--folder" && i + 1 < argc)
+      folder = argv[++i];
+    else if (arg == "--size" && i + 1 < argc)
+      size = Number(argv[++i]);
+    else if (arg == "--block" && i + 1 < argc)
+      block = Number(argv[++i]);
+    else if (arg == "--resume")
+      resume = true;
+    else if (arg == "--info")
+      info = true;
+    else
+      args.push_back(argv[i]);
+  }
+  if (block < 256 || block > 16384 || (block & (block - 1)) || size % ncx::MemoryReader::kPage) {
+    std::fprintf(stderr, "ncx-cli: --block: a power of 2 from 256 to 16384; --size: a multiple of 4 KB\n");
+    return 2;
+  }
+  ncx::DockController::Settings settings;
+  std::vector<std::string> rest;
+  if (!DockOptions((int)args.size(), args.data(), 2, settings, rest) || rest.size() > 1)
+    return Usage();
+  int only = rest.empty() ? -1 : (int)Number(rest[0].c_str());
+  std::filesystem::path out = ncx::PathFromUTF8(folder);
+  return Dock(settings, [&](ncx::DockController & dock) {
+    const ncx::DockedNewton & newton = dock.newton();
+    if (newton.newton1) {
+      std::fprintf(stderr, "ncx-cli: reading cards needs NewtonOS 2\n");
+      return 1;
+    }
+    ncx::MemoryReader reader(dock);
+    int error = reader.begin();
+    if (error != 0) {
+      std::fprintf(stderr, "ncx-cli: the Newton didn't take the extension (%d)\n", error);
+      return 1;
+    }
+    ncx::CardReader cards(reader);
+    std::vector<ncx::CardSocket> sockets;
+    error = cards.sockets(newton.info, sockets);
+    if (error == 0 && sockets.empty())
+      std::fprintf(stderr, "ncx-cli: NCX doesn't know the sockets of a %s\n", ncx::MachineName(newton.info.fMachineType).c_str());
+    if (error == 0 && only >= (int)sockets.size()) {
+      std::fprintf(stderr, "ncx-cli: this Newton has sockets 0 to %d\n", (int)sockets.size() - 1);
+      error = ncx::kDockErrCardNotInstalled;
+    }
+    int failed = error != 0;
+    std::string header = "Newton: " + newton.name + ", " + ncx::MachineName(newton.info.fMachineType);
+    for (size_t s = 0; s < sockets.size() && error == 0; ++s) {
+      const ncx::CardSocket & socket = sockets[s];
+      if (only >= 0 && socket.socket != only)
+        continue;
+      std::printf("Socket %d (0x%08X): %s\n", socket.socket, ncx::SocketBase(socket.socket),
+                  ncx::DescribePins(socket.pins).c_str());
+      if (!socket.inserted || info)
+        continue;
+      std::error_code ec;
+      std::filesystem::create_directories(out, ec);
+      ncx::CardDump dump;
+      ncx::Progress progress;
+      {
+        ProgressReport report(progress);
+        error = cards.dump(socket.socket, out, header, size, resume, block, &progress, dump);
+      }
+      for (const std::string & line : dump.cis)
+        std::printf("%s\n", line.c_str());
+      if (error != 0) {
+        std::fprintf(stderr, "ncx-cli: socket %d: %s (%d)%s\n", socket.socket, cards.why().c_str(), error,
+                     error == ncx::kDockErrAborted ? "" : "; --resume goes on");
+        failed = 1;
+      } else {
+        std::printf("%s: %llu bytes\n", ncx::UTF8FromPath(dump.commonFile).c_str(), (unsigned long long)dump.commonSize);
+      }
+    }
+    // cancelled on the Newton: it no longer waits for an end of control
+    if (error != ncx::kDockErrAborted)
+      reader.end();
+    return failed;
   });
 }
 
@@ -929,6 +1054,8 @@ int main(int argc, char * argv[])
     return Install(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "serve") == 0)
     return Serve(argc, argv);
+  if (argc >= 2 && std::strcmp(argv[1], "card") == 0)
+    return Card(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "rom") == 0)
     return ROM(argc, argv);
   if (argc >= 2 && std::strcmp(argv[1], "screenshot") == 0)

@@ -82,6 +82,8 @@ int main(int argc, char * argv[])
       out << "added " << title << "\n";
     for (const std::string & line : newton.restored())
       out << "restored " << line << "\n";
+    for (const std::string & line : newton.power())
+      out << "power " << line << "\n";
     for (const std::string & line : newton.typed())
       out << "typed " << line << "\n";
     out << "why " << newton.why() << "\n";

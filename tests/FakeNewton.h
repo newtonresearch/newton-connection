@@ -22,7 +22,8 @@
                   (x / 20 + y / 30) % 16, the first 60 rows white
                   (ScreenPixel); its rows ('rows': blank if white), or all
                   of it ('take')
-            NDmp: newtdump's requests (hello, map, read) on MemoryByte()
+            NDmp: newtdump's requests (hello, map, read, power) on
+                  MemoryByte(), and a card in socket 0 (FakeCardCIS)
             pfnd: "Installed Package" is installed ('pkya'), others not
    rins, rmvp   dres 0 (the removed package remembered)
    backup   four soups in four apps: Names (100 Ada Lovelace, 101 Charles
@@ -73,6 +74,18 @@ inline uint8_t MemoryByte(uint32_t inAddress)
   return inAddress >= 0x1000 && inAddress < 0x2000 ? 0xFF : (uint8_t)(inAddress * 7 ^ inAddress >> 9);
 }
 
+/** The fake Newton's PCMCIA card, in socket 0 (socket 1 is empty): 64 KB
+    of SRAM, its CIS in attribute memory (the even bytes: a device entry,
+    VERS_1 "NCX", "Test card"); reading it unpowered is a bus error. */
+inline constexpr uint32_t kFakeCardSize = 65536;
+inline std::vector<uint8_t> FakeCardCIS()
+{
+  return { 0x01, 0x03, 0x63, 0x0B, 0xFF,                                     // DEVICE: SRAM, 150 ns, 2 x 32 KB
+           0x15, 0x11, 0x04, 0x01, 'N', 'C', 'X', 0, 'T', 'e', 's', 't', ' ', 'c', 'a', 'r', 'd', 0, 0xFF,
+           0xFF };                                                           // END
+}
+inline uint8_t FakeCardByte(uint32_t inOffset) { return inOffset < 16384 ? (uint8_t)(inOffset * 13 ^ inOffset >> 7) : 0; }
+
 /** The fake Newton's screen: a pixel's value (0 white ... 15 black). */
 inline int ScreenPixel(int inX, int inY) { return inY < 60 ? 0 : (inX / 20 + inY / 30) % 16; }
 
@@ -98,6 +111,8 @@ public:
   size_t blankBlocks() const { return mBlankBlocks; }
   /** The memory it was asked to read ('NDmp' read), in bytes. */
   size_t memoryRead() const { return mMemoryRead; }
+  /** Its card's power, in order: "0 on", "0 off". */
+  const std::vector<std::string> & power() const { return mPower; }
   /** The packages it took ('lpkg'), and removed ('rmvp'), by name. */
   size_t packagesLoaded() const { return mPackagesLoaded; }
   const std::vector<std::string> & removed() const { return mRemoved; }
@@ -135,6 +150,7 @@ private:
   std::vector<std::string> mAdded;
   std::vector<std::string> mRestored;
   std::vector<std::string> mTyped;
+  std::vector<std::string> mPower;
 };
 
 } // namespace ncx

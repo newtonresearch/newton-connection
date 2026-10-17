@@ -55,6 +55,7 @@ add_library (ncx_core STATIC
   comms/Listener.cc comms/Listener.h
   comms/Session.cc comms/Session.h
   dock/Backup.cc dock/Backup.h
+  dock/Card.cc dock/Card.h
   dock/DockController.cc dock/DockController.h
   dock/Extensions.cc dock/Extensions.h ${ncx_extension_data}
   dock/FileBrowser.cc dock/FileBrowser.h
@@ -75,7 +76,11 @@ add_library (ncx_core STATIC
   model/Restore.cc model/Restore.h
   platform/AppFolders.cc platform/AppFolders.h
   platform/SerialPorts.cc platform/SerialPorts.h
+  # newtdump's CIS decoder (newton-framework), for PCMCIA cards
+  "${newton_SOURCE_DIR}/Matt/NewtDump/CIS.cc"
 )
+# CIS.h for Card.cc only (the folder has newtdump's other headers too)
+set_source_files_properties (dock/Card.cc PROPERTIES INCLUDE_DIRECTORIES "${newton_SOURCE_DIR}/Matt/NewtDump")
 target_include_directories (ncx_core PUBLIC
   ${CMAKE_CURRENT_SOURCE_DIR}
   ${PROJECT_BINARY_DIR}/generated

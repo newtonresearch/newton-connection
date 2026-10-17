@@ -42,6 +42,7 @@ struct FakeProcess
   std::vector<std::string> added;         // entries added to it, by title
   std::vector<std::string> restored;      // what a restore did (FakeNewton.h)
   std::vector<std::string> typed;         // keyboard passthrough (FakeNewton.h)
+  std::vector<std::string> power;         // its card's power: "0 on", "0 off"
   std::string why;
 
   /** Start inProgram (ncx-fake-newton) on a thread; it keeps trying to
@@ -98,6 +99,8 @@ struct FakeProcess
         added.push_back(line.substr(6));
       else if (line.compare(0, 9, "restored ") == 0)
         restored.push_back(line.substr(9));
+      else if (line.compare(0, 6, "power ") == 0)
+        power.push_back(line.substr(6));
       else if (line.compare(0, 6, "typed ") == 0)
         typed.push_back(line.substr(6));
       else if (line.compare(0, 4, "why ") == 0)

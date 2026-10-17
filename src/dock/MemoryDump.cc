@@ -104,7 +104,8 @@ int MemoryReader::map(uint32_t inBase, uint32_t inSize, int & outMap)
 }
 
 
-int MemoryReader::read(uint32_t inAddress, uint32_t inLength, std::vector<uint8_t> & outBytes, bool * outUniform)
+int MemoryReader::read(uint32_t inAddress, uint32_t inLength, std::vector<uint8_t> & outBytes, bool * outUniform,
+                       bool inBytes)
 {
   uint32_t window = inAddress & ~(kWindow - 1);
   int index = 0;
@@ -115,6 +116,8 @@ int MemoryReader::read(uint32_t inAddress, uint32_t inLength, std::vector<uint8_
   SetFrameSlot(request, MakeSymbol("map"), MAKEINT(index));
   SetFrameSlot(request, MakeSymbol("offset"), MAKEINT((int)(inAddress - window)));
   SetFrameSlot(request, MakeSymbol("length"), MAKEINT((int)inLength));
+  if (inBytes)
+    SetFrameSlot(request, MakeSymbol("bytes"), TRUEREF);
   RefVar answer;
   error = ask(request, answer);
   if (error != 0)
@@ -136,6 +139,51 @@ int MemoryReader::read(uint32_t inAddress, uint32_t inLength, std::vector<uint8_
 }
 
 
+int MemoryReader::readRegister(uint32_t inAddress, uint32_t & outValue)
+{
+  uint32_t page = inAddress & ~(kPage - 1);
+  int index = 0;
+  int error = map(page, kPage, index);
+  if (error != 0)
+    return error;
+  RefVar request(Request("read"));
+  SetFrameSlot(request, MakeSymbol("map"), MAKEINT(index));
+  SetFrameSlot(request, MakeSymbol("offset"), MAKEINT((int)(inAddress - page)));
+  SetFrameSlot(request, MakeSymbol("length"), MAKEINT(4));
+  RefVar answer;
+  error = ask(request, answer);
+  if (error != 0)
+    return error;
+  if (ISINT(answer)) {
+    outValue = (uint32_t)(RINT(answer) & 0xFF) * 0x01010101u;
+    return 0;
+  }
+  if (!IsBinary(answer) || Length(answer) != 4)
+    return kDockErrProtocolError;
+  const uint8_t * bytes = (const uint8_t *)BinaryData(answer);
+  outValue = (uint32_t)bytes[0] << 24 | (uint32_t)bytes[1] << 16 | (uint32_t)bytes[2] << 8 | bytes[3];
+  return 0;
+}
+
+
+int MemoryReader::power(int inSocket, bool inOn, int32_t * outResult)
+{
+  RefVar request(Request("power"));
+  SetFrameSlot(request, MakeSymbol("socket"), MAKEINT(inSocket));
+  SetFrameSlot(request, MakeSymbol("on"), inOn ? TRUEREF : NILREF);
+  RefVar answer;
+  int error = ask(request, answer);
+  if (error != 0)
+    return error;
+  RefVar result(IsFrame(answer) ? GetFrameSlot(answer, MakeSymbol("result")) : (Ref)NILREF);
+  if (!ISINT(result))
+    return kDockErrProtocolError;
+  if (outResult)
+    *outResult = (int32_t)RINT(result);
+  return 0;
+}
+
+
 uint32_t ROMSize(const NewtonInfo &)
 {
   // every NewtonOS 2 machine NCX knows (MessagePad 2x00, eMate 300,
@@ -146,6 +194,20 @@ uint32_t ROMSize(const NewtonInfo &)
 
 int DumpMemory(DockController & ioDock, uint32_t inAddress, uint64_t inSize, const std::filesystem::path & inFile,
                bool inResume, uint32_t inBlock, Progress * ioProgress)
+{
+  MemoryReader reader(ioDock);
+  int error = reader.begin();
+  if (error == 0)
+    error = DumpMemory(reader, inAddress, inSize, inFile, inResume, inBlock, ioProgress);
+  // cancelled on the Newton: it no longer waits for an end of control
+  if (error != kDockErrAborted)
+    reader.end();
+  return error;
+}
+
+
+int DumpMemory(MemoryReader & ioReader, uint32_t inAddress, uint64_t inSize, const std::filesystem::path & inFile,
+               bool inResume, uint32_t inBlock, Progress * ioProgress, bool inBytes)
 {
   uint64_t start = 0;
   std::error_code ec;
@@ -161,8 +223,7 @@ int DumpMemory(DockController & ioDock, uint32_t inAddress, uint64_t inSize, con
     ioProgress->setCompleted((int64_t)start);
   }
 
-  MemoryReader reader(ioDock);
-  int error = reader.begin();
+  int error = 0;
   uint64_t done = start;
   std::vector<uint8_t> bytes;
   while (error == 0 && done < inSize) {
@@ -174,7 +235,7 @@ int DumpMemory(DockController & ioDock, uint32_t inAddress, uint64_t inSize, con
     uint32_t length = (uint32_t)std::min<uint64_t>(inBlock, inSize - done);
     uint32_t toWindowEnd = MemoryReader::kWindow - (address & (MemoryReader::kWindow - 1));
     length = std::min(length, toWindowEnd);
-    error = reader.read(address, length, bytes);
+    error = ioReader.read(address, length, bytes, nullptr, inBytes);
     if (error != 0)
       break;
     file.write((const char *)bytes.data(), (std::streamsize)bytes.size());
@@ -187,9 +248,6 @@ int DumpMemory(DockController & ioDock, uint32_t inAddress, uint64_t inSize, con
       ioProgress->setCompleted((int64_t)done);
   }
   file.close();
-  // cancelled on the Newton: it no longer waits for an end of control
-  if (error != kDockErrAborted)
-    reader.end();
   return error;
 }
 

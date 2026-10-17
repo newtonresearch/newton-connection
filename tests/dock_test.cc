@@ -30,6 +30,7 @@
 #include "base/NewtonStrings.h"
 #include "comms/DockRefs.h"
 #include "dock/Backup.h"
+#include "dock/Card.h"
 #include "dock/DockController.h"
 #include "dock/Extensions.h"
 #include "dock/FileBrowser.h"
@@ -52,6 +53,7 @@
 #include <random>
 #include <fstream>
 #include <functional>
+#include <iterator>
 #include <string>
 #include <thread>
 #include <vector>
@@ -1046,6 +1048,57 @@ void TestNewton1()
   std::filesystem::remove_all(folder);
 }
 
+/*-- card --------------------------------------------------------------------*/
+
+void TestCard()
+{
+  Check(DescribePins(0x000C) == "no card" && DescribePins(0x0030) == "a card, 5 V"
+        && DescribePins(0x0220) == "a card, 3.3 V, write protected", "card: the pins");
+
+  std::filesystem::path folder = TempFolder("card");
+  FakeProcess fake;
+  std::vector<CardSocket> sockets;
+  int listed = -1, dumped = -1, empty = -1;
+  CardDump dump;
+  std::string why;
+  Progress progress;
+  int result = DockWithFake(Port(25), "", fake, [&](DockController & dock) {
+    MemoryReader reader(dock);
+    if (reader.begin() != 0)
+      return;
+    CardReader cards(reader);
+    listed = cards.sockets(dock.newton().info, sockets);
+    dumped = cards.dump(0, folder, "Newton: the fake", 0, false, MemoryReader::kBlock, &progress, dump);
+    why = cards.why();
+    CardDump none;
+    empty = cards.dump(1, folder, "", 0, false, MemoryReader::kBlock, nullptr, none);
+    reader.end();
+  });
+  Check(result == 0 && listed == 0 && sockets.size() == 2 && sockets[0].inserted && !sockets[1].inserted,
+        "card: two sockets, a card in the first " + fake.why);
+  Check(dumped == 0 && dump.cisFound && dump.cisWhere == "attribute memory" && dump.commonSize == kFakeCardSize,
+        "card: its CIS, 64 KB of memory " + why);
+  bool name = false;
+  for (const std::string & line : dump.cis)
+    name = name || line.find("\"Test card\"") != std::string::npos;
+  Check(name, "card: the CIS decoded (its name)");
+  std::vector<uint8_t> common;
+  {
+    std::ifstream in(dump.commonFile, std::ios::binary);
+    common.assign(std::istreambuf_iterator<char>(in), std::istreambuf_iterator<char>());
+  }
+  bool same = common.size() == kFakeCardSize;
+  for (uint32_t i = 0; same && i < kFakeCardSize; ++i)
+    same = common[i] == FakeCardByte(i);
+  Check(same && std::filesystem::file_size(dump.attributeFile) == kCardAttributeRead && std::filesystem::exists(dump.cisFile),
+        "card: the files, the memory byte for byte");
+  Check(progress.total() == kFakeCardSize && progress.completed() == kFakeCardSize, "card: the progress");
+  Check(fake.power == std::vector<std::string>({ "0 on", "0 off" }), "card: powered while read, then let go");
+  Check(empty == kDockErrCardNotInstalled, "card: an empty socket isn't touched");
+  if (!std::getenv("NCX_KEEP"))
+    std::filesystem::remove_all(folder);
+}
+
 } // namespace
 
 
@@ -1068,7 +1121,7 @@ int main(int argc, char * argv[])
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
     { "browse", TestBrowse }, { "backup", TestBackup }, { "deletions", TestDeletions }, { "restore", TestRestore },
     { "edit", TestEdit }, { "keyboard", TestKeyboard },
-    { "newton1", TestNewton1 } };
+    { "newton1", TestNewton1 }, { "card", TestCard } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

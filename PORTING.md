@@ -675,8 +675,8 @@ clean under ThreadSanitizer and ASan/UBSan.
 ### Phase 5: dock controller and components (no GUI)
 
 In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
-Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.8 against the fake Newton
-(backup and restore round-trip its stores), 5.2.4 against Einstein too. 55
+Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.9 against the fake Newton
+(backup and restore round-trip its stores), 5.2.4 against Einstein too. 57
 ctests, clean under ThreadSanitizer and ASan/UBSan.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
@@ -880,6 +880,23 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
   9. later: PCMCIA card dumps (CIS, attribute and common memory), taken
      from newtdump (`CIS.cc`, the `PhysMap`/`PhysRead`/`CardPower`
      natives).
+     ✅ (fake Newton) `dock/Card.h`, as newtdump reads cards, with the
+     same `NDmp` extension as the ROM dump (`MemoryReader` gained byte
+     reads, registers and card power): a socket's pins first (only a socket
+     with a card is touched), the card powered while it's read and let go
+     afterwards (also after an error, not after the Newton ended the
+     session), the CIS from the first 8 KB of attribute memory a byte at a
+     time (or the start of common memory, ROM cards), decoded by newtdump's
+     own `CIS.cc` (compiled from newton-framework), then the common memory
+     as big as the CIS says, with resume. Files as newtdump names them
+     (`card<n>-cis.txt`, `-attribute.bin`, `-common.bin`). Sockets:
+     MessagePad 2x00 and Einstein 2, eMate 300 1. `ncx-cli card [<socket>]
+     [--folder] [--size] [--block] [--resume] [--info]`. Found on the way:
+     `CIS.cc` took the longest chain, and a CIS in the even bytes with 0 in
+     the odd ones is a longer chain read as every byte; the layout with the
+     most known tuples wins now (newton-framework B76; Einstein's CIS, whose
+     VERS_1 link is 3 bytes short, still decodes). Still to do: Einstein's
+     card and a real one.
 
   `SyncComponent` is dropped.
 - Done when: every command works against Einstein, and backup/restore

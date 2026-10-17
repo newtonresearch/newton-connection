@@ -42,8 +42,17 @@ public:
   int begin();
   /** inLength bytes at the physical inAddress (a multiple of 4, not across
       a 1 MB window): 0 and outBytes (outUniform: all the same), or an
-      error (kDockErrAborted: the user cancelled on the Newton). */
-  int read(uint32_t inAddress, uint32_t inLength, std::vector<uint8_t> & outBytes, bool * outUniform = nullptr);
+      error (kDockErrAborted: the user cancelled on the Newton). inBytes:
+      read a byte at a time, not 32 bits (a card's attribute memory answers
+      only those). */
+  int read(uint32_t inAddress, uint32_t inLength, std::vector<uint8_t> & outBytes, bool * outUniform = nullptr,
+           bool inBytes = false);
+  /** A 32-bit register at the physical inAddress (a 4 KB mapping of its
+      own). */
+  int readRegister(uint32_t inAddress, uint32_t & outValue);
+  /** A PCMCIA socket's power: VccOn(socket, 0) (outResult: its result) or
+      VccOff(socket). The ROM keeps a card powered while it has a user. */
+  int power(int inSocket, bool inOn, int32_t * outResult = nullptr);
   /** Give up control. */
   void end();
 
@@ -65,6 +74,11 @@ uint32_t ROMSize(const NewtonInfo & inInfo);
     there of inSize; cancel() stops it (kDockErrAborted). */
 int DumpMemory(DockController & ioDock, uint32_t inAddress, uint64_t inSize, const std::filesystem::path & inFile,
                bool inResume, uint32_t inBlock = MemoryReader::kBlock, Progress * ioProgress = nullptr);
+
+/** The same with a reader that has begun (and stays so); inBytes: byte
+    reads (MemoryReader::read). */
+int DumpMemory(MemoryReader & ioReader, uint32_t inAddress, uint64_t inSize, const std::filesystem::path & inFile,
+               bool inResume, uint32_t inBlock, Progress * ioProgress, bool inBytes = false);
 
 } // namespace ncx
 

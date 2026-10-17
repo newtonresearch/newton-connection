@@ -474,6 +474,35 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
   };
   std::set<std::string> createdSoups;       // restore: made by the desktop
   std::vector<uint32_t> maps;               // NDmp: the windows mapped
+  bool cardPowered = false;
+  // physical memory: the card in socket 0 (CIS, common memory, its
+  // registers), socket 1 empty, MemoryByte() elsewhere
+  auto physicalByte = [&cardPowered](uint32_t inAddress, bool & ioBusError) -> uint8_t {
+    const uint32_t socket0 = 0x30000000, socket1 = 0x40000000;
+    if (inAddress >= socket0 && inAddress < socket0 + 0x2000) {          // attribute memory
+      ioBusError = ioBusError || !cardPowered;
+      uint32_t offset = inAddress - socket0;
+      std::vector<uint8_t> cis = FakeCardCIS();
+      return offset & 1 ? 0 : offset / 2 < cis.size() ? cis[offset / 2] : 0xFF;
+    }
+    if (inAddress >= socket0 + 0x08000000 && inAddress < socket0 + 0x08000000 + kFakeCardSize) {
+      ioBusError = ioBusError || !cardPowered;
+      return FakeCardByte(inAddress - socket0 - 0x08000000);
+    }
+    if (inAddress >= socket0 + 0x0C000000 && inAddress < socket0 + 0x10000000) {   // its registers
+      uint32_t reg = (inAddress - socket0 - 0x0C000000) & ~3u;
+      if ((inAddress & 3) != 3)
+        return 0;
+      return reg == 0x1C00 ? 0x30 : reg == 0x2800 ? (cardPowered ? 0x20 : 0) : reg == 0x2C00 ? 1 : 0;
+    }
+    if (inAddress >= socket1 + 0x0C000000 && inAddress < socket1 + 0x10000000)
+      return (inAddress & ~3u) == socket1 + 0x0C001C00 && (inAddress & 3) == 3 ? 0x0C : 0;    // no card
+    if (inAddress >= socket1 && inAddress < socket1 + 0x0C000000) {
+      ioBusError = true;
+      return 0;
+    }
+    return MemoryByte(inAddress);
+  };
   auto hasExtension = [this](const char * inId) {
     for (const std::string & id : mExtensions)
       if (id == inId)
@@ -692,18 +721,32 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
       } else if (what == "read" && intSlot("map") < maps.size()) {
         uint32_t address = maps[intSlot("map")] + intSlot("offset"), length = intSlot("length");
         mMemoryRead += length;
-        bool uniform = true;
-        for (uint32_t i = 1; i < length && uniform; ++i)
-          uniform = MemoryByte(address + i) == MemoryByte(address);
+        std::vector<uint8_t> bytes(length);
+        bool busError = false;
+        for (uint32_t i = 0; i < length; ++i)
+          bytes[i] = physicalByte(address + i, busError);
+        if (busError) {
+          // the extension catches it: {error, name}
+          SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(-10050));
+          SetFrameSlot(answer, MakeSymbol("name"), MakeStringFromUTF8("evt.ex.bus"));
+          wire->send(MakeRefEvent(Cmd("NDrs"), answer));
+          continue;
+        }
+        bool uniform = std::all_of(bytes.begin(), bytes.end(), [&](uint8_t b) { return b == bytes[0]; });
         if (uniform) {
           // an integer: a 4-byte long (TDocker::WriteCommand)
-          wire->send(DockEvent::MakeValue(Cmd("NDrs"), MemoryByte(address)));
+          wire->send(DockEvent::MakeValue(Cmd("NDrs"), bytes[0]));
           continue;
         }
         answer = AllocateBinary(MakeSymbol("data"), length);
-        uint8_t * p = (uint8_t *)BinaryData(answer);
-        for (uint32_t i = 0; i < length; ++i)
-          p[i] = MemoryByte(address + i);
+        std::memcpy(BinaryData(answer), bytes.data(), length);
+      } else if (what == "power") {
+        int socket = (int)intSlot("socket");
+        bool on = NOTNIL(GetFrameSlot(request, MakeSymbol("on")));
+        if (socket == 0)
+          cardPowered = on;
+        mPower.push_back(std::to_string(socket) + (on ? " on" : " off"));
+        SetFrameSlot(answer, MakeSymbol("result"), MAKEINT(0));
       } else {
         SetFrameSlot(answer, MakeSymbol("error"), MAKEINT(-1));
       }

@@ -61,7 +61,7 @@ FetchContent_Declare (fltk
 #------------------------------------------------------------------------------
 FetchContent_Declare (newton
   GIT_REPOSITORY https://github.com/MatthiasWM/newton-framework.git
-  GIT_TAG 45c6c9821d6c93250c44ba62a7f849fc1e400ab2   # dap_to_toolbox, NCX 4: large binaries, string classes, MSVC Debug
+  GIT_TAG 08d08ed4c61b660a97bece8dbe03ad40e7a45b54   # dap_to_toolbox, NCX 5: large binaries, string classes, MSVC Debug, CIS layout
 )
 
 #------------------------------------------------------------------------------
