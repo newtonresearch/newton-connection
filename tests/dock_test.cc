@@ -64,6 +64,9 @@ namespace {
 
 int gFailed = 0;
 std::string gFakeNewton;
+/** DockWithFake: its work left the desktop out of control (the end of
+    control went with the 'disc', or as 'opdn' if more followed). */
+bool gGaveUpControl = false;
 
 void Check(bool inOk, const std::string & inWhat)
 {
@@ -91,7 +94,10 @@ int DockWithFake(int inPort, const std::string & inOptions, FakeProcess & ioFake
   DockController dock;
   DockController::Events events;
   events.docked = [&](const DockedNewton &) {
-    dock.post([&](DockController & ioDock) { inWork(ioDock); });
+    dock.post([&](DockController & ioDock) {
+      inWork(ioDock);
+      gGaveUpControl = !ioDock.inControl();
+    });
     dock.disconnect();
   };
   dock.setEvents(events);
@@ -179,8 +185,44 @@ void TestController()
   });
   Check(result == 0 && fake.exitCode == 0, "controller: docked and disconnected " + fake.why);
   Check(name == "Ada Lovelace" && stores == 1, "controller: an operation on the dock thread");
-  Check(Received(fake, "dsnc") && Received(fake, "gsto") && Received(fake, "opdn") && !fake.received.empty()
-        && fake.received.back() == "disc", "controller: in control, the stores, done, disc");
+  Check(Received(fake, "dsnc") && Received(fake, "gsto") && gGaveUpControl && !Received(fake, "opdn")
+        && !fake.received.empty() && fake.received.back() == "disc",
+        "controller: in control, the stores, done; 'disc' instead of 'opdn' (the Newton ends quietly)");
+
+  // the end of control when nothing follows: 'opdn', the 'disc' later
+  FakeProcess fakeIdle;
+  fakeIdle.start(gFakeNewton, Port(26), "--password test");
+  {
+    DockController dock;
+    DockController::Events events;
+    std::thread later;
+    events.docked = [&](const DockedNewton &) {
+      dock.post([](DockController & ioDock) {
+        ioDock.setDesktopControl(true);
+        ioDock.session().getAllStores();
+        ioDock.setDesktopControl(false);
+      });
+      later = std::thread([&] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(500));
+        dock.disconnect();
+      });
+    };
+    dock.setEvents(events);
+    DockController::Settings settings;
+    settings.targets = { "tcp:" + std::to_string(Port(26)) };
+    settings.password = "test";
+    settings.once = true;
+    settings.waitSeconds = 20;
+    std::string error;
+    if (dock.start(settings, error))
+      dock.wait();
+    if (later.joinable())
+      later.join();
+  }
+  fakeIdle.finish();
+  size_t n = fakeIdle.received.size();
+  Check(n >= 2 && fakeIdle.received[n - 2] == "opdn" && fakeIdle.received[n - 1] == "disc",
+        "controller: 'opdn' when nothing follows, 'disc' later " + fakeIdle.why);
 
   // a Newton exception in an operation fails it, not the session
   FakeProcess fake2;
@@ -264,7 +306,7 @@ void TestNoToolkit()
     began = screenshots.begin();
   });
   Check(result == 0 && began == kDockErrFileNotFound, "notoolkit: no Toolkit app, no screenshot");
-  Check(Received(fake, "opdn"), "notoolkit: the desktop gave up control");
+  Check(gGaveUpControl, "notoolkit: the desktop gave up control");
 }
 
 /*-- memory ------------------------------------------------------------------*/
@@ -409,7 +451,7 @@ void TestInstall()
     Check(fake.packagesLoaded == (replace ? 2u : 1u)
           && fake.removed == (replace ? std::vector<std::string>({ "Installed Package" }) : std::vector<std::string>()),
           "install: sent " + std::to_string(fake.packagesLoaded) + ", removed " + std::to_string(fake.removed.size()) + how);
-    Check(Received(fake, "rins") && Received(fake, "opdn") && fake.extensions == std::vector<std::string>({ "pfnd" }),
+    Check(Received(fake, "rins") && gGaveUpControl && fake.extensions == std::vector<std::string>({ "pfnd" }),
           "install: asked to install, pfnd, done" + how);
     Check(progress.total() == (int64_t)(PackageSize("New Package", 20000) + PackageSize("Installed Package", 3000))
           && progress.completed() == progress.total(),
@@ -502,7 +544,7 @@ void TestBackup()
         "backup: the first, into a new file (" + std::to_string(counts.soups) + " soups, " + std::to_string(counts.entries)
         + " entries) " + fake.why);
   Check(progress.total() == 4 && progress.completed() == 4, "backup: the progress, app by app");
-  Check(Received(fake, "ssyn") && Received(fake, "gsyn") && Received(fake, "snds") && Received(fake, "opdn")
+  Check(Received(fake, "ssyn") && Received(fake, "gsyn") && Received(fake, "snds") && gGaveUpControl
         && fake.soupInfos.size() == 4, "backup: asked, sync options, soups sent, their backup time");
   {
     std::string error;
@@ -747,7 +789,7 @@ void TestRestore()
   Check(result == 0 && restored == 0 && counts.soups == 3 && counts.entries == 5 && counts.packages == 1,
         "restore: 3 soups, 5 entries, a package (" + std::to_string(counts.soups) + ", " + std::to_string(counts.entries)
         + ", " + std::to_string(counts.packages) + ") " + fake2.why);
-  Check(Received(fake2, "rrst") && Received(fake2, "sver") && Received(fake2, "ssto") && Received(fake2, "opdn"),
+  Check(Received(fake2, "rrst") && Received(fake2, "sver") && Received(fake2, "ssto") && gGaveUpControl,
         "restore: asked, the source, the store, done");
   auto did = [&](const std::string & inLine) {
     return std::find(fake2.restored.begin(), fake2.restored.end(), inLine) != fake2.restored.end();
@@ -840,7 +882,7 @@ void TestEdit()
         && fake2.deleted == std::vector<int64_t>({ 101 }), "edit: Babbage deleted on the Newton, the name never sent not");
   Check(removed == 0 && removeCounts.packages == 1 && fake2.removed == std::vector<std::string>({ "Tetris" }),
         "edit: the package removed by name");
-  Check(Received(fake2, "ssto") && Received(fake2, "ssou") && Received(fake2, "sdef") && Received(fake2, "opdn"),
+  Check(Received(fake2, "ssto") && Received(fake2, "ssou") && Received(fake2, "sdef") && gGaveUpControl,
         "edit: store, soup, the default store for packages, done");
   {
     std::string error;
@@ -894,6 +936,7 @@ void TestKeyboard()
   // the desktop starts it, types, ends it
   FakeProcess fake;
   std::vector<bool> changes;
+  bool gaveUp = false;
   int result = KeyboardWithFake(Port(18), "", fake, true, [&](DockController & dock, Keyboard & keyboard, bool inOn) {
     changes.push_back(inOn);
     if (inOn) {
@@ -902,13 +945,14 @@ void TestKeyboard()
       keyboard.type("x");
       keyboard.stop();
     } else {
+      gaveUp = !dock.inControl();
       dock.disconnect();
     }
   });
   Check(result == 0 && changes == std::vector<bool>({ true, false }), "keyboard: on and off " + fake.why);
   Check(fake.typed == std::vector<std::string>({ "s Hello\\x0DNewton", "c \\x08", "c x" }),
         "keyboard: a string, a key, a character");
-  Check(Received(fake, "dsnc") && Received(fake, "kybd") && Received(fake, "opdn"), "keyboard: in control, asked, done");
+  Check(Received(fake, "dsnc") && Received(fake, "kybd") && gaveUp, "keyboard: in control, asked, done");
 
   // the Newton starts it, and ends it after the first text
   FakeProcess fake2;

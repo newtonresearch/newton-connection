@@ -91,7 +91,7 @@ void DockController::post(Task inTask)
 void DockController::disconnect()
 {
   post([](DockController & dock) {
-    dock.session().send(kDDisconnect);
+    dock.sendDisconnect();
     dock.endSession(0, "");
   });
 }
@@ -154,6 +154,8 @@ void DockController::run()
     mQueue.reset(new EventQueue(std::move(connection)));
     mSession.reset(new Session(*mQueue));
     mExtensions.clear();
+    mOperationDonePending = false;
+    mInControl = false;
     try {
       CallNewton([this] { mNewton = Handshake(*mSession, mSettings.password, mSettings.app, 60); });
       ++mSessionNumber;
@@ -199,7 +201,7 @@ void DockController::serve()
   if (mStopping && mDocked) {
     // stop(): end the session as the desktop should
     try {
-      mSession->send(kDDisconnect);
+      sendDisconnect();
     } catch (const DockFailure &) {
     }
     endSession(0, "");
@@ -214,10 +216,20 @@ bool DockController::runTasks()
     Task task;
     {
       std::lock_guard<std::mutex> lock(mLock);
-      if (mTasks.empty())
-        return true;
-      task = std::move(mTasks.front());
-      mTasks.pop_front();
+      if (!mTasks.empty()) {
+        task = std::move(mTasks.front());
+        mTasks.pop_front();
+      }
+    }
+    if (!task) {
+      // nothing more to do: the end of desktop control, if one is due
+      try {
+        flushOperationDone();
+      } catch (const DockFailure & failure) {
+        endSession(failure.code, failure.what());
+        return false;
+      }
+      return true;
     }
     try {
       CallNewton([&] { task(*this); });
@@ -292,12 +304,39 @@ void DockController::setDesktopControl(bool inControl)
       mSession->suppressTimeout(false);
     return;
   }
+  mInControl = inControl;
   if (inControl) {
-    mSession->send(kDDesktopInControl);
+    // still in control (its end not sent yet): nothing to say
+    if (mOperationDonePending)
+      mOperationDonePending = false;
+    else
+      mSession->send(kDDesktopInControl);
   } else {
-    mSession->send(kDOperationDone);      // the Newton doesn't answer it
+    // sent when nothing else follows (flushOperationDone): a 'disc' right
+    // after it takes its place
+    mOperationDonePending = true;
     mSession->suppressTimeout(false);
   }
+}
+
+
+void DockController::flushOperationDone()
+{
+  if (!mOperationDonePending)
+    return;
+  mOperationDonePending = false;
+  mSession->send(kDOperationDone);        // the Newton doesn't answer it
+}
+
+
+void DockController::sendDisconnect()
+{
+  // 'disc' while the Newton's docker still reads commands (no 'opdn'
+  // first): it ends the session at once and quietly (ConnectionDone(0)).
+  // After an 'opdn' it goes back to the Connection slip, which reads the
+  // 'disc' only when it idles (every 2 s, once it is open)
+  mOperationDonePending = false;
+  mSession->send(kDDisconnect);
 }
 
 

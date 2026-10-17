@@ -102,8 +102,13 @@ public:
   const DockedNewton & newton() const { return mNewton; }
   /** kDDesktopInControl (true) or kDOperationDone (false); the latter
       also lets the session time out again (screenshot, keyboard).
-      Nothing for NewtonOS 1 (it has no desktop control). */
+      Nothing for NewtonOS 1 (it has no desktop control). The
+      kDOperationDone waits until no operation follows: a 'disc' takes its
+      place (the Newton then ends the session quietly), and control asked
+      for again right away needs neither. */
   void setDesktopControl(bool inControl);
+  /** The desktop is in control (setDesktopControl(true), not given up). */
+  bool inControl() const { return mInControl; }
   /** An extension (Extensions.h) to the Newton, once a session. */
   void loadExtension(EventType inId);
   void setStatus(const std::string & inText);
@@ -116,6 +121,8 @@ private:
   void handleNewton(const DockEvent & inEvent);
   bool runTasks();
   void endSession(int inCode, const std::string & inWhy);
+  void flushOperationDone();
+  void sendDisconnect();
 
   Settings mSettings;
   Events mEvents;
@@ -127,6 +134,8 @@ private:
   std::unique_ptr<Session> mSession;
   DockedNewton mNewton;
   std::set<EventType> mExtensions;          // loaded this session
+  bool mOperationDonePending = false;       // kDOperationDone due (setDesktopControl)
+  bool mInControl = false;
   std::mutex mLock;                         // mTasks, mWhy
   std::deque<Task> mTasks;
   std::string mWhy;

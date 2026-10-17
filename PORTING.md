@@ -897,11 +897,19 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
      most known tuples wins now (newton-framework B76; Einstein's CIS, whose
      VERS_1 link is 3 bytes short, still decodes). Against Einstein's card
      (Matt, 2026-10-17): it came. Then, from what Matt saw on the Newton:
-     - The session ended with "your Mac OS computer disconnected": after
-       its 'disc' NCX dropped the link as soon as MNP had acknowledged it,
-       before the Newton's Dock had read it. Now, after a 'disc' (sent or
-       received), the Newton ends the connection itself; NCX waits for that
-       (3 s at most, `EventQueue::close`).
+     - The session ended with "your Mac OS computer disconnected": NCX
+       sent 'opdn', then 'disc', and dropped the link as soon as MNP had
+       acknowledged it. In the ROM (newton-re): 'opdn' ends the docker's
+       command loop and the Connection app goes back to its slip, which
+       reads a 'disc' only when it idles (every 2 s, once it is open); the
+       link dropped before that is the error. A 'disc' while the docker
+       still reads commands ends the session at once and quietly
+       (`DeferredConnected` -> `HandleException(0)` -> `ConnectionDone(0)`,
+       whose abort sends the Newton's LD). So `setDesktopControl(false)`
+       holds the 'opdn' back until no operation follows: a 'disc' takes its
+       place, control asked for again needs neither. And after a 'disc'
+       NCX waits for the Newton to end the link (3 s at most,
+       `EventQueue::close`).
      - While memory is read, the Dock said "Waiting for a response...". The
        Connection app takes `stxt` (its status view's title; the idle
        script leaves the title alone while an extension works): now "Reading
