@@ -44,6 +44,7 @@ class StorePanel;
 class SoupPanel;
 class ScreenshotPanel;
 class KeyboardPanel;
+class ChooserPanel;
 
 class DocumentWindow : public Fl_Double_Window
 {
@@ -90,6 +91,7 @@ public:
   Inspector * inspector() { return mInspector; }
   ScreenshotPanel * screenshotPanel() { return mScreenshotPanel; }
   KeyboardPanel * keyboardPanel() { return mKeyboardPanel; }
+  ChooserPanel * chooserPanel() { return mChooserPanel; }
   /** The Newton started its keyboard: show the keyboard panel. */
   void showKeyboard();
   bool canPaste() const;
@@ -140,6 +142,7 @@ private:
   SoupPanel * mSoupPanel = nullptr;
   ScreenshotPanel * mScreenshotPanel = nullptr;
   KeyboardPanel * mKeyboardPanel = nullptr;
+  ChooserPanel * mChooserPanel = nullptr;
   Inspector * mInspector = nullptr;
   Fl_Box * mMessage = nullptr;
   Fl_Box * mDockState = nullptr;

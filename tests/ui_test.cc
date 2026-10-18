@@ -34,6 +34,7 @@
 #include "ui/panels/PassthroughArea.h"
 #include "ui/panels/RichView.h"
 #include "ui/panels/ScreenshotPanel.h"
+#include "ui/panels/ChooserPanel.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
@@ -345,12 +346,23 @@ void TestShell()
   Check(app.windows().size() == 2 && app.windows().back()->file().empty(), "shell: New Connection: a waiting window");
   DocumentWindow * waiting = app.windows().back();
   Check(!app.canDo(Command::kToggleSidebar, waiting), "shell: it has no sidebar to show");
+  Check(waiting->chooserPanel()->visible() && waiting->chooserPanel()->backups().size() == 1
+        && waiting->chooserPanel()->backups()[0].newtonName == "System Administrator",
+        "shell: it lists the backups in the app's folder (" + std::to_string(waiting->chooserPanel()->backups().size()) + ")");
+  Snapshot(waiting, "chooser");
   app.command(Command::kClose, waiting);
   Fl::check();
   Check(app.windows().size() == 1, "shell: Close closes it");
   // the same file again: the same window
   app.openDocument(file);
   Check(app.windows().size() == 1, "shell: a file open already: its window");
+#if !defined(__APPLE__)
+  // the last document closed: the chooser again
+  app.command(Command::kClose, window);
+  Fl::check();
+  Check(app.windows().size() == 1 && app.windows().front()->file().empty(),
+        "shell: the last document closed: the window waiting for a Newton again");
+#endif
   app.stop();
   Check(app.windows().empty(), "shell: the windows closed at the end");
 }

@@ -17,8 +17,8 @@ against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
-inspector (7.5) and the preferences (7.6) are done; next the dialogs and
-flows, 7.7.
+inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
+flows: the device chooser done, next Import.
 
 ---
 
@@ -1142,9 +1142,8 @@ and it):
   `NCX_PREFS=memory` keeps tests out of the user's preferences.
 - Fixed on the way: the controller never told `undocked` (`endSession()`
   cleared the flag it checked).
-- Not yet: images for the toolbar (FLTK's symbols for now), Open Recent, the device chooser
-  when the last window closes off macOS (it quits for now; 7.7), the
-  NewtonOS 1 session choice (the menu only remembers it; 7.7).
+- Not yet: images for the toolbar (FLTK's symbols for now), Open Recent,
+  the NewtonOS 1 session choice (the menu only remembers it; 7.7).
 
 - **7.1 UI conventions.**
   - Fluid (`.fl`, compiled by `fltk_run_fluid`) for the fixed panels:
@@ -1274,6 +1273,13 @@ and it):
 - **7.7 Dialogs and flows:** device chooser at start, backup/restore/import
   dialogs, delete warnings with "don't show again", progress with cancel,
   error alerts.
+  - 7.7.1 device chooser: done. The window waiting for a Newton lists the
+    backups in the app's folder (`ChooserPanel`: owner, Newton id, when
+    the file changed; Open, a double click, Other...). Off macOS closing
+    the last document brings it back, and closing it quits; on macOS the
+    app stays with its menu bar.
+  - Done before: the delete warning with "Don't show this again"
+    (`Dialogs.h`, 7.4.3), progress with Cancel in the toolbar (7.2).
 - **7.8 Drag and drop in:** files onto the window, device, store and soup
   panels; text onto the keyboard panel.
 - **7.9 Help:** HTML help in an `Fl_Help_View` window (or open in a

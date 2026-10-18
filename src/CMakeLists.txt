@@ -132,7 +132,7 @@ else ()
   set (ncx_fluid fltk::fluid)
 endif ()
 set (ncx_fluid_sources "")
-foreach (fl DevicePanelUI KeyboardPanelUI PreferencesUI ScreenshotPanelUI StorePanelUI)
+foreach (fl ChooserPanelUI DevicePanelUI KeyboardPanelUI PreferencesUI ScreenshotPanelUI StorePanelUI)
   set (out "${PROJECT_BINARY_DIR}/generated/ui/${fl}")
   add_custom_command (
     OUTPUT "${out}.cxx" "${out}.h"
@@ -159,6 +159,7 @@ add_library (ncx_ui STATIC
   ui/PackageInfo.cc
   ui/Preferences.cc
   ui/SoupData.cc
+  ui/panels/ChooserPanel.cc
   ui/panels/DevicePanel.cc
   ui/panels/KeyboardPanel.cc
   ui/panels/PackageView.cc

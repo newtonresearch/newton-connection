@@ -1,0 +1,33 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0401
+header_name {.h}
+code_name {.cxx}
+comment {//
+// The device chooser's layout (PORTING.md 7.7): the window that waits for
+// a Newton lists the backups there are. Its behaviour: ChooserPanel.cc.
+//} {in_source in_header
+}
+widget_class ChooserPanelUI {open
+  xywh {0 0 560 400}
+  class Fl_Group visible position_relative
+} {
+  Fl_Box mInstructions {
+    label {Waiting for a Newton. On the Newton, open Dock (Connection on NewtonOS 1) and connect with TCP/IP or serial.}
+    xywh {16 10 528 44} align 212
+  }
+  Fl_Box {} {
+    label {Or open a backup:}
+    xywh {16 58 528 22} labelfont 1 align 20
+  }
+  Fl_Browser mBackups {
+    xywh {16 82 528 270} type Hold color 7 resizable
+  }
+  Fl_Button mOther {
+    label {Other...}
+    tooltip {A backup somewhere else} xywh {338 360 100 28}
+  }
+  Fl_Return_Button mOpen {
+    label Open
+    xywh {444 360 100 28}
+  }
+}

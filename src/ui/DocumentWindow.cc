@@ -11,6 +11,7 @@
 #include "ui/Edits.h"
 #include "ui/Images.h"
 #include "ui/Inspector.h"
+#include "ui/panels/ChooserPanel.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/ScreenshotPanel.h"
@@ -144,6 +145,8 @@ DocumentWindow::DocumentWindow()
   mScreenshotPanel->hide();
   mKeyboardPanel = new KeyboardPanel(mContent->x(), top, mContent->w(), tileHeight);
   mKeyboardPanel->hide();
+  mChooserPanel = new ChooserPanel(mContent->x(), top, mContent->w(), tileHeight);
+  mChooserPanel->hide();
   mSoupPanel->setSelectionChanged([this] {
     App::get().selectionChanged();
     inspectSelection();
@@ -305,7 +308,10 @@ void DocumentWindow::showSelection()
   Fl_Tree_Item * item = mSidebar->first_selected_item();
   const Node * node = item ? static_cast<const Node *>(item->user_data()) : nullptr;
   Fl_Group * panel = nullptr;
-  if (mDeviceFile && node) {
+  if (!mDeviceFile) {
+    mChooserPanel->update();
+    panel = mChooserPanel;
+  } else if (node) {
     try {
       switch (node->kind) {
         case Node::kDevice:
@@ -338,7 +344,7 @@ void DocumentWindow::showSelection()
     }
   }
   for (Fl_Group * each : { (Fl_Group *)mDevicePanel, (Fl_Group *)mStorePanel, (Fl_Group *)mSoupPanel,
-                           (Fl_Group *)mScreenshotPanel, (Fl_Group *)mKeyboardPanel })
+                           (Fl_Group *)mScreenshotPanel, (Fl_Group *)mKeyboardPanel, (Fl_Group *)mChooserPanel })
     if (each != panel)
       each->hide();
   // screenshot mode, keyboard passthrough while their panels show
@@ -360,10 +366,7 @@ void DocumentWindow::showSelection()
     return;
   }
   mInfo->show();
-  if (!mDeviceFile) {
-    text = "Waiting for a Newton.\n\nOn the Newton, open Dock (Connection on NewtonOS 1) and connect "
-           "with TCP/IP or serial. Or open a backup with File > Open.";
-  } else if (node && text.empty()) {      // (text: why the panel couldn't be shown)
+  if (node && text.empty()) {      // (text: why the panel couldn't be shown)
     try {
       switch (node->kind) {
         case Node::kDevice:

@@ -599,12 +599,21 @@ DocumentWindow * App::waitingWindow()
 
 void App::windowClosed(DocumentWindow * inWindow)
 {
+  bool waiting = inWindow->file().empty();
   for (auto it = mWindows.begin(); it != mWindows.end(); ++it)
     if (*it == inWindow) {
       mWindows.erase(it);
       break;
     }
   Fl::delete_widget(inWindow);
+#if !defined(__APPLE__)
+  // the last document closed: the chooser again (closing that one quits;
+  // macOS: the app stays, with its menu bar)
+  if (mWindows.empty() && !waiting && !mQuit && !gQuitting)
+    waitingWindow();
+#else
+  (void)waiting;
+#endif
   stateChanged();
 }
 
