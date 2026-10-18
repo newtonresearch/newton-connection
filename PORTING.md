@@ -13,8 +13,9 @@ groundwork, the build and CI, the base, comms, model, dock and translator
 layers, all without a GUI, used through `ncx-cli` (71 ctests, clean under
 ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
-against a real Newton. Decisions D1 to D10 settled. Next: Phase 7, the FLTK
-user interface, from 7.1.
+against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
+interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
+Back Up and Install from the menu); next the panels, 7.4.
 
 ---
 
@@ -1104,8 +1105,44 @@ Done (2026-10-18): 6.1 to 6.6; NCX's exports compared with the Cocoa NCX's
 
 ### Phase 7: FLTK user interface
 
-Next (D9 settled: several document windows, a full menu in each off
-macOS, no tabs).
+In progress (D9 settled: several document windows, a full menu in each off
+macOS, no tabs). 7.1 to 7.3 done; next 7.4.
+
+What 7.1 to 7.3 made (`src/ui/`, the library `ncx_ui`; `NCX` is `main.cc`
+and it):
+- `AppDock`: the app's DockController (no FLTK, no framework headers in its
+  header). It listens all the time (`keepTrying`: also while no port can be
+  opened), on `tcp-all:<TCPIPPort>` and Einstein's pipes (`NCX --target`
+  overrides). A Newton that docks gets its file in the app's folder made or
+  found and brought up to date (`UpdateDevice`) before the UI hears of it.
+  The Newton may browse (Dock's Install) and back itself up (Dock's
+  Backup). The desktop's operations (Back Up, Install) belong to the session
+  they were posted in; one at a time has a Progress. Questions (delete
+  entries on the Newton? replace a package?) wait for the UI's answer.
+- `App`: the windows, the menus, the commands (`canDo`, `command`); the
+  dock's events taken to the UI thread. A docked Newton gets the window of
+  its file: the one open, else the waiting one, else a new one. The menus
+  are refreshed after each round of events when what they depend on
+  changed (the front window, docked, busy, a state serial).
+- `Commands`: the one menu table; `Fl_Sys_Menu_Bar` on macOS (About and
+  Preferences in the application menu, the Window menu), an `Fl_Menu_Bar`
+  in each document window elsewhere (with Preferences, Quit, About).
+- `DocumentWindow`: toolbar (the pane toggles, the operation's text,
+  progress and Cancel), `Fl_Tile` with the sidebar (`Fl_Tree`: device,
+  Keyboard and Screenshot while docked, stores, apps, soups), the content
+  (a summary for now: the panels are 7.4) and the inspector, the status
+  line. It reads its file itself, read only (WAL keeps it apart from the
+  dock thread's writes), and reloads after a backup. Size and panes are
+  remembered in the preferences.
+- `ui_test` (`shell`, `dock`): a window for the Einstein fixture; the app
+  against the fake Newton (dock, Back Up from the command, Disconnect).
+  `NCX_PREFS=memory` keeps tests out of the user's preferences.
+- Fixed on the way: the controller never told `undocked` (`endSession()`
+  cleared the flag it checked).
+- Not yet: Fluid (with the first fixed panel, 7.4), embedded PNG images for
+  the toolbar (FLTK's symbols for now), Open Recent, the device chooser
+  when the last window closes off macOS (it quits for now; 7.7), the
+  NewtonOS 1 session choice (the menu only remembers it; 7.7).
 
 - **7.1 UI conventions.**
   - Fluid (`.fl`, compiled by `fltk_run_fluid`) for the fixed panels:

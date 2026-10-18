@@ -4,7 +4,8 @@
  NCX's preferences (PORTING.md 2.4): Fl_Preferences underneath (a file per
  user: on macOS ~/Library/Preferences/newtonresearch.org/Newton
  Connection.prefs), with the Cocoa app's key names (PreferenceKeys.h). The
- old NSUserDefaults aren't read. Any thread may use them (the dock thread
+ old NSUserDefaults aren't read. NCX_PREFS=memory keeps them in memory only,
+ empty at the start (tests). Any thread may use them (the dock thread
  reads the password, the port, ...).
 
  Unset values read as the default given; the accessors at the end have the

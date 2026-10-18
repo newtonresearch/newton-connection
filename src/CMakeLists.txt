@@ -113,8 +113,16 @@ target_link_libraries (ncx-cli PRIVATE ncx_core)    # fl_write_png: fltk::images
 #   Windows.
 #------------------------------------------------------------------------------
 set (ncx_icon "${PROJECT_SOURCE_DIR}/resources/NCX.icns")
+#   ncx_ui: the app but main(), for the tests too (ui_test).
+add_library (ncx_ui STATIC
+  ui/App.cc
+  ui/AppDock.cc
+  ui/Commands.cc
+  ui/DocumentWindow.cc
+)
+target_link_libraries (ncx_ui PUBLIC ncx_core)    # FLTK comes with it
 add_executable (NCX WIN32 MACOSX_BUNDLE ui/main.cc ${ncx_icon})
-target_link_libraries (NCX PRIVATE ncx_core)    # FLTK comes with it
+target_link_libraries (NCX PRIVATE ncx_ui)
 set_source_files_properties (${ncx_icon} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 set_target_properties (NCX PROPERTIES
   MACOSX_BUNDLE_INFO_PLIST "${PROJECT_SOURCE_DIR}/cmake/Info.plist.in"

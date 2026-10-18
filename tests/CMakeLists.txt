@@ -76,6 +76,17 @@ add_dependencies (ncx_dock_test ncx-fake-newton)
 foreach (section extensions bits controller screenshot onepiece notoolkit memory packagefiles install browse backup deletions restore edit keyboard newton1 card objectwork)
   add_test (NAME ncx_dock_${section} COMMAND ncx_dock_test ${section} $<TARGET_FILE:ncx-fake-newton>)
 endforeach ()
+# The app's UI (PORTING.md Phase 7): a window for a backup, and the app
+# against the fake Newton. Its own preferences and folder; a display.
+add_executable (ncx_ui_test ui_test.cc)
+target_link_libraries (ncx_ui_test PRIVATE ncx_ui)
+target_include_directories (ncx_ui_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
+add_dependencies (ncx_ui_test ncx-fake-newton)
+foreach (section shell dock)
+  add_test (NAME ncx_ui_${section} COMMAND ncx_ui_test ${section} ${CMAKE_CURRENT_SOURCE_DIR}/fixtures $<TARGET_FILE:ncx-fake-newton>)
+  set_tests_properties (ncx_ui_${section} PROPERTIES
+    ENVIRONMENT "NCX_PREFS=memory;NCX_DATA_DIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_ui_${section}")
+endforeach ()
 math (EXPR cli_port_screenshot "43000 + ${port_base} + 2000")
 add_test (NAME ncx_cli_screenshot COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_screenshot} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_screenshot.png

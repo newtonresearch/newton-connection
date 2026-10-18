@@ -1,0 +1,96 @@
+/*
+ File: AppDock.h
+
+ The app's dock (PORTING.md 7.2): the DockController, with what the app
+ does with a Newton:
+   - it listens all the time, for one Newton after the other (keepTrying:
+     also when no port can be opened yet), on tcp-all:<TCPIPPort> and, on
+     macOS, Einstein's pipes
+   - a Newton that docks gets its .newtondevice file in the app's folder
+     (found by its id, or made) brought up to date (UpdateDevice): then
+     the UI hears of it
+   - the Newton may browse the desktop (Dock's Install) and back itself up
+     (Dock's Backup); the desktop may back it up and install packages
+ One operation at a time has a Progress the UI shows and may cancel.
+
+ The Hooks are called on the dock thread: the App takes them to the UI
+ thread (RunOnMainThread), but for the questions, which wait for the
+ answer. No FLTK and no newton-framework headers here (they clash): the
+ dock's headers stay in AppDock.cc.
+ */
+
+#ifndef NCX_UI_APPDOCK_H
+#define NCX_UI_APPDOCK_H
+
+#include "base/Progress.h"
+
+#include <filesystem>
+#include <functional>
+#include <memory>
+#include <string>
+#include <vector>
+
+namespace ncx {
+
+class DockController;
+
+class AppDock
+{
+public:
+  struct Hooks
+  {
+    std::function<void(const std::vector<std::string> &)> listening;    // where
+    /** Docked, and its file up to date (inFile; "" if it couldn't be
+        opened: inError). */
+    std::function<void(const std::string & inName, const std::filesystem::path & inFile, bool inNewton1,
+                       const std::string & inError)> docked;
+    std::function<void(int inCode, const std::string & inWhy)> undocked;  // 0: as it should
+    std::function<void(const std::string &)> status;                     // "" when done
+    /** An operation started (its title: "Backing up") ... */
+    std::function<void(const std::string & inTitle)> started;
+    /** ... and ended: what came of it ("12 soups backed up, ..."),
+        whether all went well, the file it changed ("" none). */
+    std::function<void(const std::string & inReport, bool inOK, const std::filesystem::path & inFile)> finished;
+    /** Questions; the dock waits for the answer. Delete the entries the
+        text names on the Newton? */
+    std::function<bool(const std::string & inText)> confirmDeletions;
+    /** Replace the package of that name on the Newton? */
+    std::function<bool(const std::string & inName)> replacePackage;
+  };
+
+  AppDock();
+  ~AppDock();
+  AppDock(const AppDock &) = delete;
+  AppDock & operator=(const AppDock &) = delete;
+
+  /** Listen (inTargets: none, the preferences'). False and why if the dock
+      thread can't run; it may run and still not listen yet (keepTrying). */
+  bool start(const Hooks & inHooks, std::string & outError, const std::vector<std::string> & inTargets = {});
+  /** Disconnect, end the dock thread. */
+  void stop();
+
+  bool docked() const;
+  /** The docked Newton runs NewtonOS 1. */
+  bool newton1() const;
+  /** An operation is in progress (or posted). */
+  bool busy() const;
+  /** The operation's progress (nullptr: none). */
+  std::shared_ptr<Progress> progress() const;
+  void cancel();
+
+  /** Operations, posted (they run once docked, one after the other). */
+  void backUp();
+  void install(const std::vector<std::filesystem::path> & inFiles);
+  void disconnect();
+
+  DockController & controller() { return *mDock; }
+
+private:
+  struct Impl;
+  std::unique_ptr<Impl> mImpl;
+  std::unique_ptr<DockController> mDock;
+};
+
+} // namespace ncx
+
+#endif // NCX_UI_APPDOCK_H

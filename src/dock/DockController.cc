@@ -207,10 +207,12 @@ void DockController::run()
     mExtensions.clear();
     mOperationDonePending = false;
     mInControl = false;
+    bool docked = false;        // (endSession() clears mDocked)
     try {
       CallNewton([this] { mNewton = Handshake(*mSession, mSettings.password, mSettings.app, 60); });
       ++mSessionNumber;
       mDocked = true;
+      docked = true;
       mResult = 0;
       if (mEvents.docked)
         mEvents.docked(mNewton);
@@ -224,8 +226,8 @@ void DockController::run()
     if (mQueue)
       mQueue->close();
     mQueue.reset();
-    bool wasDocked = mDocked.exchange(false);
-    if (wasDocked && mEvents.undocked)
+    mDocked = false;
+    if (docked && mEvents.undocked)
       mEvents.undocked(mResult, why());
     if (mSettings.once)
       break;

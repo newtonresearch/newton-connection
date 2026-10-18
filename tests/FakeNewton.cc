@@ -335,6 +335,7 @@ bool FakeNewton::run(const FakeNewtonOptions & inOptions)
     wire.reset(new MNPWire());
   if (!wire->connect(inOptions.port, inOptions.connectSeconds, mWhy))
     return false;
+  mWhy.clear();       // the tries before it got through
 
   DockEvent event;
   auto expect = [&](EventType inCommand) -> bool {

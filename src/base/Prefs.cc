@@ -9,6 +9,7 @@
 #include "base/Prefs.h"
 
 #include <cstdlib>
+#include <cstring>
 
 namespace ncx {
 
@@ -34,7 +35,11 @@ Prefs & Prefs::App()
 {
   static Prefs * app = [] {
     auto store = std::make_unique<Store>();
-    store->prefs = std::make_unique<Fl_Preferences>(Fl_Preferences::USER_L, "newtonresearch.org", "Newton Connection");
+    const char * where = std::getenv("NCX_PREFS");
+    if (where && std::strcmp(where, "memory") == 0)
+      store->prefs = std::make_unique<Fl_Preferences>((Fl_Preferences *)nullptr, "Newton Connection");
+    else
+      store->prefs = std::make_unique<Fl_Preferences>(Fl_Preferences::USER_L, "newtonresearch.org", "Newton Connection");
     return new Prefs(std::move(store));     // never deleted: written at each flush() and by FLTK at exit
   }();
   return *app;
