@@ -40,6 +40,7 @@ class Fl_Tree;
 namespace ncx {
 
 class DeviceFile;
+class DevicePanel;
 
 class DocumentWindow : public Fl_Double_Window
 {
@@ -66,8 +67,9 @@ public:
   /** Its menu bar (nullptr on macOS: the app has one). */
   Fl_Menu_ * menuBar() { return mMenuBar; }
 
-  /** The sidebar, the status line's message (tests). */
+  /** The sidebar, the status line's message, the panels (tests). */
   Fl_Tree * sidebar() { return mSidebar; }
+  DevicePanel * devicePanel() { return mDevicePanel; }
   const char * messageText() const;
 
   /** Closed: the app forgets it. */
@@ -107,6 +109,7 @@ private:
   Fl_Tree * mSidebar = nullptr;
   Fl_Group * mContent = nullptr;
   Fl_Box * mInfo = nullptr;
+  DevicePanel * mDevicePanel = nullptr;
   Fl_Text_Display * mInspector = nullptr;
   Fl_Text_Buffer * mInspectorText = nullptr;
   Fl_Box * mMessage = nullptr;

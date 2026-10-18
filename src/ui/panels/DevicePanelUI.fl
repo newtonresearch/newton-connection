@@ -1,0 +1,81 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0401
+header_name {.h}
+code_name {.cxx}
+comment {//
+// The device panel's layout (PORTING.md 7.4; the Cocoa app's
+// Device.storyboard). Its behaviour: DevicePanel.cc.
+//} {in_source in_header
+}
+widget_class DevicePanelUI {open
+  xywh {0 0 560 400}
+  class Fl_Group visible position_relative
+} {
+  Fl_Group mDeviceBox {
+    label {Newton Device} open
+    xywh {16 28 528 200} box ENGRAVED_FRAME labelfont 1 labelsize 13 align 5
+  } {
+    Fl_Box mPicture {
+      xywh {28 40 150 176}
+    }
+    Fl_Button mManufacturerLabel {
+      label {Manufacturer:}
+      tooltip {Click: the manufacturer, or when it was made} xywh {186 50 128 22} box NO_BOX align 24
+    }
+    Fl_Box mManufacturer {
+      xywh {318 50 214 22} align 84
+    }
+    Fl_Box {} {
+      label {Type:}
+      xywh {186 76 128 22} align 24
+    }
+    Fl_Box mType {
+      xywh {318 76 214 22} align 84
+    }
+    Fl_Button mSerialLabel {
+      label {Serial Number:}
+      tooltip {Click: the serial number, or the Newton ID} xywh {186 102 128 22} box NO_BOX align 24
+    }
+    Fl_Box mSerial {
+      xywh {318 102 214 22} align 84
+    }
+    Fl_Button mVersionLabel {
+      label {OS Version:}
+      tooltip {Click: the OS version, or the ROM version} xywh {186 128 128 22} box NO_BOX align 24
+    }
+    Fl_Box mVersion {
+      xywh {318 128 214 22} align 84
+    }
+    Fl_Box {} {
+      label {System RAM:}
+      xywh {186 154 128 22} align 24
+    }
+    Fl_Box mRAM {
+      xywh {318 154 214 22} align 84
+    }
+    Fl_Box {} {
+      label {Processor:}
+      xywh {186 180 128 22} align 24
+    }
+    Fl_Box mProcessor {
+      xywh {318 180 214 22} align 84
+    }
+  }
+  Fl_Group mBackupBox {
+    label Backups open
+    xywh {16 262 528 108} box ENGRAVED_FRAME labelfont 1 labelsize 13 align 5
+  } {
+    Fl_Box mBackupStatus {
+      label {This Newton device has never been backed up to this computer.}
+      xywh {28 272 504 46} labelsize 12 align 213
+    }
+    Fl_Button mBackUp {
+      label {Back Up}
+      xywh {334 330 94 28}
+    }
+    Fl_Button mRestore {
+      label {Restore...}
+      xywh {438 330 94 28}
+    }
+  }
+}

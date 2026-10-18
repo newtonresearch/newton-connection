@@ -6,6 +6,7 @@
    shell   a document window for the Einstein backup (fixtures/cocoa): its
            title, its sidebar, the panes, the commands it allows; a window
            waiting for a Newton, closed again
+   drop    files dropped: paths and file: URLs
    dock    the app against the fake Newton: it docks, its file is made
            and shown, Back Up (the command) backs it up, the window shows
            it, Disconnect ends the session quietly
@@ -23,8 +24,11 @@
 #include "platform/AppFolders.h"
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
+#include "ui/Drop.h"
+#include "ui/panels/DevicePanel.h"
 
 #include <FL/Fl.H>
+#include <FL/Fl_Button.H>
 #include <FL/Fl_Tree.H>
 
 #include <chrono>
@@ -32,6 +36,7 @@
 #include <cstdlib>
 #include <cstring>
 #include <filesystem>
+#include <fstream>
 #include <functional>
 #include <random>
 #include <string>
@@ -130,6 +135,24 @@ void TestShell()
   Check(selected && selected->label() && std::string(selected->label()) == "System Administrator",
         "shell: the device selected");
 
+  // the device panel
+  DevicePanel * device = window->devicePanel();
+  Check(device->visible() && device->manufacturerText() == "Apple" && device->serialText() == "0000-4E65-7774-6F6E"
+        && device->versionText() == "2.1 (717260)-1", "shell: the device panel: manufacturer, serial number, OS version");
+  Check(device->backupText().find("This Newton device was backed up ") == 0, "shell: ... when it was backed up");
+  Check(!device->mBackUp->active() && !device->mRestore->active(), "shell: ... not docked: no Back Up, no Restore");
+  device->mSerialLabel->do_callback();
+  device->mVersionLabel->do_callback();
+  Check(device->serialText() == "233499568" && device->versionText() == "2.2",
+        "shell: ... a click on a label: the Newton ID, the ROM version (" + device->serialText() + ", "
+        + device->versionText() + ")");
+  device->mSerialLabel->do_callback();
+  Check(device->serialText() == "0000-4E65-7774-6F6E", "shell: ... and back");
+  window->sidebar()->select_only(window->sidebar()->find_item("Internal"), 1);
+  Check(!device->visible(), "shell: a store selected: no device panel");
+  window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
+  Check(device->visible(), "shell: the device again: its panel");
+
   Check(!app.canDo(Command::kBackUp, window) && !app.canDo(Command::kInstallPackage, window)
         && app.canDo(Command::kOpen, window) && app.canDo(Command::kToggleSidebar, window),
         "shell: not docked: no Back Up, no Install");
@@ -156,6 +179,35 @@ void TestShell()
   Check(app.windows().size() == 1, "shell: a file open already: its window");
   app.stop();
   Check(app.windows().empty(), "shell: the windows closed at the end");
+}
+
+
+/*-- drop ---------------------------------------------------------------------*/
+
+/** A file: URL for a file (inHost: "" or "localhost"), spaces %-escaped. */
+std::string FileURL(const std::filesystem::path & inFile, const std::string & inHost)
+{
+  std::string path = UTF8FromPath(inFile), url = "file://" + inHost;
+  if (path.empty() || path[0] != '/')
+    url += '/';                   // file:///C:/...
+  for (char c : path)
+    url += c == ' ' ? std::string("%20") : std::string(1, c == '\\' ? '/' : c);
+  return url;
+}
+
+void TestDrop()
+{
+  std::filesystem::path folder = std::filesystem::absolute(AppDataFolder()) / "My Packages";
+  std::filesystem::create_directories(folder);
+  std::filesystem::path a = folder / "a b.newtonpkg", c = folder / "c.pkg";
+  std::ofstream(a) << "package0";
+  std::ofstream(c) << "package0";
+  std::vector<std::filesystem::path> files
+    = DroppedFiles(FileURL(a, "") + "\r\n" + UTF8FromPath(c) + "\n/no/such/file\n");
+  Check(files.size() == 2 && files[0] == a && files[1] == c,
+        "drop: a file: URL (%-escaped), a path; what isn't there left out (" + std::to_string(files.size()) + ")");
+  files = DroppedFiles(FileURL(c, "localhost"));
+  Check(files.size() == 1 && files[0] == c, "drop: file://localhost/...");
 }
 
 
@@ -215,7 +267,7 @@ int main(int argc, char * argv[])
 {
   std::setvbuf(stdout, nullptr, _IONBF, 0);
   if (argc != 4) {
-    std::fprintf(stderr, "usage: ncx_ui_test shell|dock <fixtures> <ncx-fake-newton>\n");
+    std::fprintf(stderr, "usage: ncx_ui_test shell|dock|drop <fixtures> <ncx-fake-newton>\n");
     return 2;
   }
   std::string section = argv[1];
@@ -235,6 +287,8 @@ int main(int argc, char * argv[])
     TestShell();
   else if (section == "dock")
     TestDock();
+  else if (section == "drop")
+    TestDrop();
   else {
     std::fprintf(stderr, "no section \"%s\"\n", section.c_str());
     return 2;

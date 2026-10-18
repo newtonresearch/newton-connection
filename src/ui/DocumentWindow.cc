@@ -7,6 +7,8 @@
 #include "ui/DocumentWindow.h"
 #include "ui/App.h"
 #include "ui/Commands.h"
+#include "ui/Images.h"
+#include "ui/panels/DevicePanel.h"
 
 #include "base/Dates.h"
 #include "base/Prefs.h"
@@ -129,6 +131,8 @@ DocumentWindow::DocumentWindow()
   mContent->color(FL_BACKGROUND2_COLOR);
   mInfo = new Fl_Box(mContent->x() + kMargin, top + kMargin, mContent->w() - 2 * kMargin, tileHeight - 2 * kMargin);
   mInfo->align(FL_ALIGN_INSIDE | FL_ALIGN_TOP_LEFT | FL_ALIGN_WRAP | FL_ALIGN_CLIP);
+  mDevicePanel = new DevicePanel(mContent->x(), top, mContent->w(), tileHeight);
+  mDevicePanel->hide();
   mContent->resizable(mInfo);
   mContent->end();
   mInspectorText = new Fl_Text_Buffer();
@@ -228,30 +232,32 @@ void DocumentWindow::fillTree()
   mNodes.clear();
   App & app = App::get();
   mShowsDockItems = app.isDockedWindow(this) && !app.dock().newton1();
-  auto add = [this](Fl_Tree_Item * inParent, const std::string & inLabel, Node inNode) {
-    Fl_Tree_Item * item = inParent ? mSidebar->add(inParent, inLabel.c_str()) : mSidebar->add(mSidebar->root(), inLabel.c_str());
+  auto add = [this](Fl_Tree_Item * inParent, const std::string & inLabel, Node inNode, const char * inIcon) {
+    Fl_Tree_Item * item = mSidebar->add(inParent ? inParent : mSidebar->root(), inLabel.c_str());
     mNodes.emplace_back(new Node(inNode));
     item->user_data(mNodes.back().get());
+    item->usericon(BuiltinImage(inIcon));
     return item;
   };
   if (mDeviceFile) {
     std::string name = mDeviceFile->newtonName();
-    add(nullptr, name.empty() ? std::string("Newton") : name, Node { Node::kDevice });
+    add(nullptr, name.empty() ? std::string("Newton") : name, Node { Node::kDevice }, "source-device");
     if (mShowsDockItems) {
-      add(nullptr, "Keyboard", Node { Node::kKeyboard });
-      add(nullptr, "Screenshot", Node { Node::kScreenshot });
+      add(nullptr, "Keyboard", Node { Node::kKeyboard }, "source-keyboard");
+      add(nullptr, "Screenshot", Node { Node::kScreenshot }, "source-display");
     }
     try {
       std::vector<StoreRecord> stores = mDeviceFile->stores();
       SortStores(stores);
       std::vector<SoupRecord> soups = mDeviceFile->soups();
       for (const StoreRecord & store : stores) {
-        Fl_Tree_Item * storeItem = add(nullptr, store.name, Node { Node::kStore, store.pk });
+        Fl_Tree_Item * storeItem = add(nullptr, store.name, Node { Node::kStore, store.pk },
+                                       IsInternal(store) ? "source-internal" : "source-store");
         for (const AppRecord & appRecord : mDeviceFile->storeApps(store.pk, true)) {
-          Fl_Tree_Item * appItem = add(storeItem, appRecord.name, Node { Node::kApp, store.pk, appRecord.pk });
+          Fl_Tree_Item * appItem = add(storeItem, appRecord.name, Node { Node::kApp, store.pk, appRecord.pk }, "source-app");
           for (const SoupRecord & soup : soups)
             if (soup.storePk == store.pk && soup.appPk == appRecord.pk)
-              add(appItem, soup.name, Node { Node::kSoup, store.pk, appRecord.pk, soup.pk });
+              add(appItem, soup.name, Node { Node::kSoup, store.pk, appRecord.pk, soup.pk }, "source-soup");
           appItem->close();
         }
       }
@@ -285,6 +291,20 @@ void DocumentWindow::showSelection()
   std::string text;
   Fl_Tree_Item * item = mSidebar->first_selected_item();
   const Node * node = item ? static_cast<const Node *>(item->user_data()) : nullptr;
+  // a panel, else the summary
+  if (mDeviceFile && node && node->kind == Node::kDevice) {
+    try {
+      mDevicePanel->update(*mDeviceFile);
+    } catch (const ModelError & error) {
+      mInfo->copy_label(LabelText(error.what()).c_str());
+    }
+    mInfo->hide();
+    mDevicePanel->show();
+    mContent->redraw();
+    return;
+  }
+  mDevicePanel->hide();
+  mInfo->show();
   if (!mDeviceFile) {
     text = "Waiting for a Newton.\n\nOn the Newton, open Dock (Connection on NewtonOS 1) and connect "
            "with TCP/IP or serial. Or open a backup with File > Open.";
@@ -293,23 +313,8 @@ void DocumentWindow::showSelection()
   } else {
     try {
       switch (node->kind) {
-        case Node::kDevice: {
-          text = mDeviceFile->newtonName() + "\n\n";
-          if (std::optional<DeviceRecord> device = mDeviceFile->device()) {
-            NewtonInfo info = NewtonInfoOf(*device);
-            text += MachineTypeName(info) + " (" + ManufacturerName(info) + ")\n";
-            if (device->osInfo)
-              text += "NewtonOS " + *device->osInfo + "\n";
-            if (device->processor)
-              text += *device->processor + "\n";
-            text += "Serial number " + SerialNumberText(info) + "\n";
-            text += "Last backup: "
-                  + (device->backupDate ? FormatDateTime(TimeFromCoreData(*device->backupDate)) : std::string("never"))
-                  + "\n";
-          }
-          text += "\n" + UTF8FromPath(mFile);
+        case Node::kDevice:
           break;
-        }
         case Node::kKeyboard:
           text = "Type on the Newton from this computer's keyboard (comes with PORTING.md 7.4).";
           break;
@@ -436,6 +441,8 @@ void DocumentWindow::updateState()
     mTimerRunning = true;
     Fl::add_timeout(0.25, ProgressTimer, this);
   }
+  if (mDevicePanel->visible())
+    mDevicePanel->updateState();
   updateProgress();
   redraw();
 }

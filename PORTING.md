@@ -15,7 +15,8 @@ ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu); next the panels, 7.4.
+Back Up and Install from the menu); the panels (7.4): the device panel
+done, next the store panel.
 
 ---
 
@@ -1139,8 +1140,7 @@ and it):
   `NCX_PREFS=memory` keeps tests out of the user's preferences.
 - Fixed on the way: the controller never told `undocked` (`endSession()`
   cleared the flag it checked).
-- Not yet: Fluid (with the first fixed panel, 7.4), embedded PNG images for
-  the toolbar (FLTK's symbols for now), Open Recent, the device chooser
+- Not yet: images for the toolbar (FLTK's symbols for now), Open Recent, the device chooser
   when the last window closes off macOS (it quits for now; 7.7), the
   NewtonOS 1 session choice (the menu only remembers it; 7.7).
 
@@ -1180,6 +1180,21 @@ and it):
   - Closing the last document window: macOS keeps the app running (menu
     still there); Windows and Linux show the device chooser again, and
     quit from there.
+- 7.4 so far:
+  - Fluid: `src/ui/panels/<name>UI.fl` holds a panel's layout only (a
+    `widget_class`, named widgets public), compiled by FLTK's fluid
+    (`fluid-cmd` on Windows) into `generated/ui/`; `<name>.cc` subclasses
+    it with the behaviour. An `Fl_Group` makes itself resizable: panels
+    turn that off, so their layout stays as designed.
+  - Images: `resources/images/*.png` (the Cocoa app's device pictures as
+    PNG, its sidebar icons, its store pictures; colour profiles and text
+    chunks stripped), embedded by `cmake/EmbedImages.cmake`,
+    `BuiltinImage(name)`. The sidebar has its icons.
+  - 7.4.1 device panel: done. Picture, the info rows (a click on
+    Manufacturer, Serial Number, OS Version switches to when it was made,
+    the Newton ID, the ROM version), the backup status, Back Up, Restore
+    (enabled with 7.7). Packages dropped on it are installed on the docked
+    Newton (`Drop.h`: paths and `file:` URLs).
 - **7.4 Panels** (one step each): device (with the package list and
   dropping packages), store (capacity indicator), soup (an `Fl_Table_Row`
   subclass with columns per soup, sorting, multiple selection, delete and

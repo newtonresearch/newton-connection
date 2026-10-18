@@ -56,6 +56,8 @@ public:
   void command(Command inCommand, DocumentWindow * inTarget);
   bool canDo(Command inCommand, DocumentWindow * inTarget) const;
   bool isChecked(Command inCommand, DocumentWindow * inTarget) const;
+  /** Install packages on the docked Newton (an operation). */
+  void installPackages(const std::vector<std::filesystem::path> & inFiles);
   /** The menus as the state is now (after it changed). */
   void updateMenus();
 

@@ -424,8 +424,16 @@ void App::chooseAndInstall()
   std::vector<std::filesystem::path> files;
   for (int i = 0; i < chooser.count(); ++i)
     files.push_back(PathFromUTF8(chooser.filename(i)));
-  if (!files.empty())
-    mDock.install(files);
+  installPackages(files);
+}
+
+
+void App::installPackages(const std::vector<std::filesystem::path> & inFiles)
+{
+  if (inFiles.empty() || !canDo(Command::kInstallPackage, frontWindow()))
+    return;
+  mDock.install(inFiles);
+  stateChanged();
 }
 
 

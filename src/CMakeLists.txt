@@ -113,13 +113,49 @@ target_link_libraries (ncx-cli PRIVATE ncx_core)    # fl_write_png: fltk::images
 #   Windows.
 #------------------------------------------------------------------------------
 set (ncx_icon "${PROJECT_SOURCE_DIR}/resources/NCX.icns")
-#   ncx_ui: the app but main(), for the tests too (ui_test).
+#   ncx_ui: the app but main(), for the tests too (ui_test). The panels'
+#   layouts are Fluid files (ui/panels/*.fl, compiled by FLTK's fluid), the
+#   images resources/images/*.png (embedded by cmake/EmbedImages.cmake).
+file (GLOB ncx_image_files CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/resources/images/*.png")
+set (ncx_image_data "${PROJECT_BINARY_DIR}/generated/ImageData.cc")
+add_custom_command (
+  OUTPUT "${ncx_image_data}"
+  COMMAND "${CMAKE_COMMAND}" -DDIR=${PROJECT_SOURCE_DIR}/resources/images -DOUT=${ncx_image_data}
+          -P "${PROJECT_SOURCE_DIR}/cmake/EmbedImages.cmake"
+  DEPENDS ${ncx_image_files} "${PROJECT_SOURCE_DIR}/cmake/EmbedImages.cmake"
+  COMMENT "Embedding the images"
+  VERBATIM
+)
+if (TARGET fltk::fluid-cmd)
+  set (ncx_fluid fltk::fluid-cmd)       # Windows: the console one
+else ()
+  set (ncx_fluid fltk::fluid)
+endif ()
+set (ncx_fluid_sources "")
+foreach (fl DevicePanelUI)
+  set (out "${PROJECT_BINARY_DIR}/generated/ui/${fl}")
+  add_custom_command (
+    OUTPUT "${out}.cxx" "${out}.h"
+    COMMAND "${CMAKE_COMMAND}" -E make_directory "${PROJECT_BINARY_DIR}/generated/ui"
+    COMMAND ${ncx_fluid} -c -o "${out}.cxx" -h "${out}.h" "${CMAKE_CURRENT_SOURCE_DIR}/ui/panels/${fl}.fl"
+    DEPENDS "${CMAKE_CURRENT_SOURCE_DIR}/ui/panels/${fl}.fl" ${ncx_fluid}
+    COMMENT "Fluid: ${fl}.fl"
+    VERBATIM
+  )
+  list (APPEND ncx_fluid_sources "${out}.cxx")
+endforeach ()
 add_library (ncx_ui STATIC
   ui/App.cc
   ui/AppDock.cc
   ui/Commands.cc
   ui/DocumentWindow.cc
+  ui/Drop.cc
+  ui/Images.cc
+  ui/panels/DevicePanel.cc
+  ${ncx_fluid_sources}
+  "${ncx_image_data}"
 )
+target_include_directories (ncx_ui PUBLIC "${PROJECT_BINARY_DIR}/generated/ui")
 target_link_libraries (ncx_ui PUBLIC ncx_core)    # FLTK comes with it
 add_executable (NCX WIN32 MACOSX_BUNDLE ui/main.cc ${ncx_icon})
 target_link_libraries (NCX PRIVATE ncx_ui)
