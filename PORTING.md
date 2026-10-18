@@ -1068,6 +1068,26 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
 - **6.6 Golden-file tests:** export fixture entries and compare them with
   files saved from the current macOS NCX (text formats exactly, images by
   pixel tolerance).
+  ✅ `tests/fixtures/cocoa/` (README.md: where each file came from): a
+  backup of Einstein's MessagePad setup made by ncx-cli, trimmed to what
+  Matt exported from it with the Cocoa NCX 3.0.2 (2026-10-18), and those
+  exports. `translators_test golden` exports the same entries with NCX
+  and compares what the files hold (the bytes can't match: Apple's Contacts
+  framework and libical wrote the Cocoa app's):
+  - Names: the same 7 cards (names, phones and their kinds, addresses);
+  - Dates: the same 7 events (start, duration, title);
+  - Calls printed as NewtonScript byte for byte the same; the package byte
+    for byte;
+  - the Works paper's text and faces; the drawing's shapes (99% of the
+    Cocoa app's ink in NCX's);
+  - the ink note's lines of text, its graphics (100%).
+  What the Cocoa app got wrong is allowed and listed in the README:
+  companies without ORG or FN (empty cards), a file per class and a double
+  dot in the names; no UID, `\r` for a line end, an event twice; Courier,
+  Schoolbook and underline lost; the drawing's bitmaps not drawn; ink words
+  as "-ink-", paragraphs in the data's order, the graphics at the end.
+  Found on the way: PNGs with an alpha channel (the Cocoa app's TIFFs) read
+  their transparent pixels as black; now on white.
 
 ### Phase 7: FLTK user interface
 

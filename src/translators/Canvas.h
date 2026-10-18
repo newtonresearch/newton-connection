@@ -65,7 +65,8 @@ Pixels Crop(const Pixels & inPixels, int inLeft, int inTop, int inRight, int inB
 bool WritePNG(const std::filesystem::path & inFile, const Pixels & inPixels);
 /** The pixels as PNG data ("" if they can't be encoded). */
 std::string PNGData(const Pixels & inPixels);
-/** A PNG file's pixels (empty if it isn't one). */
+/** A PNG file's pixels, transparent ones on white (empty if it isn't
+    one). */
 Pixels ReadPNG(const std::filesystem::path & inFile);
 
 } // namespace ncx

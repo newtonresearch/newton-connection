@@ -1,0 +1,30 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.5.2//EN
+N:;;;;
+TEL;type=WORK;type=VOICE;type=pref:(800)555-1000
+TEL;type=WORK;type=FAX:(415)555-8123
+ADR;type=HOME;type=pref:;;The Crossroads\n37415 Park Place;Brisbane;CA;94804;
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.5.2//EN
+N:;;;;
+TEL;type=MAIN;type=pref:(617)555-2020
+ADR;type=HOME;type=pref:;;100 Main St.;Newton;MA;02165;
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.5.2//EN
+N:;;;;
+TEL;type=MAIN;type=pref:(617)555-1000
+TEL;type=WORK;type=FAX:(617)555-8123
+ADR;type=HOME;type=pref:;;241 Cappuccino Court;Newton;MA;02168;
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.5.2//EN
+N:Peepinnewind;Erwin;;They;
+FN:They Erwin Peepinnewind
+TEL;type=MAIN;type=pref:(310)213 6448
+END:VCARD

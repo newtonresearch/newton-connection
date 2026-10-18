@@ -18,6 +18,7 @@
 #include "base/Dates.h"
 #include "base/NewtonCall.h"
 #include "base/NewtonStrings.h"
+#include "base/Strings.h"
 #include "comms/DockRefs.h"
 #include "model/DeviceFile.h"
 #include "model/NewtonModel.h"
@@ -38,6 +39,7 @@
 #include <cstring>
 #include <fstream>
 #include <functional>
+#include <set>
 #include <string>
 #include <vector>
 
@@ -983,6 +985,215 @@ void TestAudio()
   Check(files.size() == 1 && files[0].filename() == "Ada.mp3" && ReadFile(files[0]) == mp3, "audio: and back as the MP3");
 }
 
+/*-- golden ------------------------------------------------------------------*/
+
+/** The cards of a vCard text. */
+std::vector<std::vector<ContentLine>> Cards(const std::string & inText)
+{
+  std::vector<std::vector<ContentLine>> cards;
+  for (ContentLine & line : ParseContentLines(inText)) {
+    if (line.name == "BEGIN")
+      cards.emplace_back();
+    else if (line.name != "END" && !cards.empty())
+      cards.back().push_back(line);
+  }
+  return cards;
+}
+
+/** A card as what it holds: its N, its phones (number and types, without
+    "pref"), its addresses. */
+std::string CardSummary(const std::vector<ContentLine> & inCard)
+{
+  std::vector<std::string> phones, addresses;
+  std::string name;
+  for (const ContentLine & line : inCard) {
+    if (line.name == "N")
+      name = line.value;
+    else if (line.name == "ADR")
+      addresses.push_back(line.value);
+    else if (line.name == "TEL") {
+      std::vector<std::string> types;
+      for (const auto & p : line.params)
+        if (p.first == "TYPE")
+          for (const std::string & t : SplitValue(p.second, ','))
+            if (Upper(t) != "PREF")
+              types.push_back(Upper(t));
+      std::sort(types.begin(), types.end());
+      std::string text = UnescapeText(line.value) + " (";
+      for (const std::string & t : types)
+        text += t + " ";
+      phones.push_back(text + ")");
+    }
+  }
+  std::sort(phones.begin(), phones.end());
+  std::sort(addresses.begin(), addresses.end());
+  std::string summary = "N:" + name;
+  for (const std::string & p : phones)
+    summary += " TEL:" + p;
+  for (const std::string & a : addresses)
+    summary += " ADR:" + a;
+  return summary;
+}
+
+/** Events as what they hold: start, duration, title (unescaped, without a
+    line end at its end). */
+std::set<std::string> Events(const std::string & inText)
+{
+  std::set<std::string> events;
+  std::string start, duration, summary;
+  for (const ContentLine & line : ParseContentLines(inText)) {
+    if (line.name == "DTSTART")
+      start = line.value;
+    else if (line.name == "DURATION")
+      duration = line.value;
+    else if (line.name == "SUMMARY") {
+      summary = UnescapeText(ReplaceAll(line.value, "\\r", ""));          // (the Cocoa app's \r)
+      while (!summary.empty() && (summary.back() == '\n' || summary.back() == '\r'))
+        summary.pop_back();
+    } else if (line.name == "END" && line.value == "VEVENT")
+      events.insert(start + " " + duration + " " + summary);
+  }
+  return events;
+}
+
+/** How much of a picture's ink another has too, aligned by the right and
+    bottom of their ink (within 2 pixels of a dark one): 0 ... 1. */
+double InkCovered(const Pixels & inThis, const Pixels & inOther)
+{
+  int l1, t1, r1, b1, l2, t2, r2, b2;
+  if (!inThis.inkBounds(l1, t1, r1, b1) || !inOther.inkBounds(l2, t2, r2, b2))
+    return 0;
+  int dx = r2 - r1, dy = b2 - b1;
+  size_t ink = 0, covered = 0;
+  for (int y = t1; y < b1; ++y)
+    for (int x = l1; x < r1; ++x) {
+      if (inThis.gray(x, y) >= 128)
+        continue;
+      ++ink;
+      bool found = false;
+      for (int ny = -2; ny <= 2 && !found; ++ny)
+        for (int nx = -2; nx <= 2 && !found; ++nx)
+          found = inOther.gray(x + dx + nx, y + dy + ny) < 160;
+      covered += found;
+    }
+  return ink ? (double)covered / ink : 0;
+}
+
+/** Text lines without the Cocoa app's "-ink-" and blanks around, sorted. */
+std::vector<std::string> SortedLines(std::string inText)
+{
+  inText = ReplaceAll(inText, "-ink-", "") + "\n";
+  std::vector<std::string> lines;
+  for (size_t start = 0, end; (end = inText.find('\n', start)) != std::string::npos; start = end + 1) {
+    std::string line = inText.substr(start, end - start);
+    while (!line.empty() && line.back() == ' ')
+      line.pop_back();
+    if (!line.empty())
+      lines.push_back(line);
+  }
+  std::sort(lines.begin(), lines.end());
+  return lines;
+}
+
+/** NCX against what the Cocoa NCX exported of the same backup
+    (tests/fixtures/cocoa/README.md: what it got wrong is allowed). */
+void TestGolden()
+{
+  TempFolder folder("golden");
+  fs::path cocoa = PathFromUTF8(gFixtures) / "cocoa";
+  fs::path backup = folder.path / "e.newtondevice";
+  fs::copy_file(cocoa / "einstein.newtondevice", backup);
+  std::string error;
+  std::unique_ptr<DeviceFile> file = DeviceFile::Open(backup, DeviceFile::kReadOnly, error);
+  Check(file != nullptr, "golden: the backup " + error);
+  if (!file)
+    return;
+  auto exportApp = [&](const char * inApp, RichTextFormat inRich = RichTextFormat::kRTF) {
+    std::optional<AppRecord> app = file->findApp(inApp);
+    fs::path out = folder.path / inApp;
+    return app ? ExportApp(*file, *app, 0, out, {}, inRich).files : std::vector<fs::path>();
+  };
+  auto named = [](const std::vector<fs::path> & inFiles, const std::string & inName) {
+    for (const fs::path & f : inFiles)
+      if (UTF8FromPath(f.filename()) == inName)
+        return f;
+    return fs::path();
+  };
+
+  // Names: every card the Cocoa app wrote, with the same name, phones and
+  // addresses (it wrote no ORG or FN for companies: NCX does)
+  std::vector<fs::path> names = exportApp("Names");
+  auto ours = Cards(ReadFile(named(names, "Newton Names.vcf")));
+  std::vector<std::vector<ContentLine>> theirs;
+  for (const char * f : { "names-person.vcf", "names-company.vcf", "names-owner.vcf" })
+    for (auto & card : Cards(ReadFile(cocoa / f)))
+      theirs.push_back(card);
+  std::multiset<std::string> ourCards, theirCards;
+  for (auto & card : ours)
+    ourCards.insert(CardSummary(card));
+  for (auto & card : theirs)
+    theirCards.insert(CardSummary(card));
+  Check(theirs.size() == 7 && ourCards == theirCards, "golden: Names, the same 7 cards (names, phones, addresses)");
+  size_t companies = 0;
+  for (auto & card : ours)
+    for (const ContentLine & line : card)
+      companies += line.name == "ORG";
+  Check(companies == 4, "golden: Names, NCX keeps the companies the Cocoa app lost");
+
+  // Dates: the same events (the Cocoa app wrote one twice)
+  std::vector<fs::path> dates = exportApp("Dates");
+  std::set<std::string> ourEvents = Events(ReadFile(named(dates, "Newton Dates.ics")));
+  std::set<std::string> theirEvents = Events(ReadFile(cocoa / "dates.ics"));
+  Check(theirEvents.size() == 7 && ourEvents == theirEvents, "golden: Dates, the same 7 events (start, duration, title)");
+
+  // Calls: printed as NewtonScript the same way (the Cocoa app's had one of the two)
+  std::vector<fs::path> calls = exportApp("Calls");
+  std::string ourCalls = ReadFile(named(calls, "Newton Calls.text")), theirCalls = ReadFile(cocoa / "calls.text");
+  Check(!theirCalls.empty() && ourCalls.compare(0, theirCalls.size() - 1, theirCalls, 0, theirCalls.size() - 1) == 0,
+        "golden: Calls, NewtonScript printed byte for byte as the Cocoa app did");
+
+  // the package, byte for byte
+  std::vector<fs::path> packages = exportApp("Packages");
+  Check(ReadFile(named(packages, "hello-SIG.newtonpkg")) == ReadFile(cocoa / "hello-SIG.newtonpkg"),
+        "golden: the package, byte for byte");
+
+  // Works: the paper's text and faces (the Cocoa app lost Courier, Schoolbook
+  // and the underline); the drawing's shapes (it didn't draw the bitmaps)
+  std::vector<fs::path> works = exportApp("Newton Works");
+  RichDocument ourPaper = ReadRTF(ReadFile(named(works, "Untitled Paper 1.rtf")));
+  RichDocument theirPaper = ReadRTF(ReadFile(cocoa / "works-paper.rtf"));
+  std::string ourText = ourPaper.text(), theirText = theirPaper.text();
+  while (!theirText.empty() && theirText.back() == '\n')
+    theirText.pop_back();
+  while (!ourText.empty() && ourText.back() == '\n')
+    ourText.pop_back();
+  auto boldNewYork = [](const RichDocument & inDocument) {
+    for (const RichParagraph & p : inDocument.paragraphs)
+      for (const TextRun & r : p.runs)
+        if (r.text.find("NewYork") != std::string::npos)
+          return r.style.bold && r.style.size == 14;
+    return false;
+  };
+  Check(ourText == theirText && boldNewYork(ourPaper) && boldNewYork(theirPaper), "golden: the Works paper, its text and faces");
+  Pixels ourDrawing = ReadPNG(named(works, "Untitled Drawing.png")), theirDrawing = ReadPNG(cocoa / "works-drawing.png");
+  double drawn = InkCovered(theirDrawing, ourDrawing);
+  Check(drawn > 0.95, "golden: the Works drawing, the Cocoa app's shapes all there (" + std::to_string((int)(drawn * 100)) + "%)");
+
+  // the ink note: the same text (the Cocoa app: "-ink-" for ink words, the
+  // paragraphs in the data's order); the same graphics
+  std::vector<fs::path> notes = exportApp("Notes", RichTextFormat::kRTFDWithPictures);
+  fs::path inkNote;
+  for (const fs::path & f : notes)
+    if (fs::is_directory(f))
+      inkNote = f;
+  RichDocument ourNote = ReadRTF(ReadFile(inkNote / "TXT.rtf"));
+  RichDocument theirNote = ReadRTF(ReadFile(cocoa / "ink-note.rtf"));
+  Check(!inkNote.empty() && SortedLines(ourNote.text()) == SortedLines(theirNote.text()),
+        "golden: the ink note, the same lines of text (" + ourNote.text() + " / " + theirNote.text() + ")");
+  double graphics = InkCovered(ReadPNG(cocoa / "ink-note-graphics.png"), ReadPNG(inkNote / "image1.png"));
+  Check(graphics > 0.9, "golden: the ink note's graphics as the Cocoa app drew them (" + std::to_string((int)(graphics * 100)) + "%)");
+}
+
 } // namespace
 
 
@@ -997,11 +1208,12 @@ int main(int argc, char * argv[])
   struct { const char * name; void (*test)(); } sections[] = {
     { "lines", TestLines }, { "names", TestNames }, { "dates", TestDates }, { "notes", TestNotes },
     { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "richtext", TestRichText }, { "audio", TestAudio },
-    { "ink", TestInk }, { "notesrtf", TestNotesRTF }, { "works", TestWorks }, { "transfer", TestTransfer } };
+    { "ink", TestInk }, { "notesrtf", TestNotesRTF }, { "works", TestWorks },
+    { "golden", TestGolden }, { "transfer", TestTransfer } };
   bool found = false;
   for (auto & s : sections) {
     std::string name = s.name;
-    bool needsFixture = name == "transfer" || name == "ink" || name == "notesrtf" || name == "works";
+    bool needsFixture = name == "transfer" || name == "ink" || name == "notesrtf" || name == "works" || name == "golden";
     if (section == s.name || (section == "all" && !needsFixture)) {
       try {
         CallNewton([&] { s.test(); });

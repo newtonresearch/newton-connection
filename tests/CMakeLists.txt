@@ -53,6 +53,8 @@ add_test (NAME ncx_translators_ink COMMAND ncx_translators_test ink ${CMAKE_CURR
 # Notes as RTF (the ink note), and Newton Works documents made on Einstein (eMate setup)
 add_test (NAME ncx_translators_notesrtf COMMAND ncx_translators_test notesrtf ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
 add_test (NAME ncx_translators_works COMMAND ncx_translators_test works ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
+# NCX against what the Cocoa NCX exported of the same backup (fixtures/cocoa/README.md)
+add_test (NAME ncx_translators_golden COMMAND ncx_translators_test golden ${CMAKE_CURRENT_SOURCE_DIR}/fixtures)
 add_test (NAME ncx_cli_transfer COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli>
           -DFIXTURE=${CMAKE_CURRENT_SOURCE_DIR}/fixtures/einstein.newtondevice
           -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_transfer -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_transfer.cmake)

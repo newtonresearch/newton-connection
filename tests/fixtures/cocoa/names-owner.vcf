@@ -1,0 +1,7 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.5.2//EN
+N:Administrator;System;;;
+FN:System Administrator
+ADR;type=HOME;type=pref:;;;;;;USA
+END:VCARD

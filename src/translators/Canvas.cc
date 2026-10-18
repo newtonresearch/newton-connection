@@ -158,6 +158,7 @@ Pixels ReadPNG(const std::filesystem::path & inFile)
   pixels.height = image.data_h();
   const uint8_t * data = (const uint8_t *)image.data()[0];
   int d = image.d(), ld = image.ld() ? image.ld() : pixels.width * d;
+  bool alpha = d == 2 || d == 4;
   pixels.rgb.resize((size_t)pixels.width * pixels.height * 3);
   for (int y = 0; y < pixels.height; ++y)
     for (int x = 0; x < pixels.width; ++x) {
@@ -166,6 +167,12 @@ Pixels ReadPNG(const std::filesystem::path & inFile)
       q[0] = p[0];
       q[1] = d >= 3 ? p[1] : p[0];
       q[2] = d >= 3 ? p[2] : p[0];
+      if (alpha) {
+        // on white
+        int a = p[d - 1];
+        for (int c = 0; c < 3; ++c)
+          q[c] = (uint8_t)((q[c] * a + 255 * (255 - a)) / 255);
+      }
     }
   return pixels;
 }

@@ -1,0 +1,16 @@
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.5.2//EN
+N:Walthrop;Royce;;;
+FN:Royce Walthrop
+TEL;type=HOME;type=VOICE;type=pref:(419)555-3543
+ADR;type=HOME;type=pref:;;217 Crocker Lane;Hillsdale;OH;44704;
+END:VCARD
+BEGIN:VCARD
+VERSION:3.0
+PRODID:-//Apple Inc.//macOS 26.5.2//EN
+N:Anderson;Bob;;;
+FN:Bob Anderson
+TEL;type=HOME;type=VOICE;type=pref:(315)555-4476
+ADR;type=HOME;type=pref:;;51 Partlow Pond Road;Fine;New York;13639;
+END:VCARD
