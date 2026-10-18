@@ -26,6 +26,7 @@
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
 #include "ui/panels/DevicePanel.h"
+#include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
 
 #include <FL/Fl.H>
@@ -36,6 +37,7 @@
 #include <FL/Fl_Progress.H>
 #include <FL/Fl_Tree.H>
 
+#include <algorithm>
 #include <chrono>
 #include <cstdio>
 #include <cstdlib>
@@ -180,8 +182,37 @@ void TestShell()
   window->sidebar()->select_only(window->sidebar()->find_item("Card"), 1);
   Check(store->visible() && std::string(store->mKind->label()) != "Internal", "shell: the card: " + std::string(store->mKind->label())
         + ", " + store->mStatus->label());
+  // the soup panel: Names
+  window->sidebar()->select_only(window->sidebar()->find_item("Internal/Names/Names"), 1);
+  SoupPanel * soup = window->soupPanel();
+  bool read = WaitFor(10, [&] { return !soup->loading(); });
+  const SoupData & namesData = soup->data();
+  std::vector<std::string> headers;
+  for (const SoupData::Column & column : namesData.columns)
+    headers.push_back(column.header);
+  Check(read && soup->visible() && !store->visible() && namesData.error.empty()
+        && headers == std::vector<std::string>({ "ID", "Name", "Location", "Folder", "Modified" }),
+        "shell: the soup panel: Names, its columns " + namesData.error);
+  Check(namesData.rows.size() == 9, "shell: ... its entries (" + std::to_string(namesData.rows.size()) + ")");
+  soup->sortBy(1, true);
+  bool sorted = true;
+  for (size_t r = 1; r < namesData.rows.size(); ++r)
+    sorted = sorted && !(soup->cellText((int)r, 1) < soup->cellText((int)r - 1, 1)) ;
+  soup->sortBy(1, false);
+  Check(sorted && soup->cellText(0, 1) >= soup->cellText((int)namesData.rows.size() - 1, 1),
+        "shell: ... sorted by name, both ways (" + soup->cellText(0, 1) + " ... "
+        + soup->cellText((int)namesData.rows.size() - 1, 1) + ")");
+  soup->selectRow(0, true);
+  soup->selectRow(2, true);
+  std::vector<int64_t> chosen = soup->selectedEntries();
+  soup->sortBy(0, true);
+  std::vector<int64_t> after = soup->selectedEntries();
+  Check(chosen.size() == 2 && after.size() == 2 && std::is_permutation(chosen.begin(), chosen.end(), after.begin()),
+        "shell: ... two selected, still after sorting again");
+  Snapshot(window, "soup");
+
   window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
-  Check(device->visible() && !store->visible(), "shell: the device again: its panel");
+  Check(device->visible() && !store->visible() && !soup->visible(), "shell: the device again: its panel");
 
   Check(!app.canDo(Command::kBackUp, window) && !app.canDo(Command::kInstallPackage, window)
         && app.canDo(Command::kOpen, window) && app.canDo(Command::kToggleSidebar, window),
@@ -279,6 +310,15 @@ void TestDock()
       if (!names)
         names = window->sidebar()->find_item((store + "/Names/Names").c_str());
   Check(names != nullptr, "dock: the window shows the soups backed up");
+  if (names) {
+    // the entries' texts come from the dock thread
+    window->sidebar()->select_only(names, 1);
+    bool read = WaitFor(10, [&] { return !window->soupPanel()->loading(); });
+    const SoupData & data = window->soupPanel()->data();
+    Check(read && data.rows.size() == 2 && data.rows[0].cells.size() > 1 && data.rows[0].cells[1] == "Ada Lovelace",
+          "dock: the Names soup's entries, read on the dock thread ("
+          + std::to_string(data.rows.size()) + ") " + data.error);
+  }
 
   app.command(Command::kDisconnect, window);
   bool undocked = WaitFor(15, [&] { return !app.docked(); });

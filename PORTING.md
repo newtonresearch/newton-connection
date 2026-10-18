@@ -15,8 +15,8 @@ ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu); the panels (7.4): device and store
-done, next the soup panel.
+Back Up and Install from the menu); the panels (7.4): device, store, and
+the soup table done; next Delete and Export in the soup panel.
 
 ---
 
@@ -1199,6 +1199,16 @@ and it):
     password protected, read only), signature, capacity, used, free, and
     how full it is (an `Fl_Progress`: green, yellow from 80 %, red from
     90 %, as the Cocoa app's level indicator).
+  - 7.4.3 soup panel, the table: done. `SoupData` (the cells as text, made
+    from the entries' frames as object work: `App::objectWork` posts it to
+    the dock thread, or runs it at once when the dock doesn't run; the
+    result comes back with `RunOnMainThread`, dropped if the panel shows
+    another soup by then). Columns as the Cocoa app had them: ID, the
+    soup's own (slot.plist), Folder if the soup is filed, Modified. A click
+    on a header sorts (again: the other way; the selection stays with its
+    entries); several rows can be selected. The folder shows its tag: the
+    user's folder names are in UserInfo's keyed archive, not read yet.
+    Next: Delete and Export.
 - **7.4 Panels** (one step each): device (with the package list and
   dropping packages), store (capacity indicator), soup (an `Fl_Table_Row`
   subclass with columns per soup, sorting, multiple selection, delete and

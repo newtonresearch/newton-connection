@@ -9,6 +9,7 @@
 #include "ui/Commands.h"
 #include "ui/Images.h"
 #include "ui/panels/DevicePanel.h"
+#include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
 
 #include "base/Dates.h"
@@ -131,6 +132,8 @@ DocumentWindow::DocumentWindow()
   mDevicePanel->hide();
   mStorePanel = new StorePanel(mContent->x(), top, mContent->w(), tileHeight);
   mStorePanel->hide();
+  mSoupPanel = new SoupPanel(mContent->x(), top, mContent->w(), tileHeight);
+  mSoupPanel->hide();
   mContent->resizable(mInfo);
   mContent->end();
   mInspectorText = new Fl_Text_Buffer();
@@ -304,6 +307,10 @@ void DocumentWindow::showSelection()
               panel = mStorePanel;
             }
           break;
+        case Node::kSoup:
+          mSoupPanel->load(mFile, node->soupPk);
+          panel = mSoupPanel;
+          break;
         default:
           break;
       }
@@ -312,7 +319,7 @@ void DocumentWindow::showSelection()
       text = error.what();
     }
   }
-  for (Fl_Group * each : { (Fl_Group *)mDevicePanel, (Fl_Group *)mStorePanel })
+  for (Fl_Group * each : { (Fl_Group *)mDevicePanel, (Fl_Group *)mStorePanel, (Fl_Group *)mSoupPanel })
     if (each != panel)
       each->hide();
   mContent->redraw();
@@ -330,6 +337,7 @@ void DocumentWindow::showSelection()
       switch (node->kind) {
         case Node::kDevice:
         case Node::kStore:
+        case Node::kSoup:
           break;
         case Node::kKeyboard:
           text = "Type on the Newton from this computer's keyboard (comes with PORTING.md 7.4).";
@@ -344,16 +352,6 @@ void DocumentWindow::showSelection()
               text += soup.name + ": " + std::to_string(mDeviceFile->entryCount(soup.pk)) + " entries\n";
           break;
         }
-        case Node::kSoup:
-          if (std::optional<SoupRecord> soup = mDeviceFile->soup(node->soupPk)) {
-            text = soup->name + "\n\n";
-            if (!soup->descr.empty())
-              text += soup->descr + "\n";
-            text += std::to_string(mDeviceFile->entryCount(soup->pk)) + " entries\n";
-            if (soup->lastBackupTime)
-              text += "Backed up " + FormatDateTime(TimeFromNewton(soup->lastBackupTime)) + "\n";
-          }
-          break;
       }
     } catch (const ModelError & error) {
       text = error.what();

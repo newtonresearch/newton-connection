@@ -22,6 +22,7 @@
 #include "ui/Commands.h"
 
 #include <filesystem>
+#include <functional>
 #include <memory>
 #include <string>
 #include <vector>
@@ -56,6 +57,10 @@ public:
   void command(Command inCommand, DocumentWindow * inTarget);
   bool canDo(Command inCommand, DocumentWindow * inTarget) const;
   bool isChecked(Command inCommand, DocumentWindow * inTarget) const;
+  /** Work with Newton objects (an entry's text, an export): on the dock
+      thread, which has them, soon (between operations); at once if the
+      dock doesn't run. Results go to the UI with RunOnMainThread. */
+  void objectWork(std::function<void()> inWork);
   /** Install packages on the docked Newton (an operation). */
   void installPackages(const std::vector<std::filesystem::path> & inFiles);
   /** The menus as the state is now (after it changed). */

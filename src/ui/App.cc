@@ -11,6 +11,7 @@
 #include "base/Prefs.h"
 #include "base/Threads.h"
 #include "base/Version.h"
+#include "dock/DockController.h"
 #include "platform/AppFolders.h"
 
 #include <FL/Fl.H>
@@ -425,6 +426,15 @@ void App::chooseAndInstall()
   for (int i = 0; i < chooser.count(); ++i)
     files.push_back(PathFromUTF8(chooser.filename(i)));
   installPackages(files);
+}
+
+
+void App::objectWork(std::function<void()> inWork)
+{
+  if (mDock.controller().isRunning())
+    mDock.controller().postObjectWork(std::move(inWork));
+  else
+    inWork();
 }
 
 
