@@ -8,6 +8,14 @@ This file has three parts: the assessment (what is there), the target
 architecture, and the plan, chopped into steps that each end in something
 that builds and can be checked.
 
+**Where we are (2026-10-18):** Phases 0 to 6 done: the framework
+groundwork, the build and CI, the base, comms, model, dock and translator
+layers, all without a GUI, used through `ncx-cli` (71 ctests, clean under
+ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
+Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
+against a real Newton. Decisions D1 to D10 settled. Next: Phase 7, the FLTK
+user interface, from 7.1.
+
 ---
 
 ## 1. Assessment
@@ -674,10 +682,12 @@ clean under ThreadSanitizer and ASan/UBSan.
 
 ### Phase 5: dock controller and components (no GUI)
 
-In progress. Done so far: 5.1; 5.2.1 and 5.2.2 (against Einstein on
-Windows, Matt, 2026-10-16/17); 5.2.3 to 5.2.9 against the fake Newton
-(backup and restore round-trip its stores), 5.2.4 against Einstein too. 57
-ctests, clean under ThreadSanitizer and ASan/UBSan.
+Done (2026-10-18): 5.1 and 5.2.1 to 5.2.9, every component against the fake
+Newton (backup and restore round-trip its stores); against Einstein: the
+screenshot and ROM dump (Windows), backups (macOS, both setups), card
+dumps, the quiet disconnect. Still to do: install, restore, keyboard and
+the NewtonOS 1 session against Einstein or a real Newton, and everything
+against a real Newton over serial.
 
 - **5.1 `DockController`:** ✅ (the plan below; what came of it here)
   - `src/dock/DockController.h`: a dock thread that listens, docks
@@ -928,6 +938,9 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
 
 ### Phase 6: translators (no GUI)
 
+Done (2026-10-18): 6.1 to 6.6; NCX's exports compared with the Cocoa NCX's
+(6.6), CI green on all six builds.
+
 - **6.1 Registry:** the `NCXTranslator` interface in C++, with
   translators registered at static-init time (no runtime plugin loading).
   The import/export file type tables come from the old `*-Info.plist`
@@ -1090,6 +1103,9 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
   their transparent pixels as black; now on white.
 
 ### Phase 7: FLTK user interface
+
+Next (D9 settled: several document windows, a full menu in each off
+macOS, no tabs).
 
 - **7.1 UI conventions.**
   - Fluid (`.fl`, compiled by `fltk_run_fluid`) for the fixed panels:
