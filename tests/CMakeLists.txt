@@ -29,14 +29,16 @@ foreach (section events mnp plain password listener package)
 endforeach ()
 # ncx-cli info against ncx-fake-newton: MNP (Einstein's serial port) and
 # plain TCP (the Internet Enabler)
+# (41000 ... 47999: below Windows' dynamic ports, 49152 and up, which it may
+# reserve: Winsock 10013)
 string (RANDOM LENGTH 3 ALPHABET 0123456789 port_base)
-math (EXPR cli_port "43000 + ${port_base}")
-math (EXPR cli_port_plain "43000 + ${port_base} + 1000")
+math (EXPR cli_port "41000 + ${port_base}")
+math (EXPR cli_port_plain "41000 + ${port_base} + 1000")
 add_test (NAME ncx_cli_info_mnp COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port} -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
 add_test (NAME ncx_cli_info_plain COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_plain} -DPLAIN=ON -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
-math (EXPR cli_port_newton1 "43000 + ${port_base} + 2500")
+math (EXPR cli_port_newton1 "41000 + ${port_base} + 2500")
 add_test (NAME ncx_cli_info_newton1 COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_newton1} -DNEWTON1=ON -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_info.cmake)
 
@@ -87,29 +89,29 @@ foreach (section shell dock)
   set_tests_properties (ncx_ui_${section} PROPERTIES
     ENVIRONMENT "NCX_PREFS=memory;NCX_DATA_DIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_ui_${section}")
 endforeach ()
-math (EXPR cli_port_screenshot "43000 + ${port_base} + 2000")
+math (EXPR cli_port_screenshot "41000 + ${port_base} + 2000")
 add_test (NAME ncx_cli_screenshot COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_screenshot} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_screenshot.png
           -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_screenshot.cmake)
-math (EXPR cli_port_rom "43000 + ${port_base} + 3000")
+math (EXPR cli_port_rom "41000 + ${port_base} + 3000")
 add_test (NAME ncx_cli_rom COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_rom} -DOUT=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_rom.bin -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_rom.cmake)
-math (EXPR cli_port_install "43000 + ${port_base} + 4000")
+math (EXPR cli_port_install "41000 + ${port_base} + 4000")
 add_test (NAME ncx_cli_install COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DMAKE=$<TARGET_FILE:ncx_dock_test> -DPORT=${cli_port_install} -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_install
           -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_install.cmake)
-math (EXPR cli_port_backup "43000 + ${port_base} + 5000")
+math (EXPR cli_port_backup "41000 + ${port_base} + 5000")
 add_test (NAME ncx_cli_backup COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_backup} -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_backup -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_backup.cmake)
-math (EXPR cli_port_restore "43000 + ${port_base} + 6000")
+math (EXPR cli_port_restore "41000 + ${port_base} + 6000")
 add_test (NAME ncx_cli_restore COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_restore} -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_restore -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_restore.cmake)
-math (EXPR cli_port_edit "43000 + ${port_base} + 500")
+math (EXPR cli_port_edit "41000 + ${port_base} + 500")
 add_test (NAME ncx_cli_edit COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_edit} -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_edit -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_edit.cmake)
-math (EXPR cli_port_type "43000 + ${port_base} + 1500")
+math (EXPR cli_port_type "41000 + ${port_base} + 1500")
 add_test (NAME ncx_cli_type COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_type} -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_type.cmake)
-math (EXPR cli_port_card "43000 + ${port_base} + 3500")
+math (EXPR cli_port_card "41000 + ${port_base} + 3500")
 add_test (NAME ncx_cli_card COMMAND ${CMAKE_COMMAND} -DCLI=$<TARGET_FILE:ncx-cli> -DFAKE=$<TARGET_FILE:ncx-fake-newton>
           -DPORT=${cli_port_card} -DDIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_cli_card -P ${CMAKE_CURRENT_SOURCE_DIR}/cli_card.cmake)

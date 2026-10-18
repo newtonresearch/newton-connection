@@ -52,10 +52,10 @@ void Check(bool inOk, const std::string & inWhat)
 }
 
 /** A port for the dock section: below 40000 (Windows), apart from the
-    other tests' (dock_test 21000 ..., comms_test 10000 ...). */
+    other tests' (comms_test 10000 ... 19999, dock_test 21000 ... 39039). */
 int Port()
 {
-  static int port = 40000 - 1000 + (int)(std::random_device{}() % 500) * 2;
+  static int port = 39100 + (int)(std::random_device{}() % 400) * 2;
   return port;
 }
 
