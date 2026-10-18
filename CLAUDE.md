@@ -73,4 +73,7 @@ Keeping it brief, so you can add your findings.
 - Rich-text export: RTF with embedded PNGs; on macOS also RTFD (its default
   for documents with pictures).
 - No libical: an iCalendar (and vCard) reader and writer of our own (D10).
-- Open: menu bar with several document windows (D9).
+- Several document windows (one per .newtondevice file, drag and drop
+  between them), no tabs; macOS: one system menu bar; Windows and Linux:
+  the full menu in every document window; shortcuts go to the topmost
+  window (D9).
