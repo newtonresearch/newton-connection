@@ -79,6 +79,11 @@ public:
   void exportEntriesTo(const std::filesystem::path & inFolder);
   bool canSelectAll() const;
   void selectAll();
+  /** Files imported into the file (the store and the app selected in the
+      sidebar, else the internal store and the app that imports the kind
+      of file): on the Newton too when it is docked. */
+  bool canImport() const;
+  void importFiles(const std::vector<std::filesystem::path> & inFiles);
 
   /** Its menu bar (nullptr on macOS: the app has one). */
   Fl_Menu_ * menuBar() { return mMenuBar; }
@@ -120,6 +125,7 @@ private:
   std::string mTitle;
   std::vector<std::unique_ptr<Node>> mNodes;
   bool mShowsDockItems = false;
+  bool mWritable = false;          // the file could be written (the window reads it only)
   bool mSidebarShown = true;
   bool mInspectorShown = false;
   int mSidebarWidth = 220;

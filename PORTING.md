@@ -18,7 +18,7 @@ interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
 inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
-flows: the device chooser done, next Import.
+flows: the device chooser and Import done, next Restore.
 
 ---
 
@@ -1278,6 +1278,14 @@ and it):
     the file changed; Open, a double click, Other...). Off macOS closing
     the last document brings it back, and closing it quits; on macOS the
     app stays with its menu bar.
+  - 7.7.2 Import: done (File > Import). Each file goes to the app selected
+    in the sidebar if it takes the kind, else the one app that does, else
+    the user chooses (`ChooseOne`); on the store selected, else the
+    internal one. Docked: into the file and to the Newton (an operation:
+    `ImportIntoFile`, then `SoupEditor::add`); otherwise into the file
+    only, after the Cocoa app's warning (with "Don't show this again").
+    The window reads its file only: whether it may change it (Delete,
+    Import) it learns when it opens it.
   - Done before: the delete warning with "Don't show this again"
     (`Dialogs.h`, 7.4.3), progress with Cancel in the toolbar (7.2).
 - **7.8 Drag and drop in:** files onto the window, device, store and soup

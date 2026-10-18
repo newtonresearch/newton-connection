@@ -245,6 +245,14 @@ void TestShell()
         "shell: Export: " + app.message());
   app.command(Command::kSelectAll, window);
   Check(soup->selectedEntries().size() == 7, "shell: Select All");
+  // Import, not docked: into the file (the warning silenced)
+  Prefs::App().setBool(pref::kNoAddWarning, true);
+  Check(app.canDo(Command::kImport, window), "shell: Import allowed");
+  window->importFiles({ gFixtures / "cocoa" / "names-person.vcf" });
+  bool imported = WaitFor(10, [&] { return app.message().find("Imported") == 0 && !soup->loading()
+                                           && soup->data().rows.size() > 7; });
+  Check(imported, "shell: Import: a vCard into Names: " + app.message() + " ("
+        + std::to_string(soup->data().rows.size()) + ")");
   // packages leave only from the Newton
   window->sidebar()->select_only(window->sidebar()->find_item("Internal/Packages/Packages"), 1);
   WaitFor(10, [&] { return !soup->loading(); });
@@ -455,6 +463,11 @@ void TestDock()
                                             && !window->soupPanel()->loading()
                                             && window->soupPanel()->data().rows.size() == 1; });
     Check(deleted, "dock: Delete: on the Newton and from the file: " + app.message());
+    // Import, docked: into the file, and to the Newton
+    window->importFiles({ gFixtures / "cocoa" / "names-person.vcf" });
+    bool imported = WaitFor(15, [&] { return !app.dock().busy() && app.message().find("Imported") == 0; });
+    Check(imported && app.message().find("sent to the Newton") != std::string::npos,
+          "dock: Import: into the file and to the Newton: " + app.message());
   }
 
   // the screenshot panel: screenshot mode, a shot, saved
@@ -495,6 +508,7 @@ void TestDock()
   app.stop();
   fake.finish();
   Check(fake.deleted == std::vector<int64_t>({ 100 }), "dock: the fake Newton deleted Ada (100)");
+  Check(!fake.added.empty(), "dock: the fake Newton got the entries imported (" + std::to_string(fake.added.size()) + ")");
   bool typed = false;
   for (const std::string & each : fake.typed)
     typed = typed || each.find("Hello") != std::string::npos;

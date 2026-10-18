@@ -30,6 +30,7 @@
 #include <functional>
 #include <memory>
 #include <string>
+#include <utility>
 #include <vector>
 
 namespace ncx {
@@ -95,6 +96,11 @@ public:
   /** Operations, posted (they run once docked, one after the other). */
   void backUp();
   void install(const std::vector<std::filesystem::path> & inFiles);
+  /** Import files into the docked Newton's file (on a store), then send
+      the entries made to the Newton (SoupEditor::add). inItems: as Edits.h
+      has them (source, app). */
+  void importFiles(const std::filesystem::path & inFile, int64_t inStorePk,
+                   const std::vector<std::pair<std::filesystem::path, std::string>> & inItems);
   /** Delete entries of a soup on the Newton and from its file (packages:
       removed by name). */
   void removeEntries(const std::filesystem::path & inFile, int64_t inSoupPk, const std::vector<int64_t> & inEntryPks);

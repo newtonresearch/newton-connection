@@ -14,6 +14,7 @@
 #include "dock/Keyboard.h"
 #include "dock/Packages.h"
 #include "dock/SoupEditor.h"
+#include "ui/Edits.h"
 #include "model/DeviceList.h"
 #include "platform/AppFolders.h"
 
@@ -348,6 +349,42 @@ void AppDock::install(const std::vector<std::filesystem::path> & inFiles)
     if (!failed.empty())
       report += "; not installed: " + failed;
     return report;
+  });
+}
+
+
+void AppDock::importFiles(const std::filesystem::path & inFile, int64_t inStorePk,
+                          const std::vector<std::pair<std::filesystem::path, std::string>> & inItems)
+{
+  std::vector<ImportItem> items;
+  for (const auto & item : inItems)
+    items.push_back({ item.first, item.second });
+  std::string title = items.size() == 1 ? "Importing " + UTF8FromPath(items[0].source.filename())
+                                        : "Importing " + std::to_string(items.size()) + " files";
+  mImpl->post(*mDock, title, [inFile, inStorePk, items](DockController & ioDock, Progress &, bool & outOK,
+                                                         std::filesystem::path & outFile) {
+    std::vector<int64_t> entries, soups;
+    std::string report = ImportIntoFile(inFile, inStorePk, items, entries, soups, outOK);
+    outFile = inFile;
+    if (entries.empty())
+      return report;
+    // to the Newton, soup by soup
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(inFile, DeviceFile::kReadWrite, error);
+    if (!file) {
+      outOK = false;
+      return report + "; not sent to the Newton: " + error;
+    }
+    SoupEditor editor(ioDock, *file);
+    int result = 0;
+    for (int64_t soup : soups)
+      if (result == 0)
+        result = editor.add(soup, entries);
+    if (result != 0) {
+      outOK = false;
+      return report + "; the Newton took " + std::to_string(editor.counts().added) + " (error " + std::to_string(result) + ")";
+    }
+    return report + ", sent to the Newton";
   });
 }
 

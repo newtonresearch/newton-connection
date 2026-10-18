@@ -395,6 +395,8 @@ bool App::canDo(Command inCommand, DocumentWindow * inTarget) const
       return inTarget && inTarget->canSelectAll();
     case Command::kPaste:
       return inTarget && inTarget->canPaste();
+    case Command::kImport:
+      return inTarget && inTarget->canImport() && (!isDockedWindow(inTarget) || !mDock.busy());
     case Command::kNewton1Sync:
     case Command::kNewton1Restore:
     case Command::kNewton1Install:
@@ -471,6 +473,17 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
     case Command::kPaste:
       inTarget->paste();
       break;
+    case Command::kImport: {
+      Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_MULTI_FILE);
+      chooser.title("Import");
+      if (chooser.show() == 0) {
+        std::vector<std::filesystem::path> files;
+        for (int i = 0; i < chooser.count(); ++i)
+          files.push_back(PathFromUTF8(chooser.filename(i)));
+        inTarget->importFiles(files);
+      }
+      break;
+    }
     // the session a NewtonOS 1 Newton is offered when it docks (the Cocoa
     // app's Newton 1 menu); the flow comes with 7.7
     case Command::kNewton1Sync:

@@ -37,6 +37,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <utility>
 
 namespace ncx {
 
@@ -190,6 +191,10 @@ bool DocumentWindow::bind(const std::filesystem::path & inFile, std::string & ou
     return false;
   mDeviceFile = std::move(file);
   mFile = inFile;
+  {
+    std::string ignored;
+    mWritable = DeviceFile::Open(inFile, DeviceFile::kReadWrite, ignored) != nullptr;
+  }
   std::string name = mDeviceFile->newtonName();
   mTitle = name.empty() ? UTF8FromPath(inFile.stem()) : name;
   copy_label(mTitle.c_str());
@@ -450,7 +455,7 @@ const DocumentWindow::Node * DocumentWindow::selectedNode() const
 bool DocumentWindow::canDeleteEntries() const
 {
   const Node * node = selectedNode();
-  if (!mDeviceFile || !node || node->kind != Node::kSoup || !mSoupPanel->visible() || mSoupPanel->loading()
+  if (!mDeviceFile || !mWritable || !node || node->kind != Node::kSoup || !mSoupPanel->visible() || mSoupPanel->loading()
       || mSoupPanel->selectedEntries().empty())
     return false;
   App & app = App::get();
@@ -534,6 +539,96 @@ void DocumentWindow::exportEntriesTo(const std::filesystem::path & inFolder)
     RunOnMainThread([file, report]() {
       App & app = App::get();
       app.setMessage(report, file);
+      app.stateChanged();
+    });
+  });
+}
+
+
+bool DocumentWindow::canImport() const
+{
+  return mDeviceFile && mWritable;
+}
+
+
+void DocumentWindow::importFiles(const std::vector<std::filesystem::path> & inFiles)
+{
+  if (!canImport() || inFiles.empty())
+    return;
+  // where: the store and app selected, else the internal store
+  const Node * node = selectedNode();
+  int64_t storePk = 0;
+  std::string preferred;
+  try {
+    if (node && (node->kind == Node::kStore || node->kind == Node::kApp || node->kind == Node::kSoup))
+      storePk = node->storePk;
+    if (!storePk) {
+      std::vector<StoreRecord> stores = mDeviceFile->stores();
+      SortStores(stores);
+      if (!stores.empty())
+        storePk = stores[0].pk;
+    }
+    if (node && (node->kind == Node::kApp || node->kind == Node::kSoup))
+      for (const AppRecord & each : mDeviceFile->apps())
+        if (each.pk == node->appPk)
+          preferred = each.name;
+  } catch (const ModelError & error) {
+    App::get().setMessage(std::string("Not imported: ") + error.what(), mFile);
+    App::get().stateChanged();
+    return;
+  }
+  if (!storePk) {
+    App::get().setMessage("Not imported: the backup has no store yet", mFile);
+    App::get().stateChanged();
+    return;
+  }
+  // which app takes each file
+  std::vector<ImportItem> items;
+  std::string refused;
+  for (const std::filesystem::path & file : inFiles) {
+    std::vector<std::string> apps = ImportAppsForFile(file);
+    std::string app;
+    if (std::find(apps.begin(), apps.end(), preferred) != apps.end())
+      app = preferred;
+    else if (apps.size() == 1)
+      app = apps[0];
+    else if (apps.size() > 1) {
+      int choice = ChooseOne("Import", "Which app takes " + UTF8FromPath(file.filename()) + "?", apps);
+      if (choice < 0)
+        continue;
+      app = apps[choice];
+    }
+    if (app.empty())
+      refused += (refused.empty() ? "" : ", ") + UTF8FromPath(file.filename());
+    else
+      items.push_back({ file, app });
+  }
+  App & app = App::get();
+  if (items.empty()) {
+    app.setMessage(refused.empty() ? std::string("Nothing imported") : "No app imports " + refused, mFile);
+    app.stateChanged();
+    return;
+  }
+  if (app.isDockedWindow(this)) {
+    std::vector<std::pair<std::filesystem::path, std::string>> pairs;
+    for (const ImportItem & item : items)
+      pairs.push_back({ item.source, item.app });
+    app.dock().importFiles(mFile, storePk, pairs);
+    app.updateMenus();
+    return;
+  }
+  if (!ConfirmUnlessSilenced(pref::kNoAddWarning, "Import", "You are not connected to a Newton device.",
+                             "Soup entries will be added to your Newton device when you sync next.", "OK"))
+    return;
+  std::filesystem::path file = mFile;
+  app.objectWork([file, storePk, items]() {
+    std::vector<int64_t> entries, soups;
+    bool ok = false;
+    std::string report = ImportIntoFile(file, storePk, items, entries, soups, ok);
+    RunOnMainThread([file, report]() {
+      App & app = App::get();
+      app.setMessage(report, file);
+      app.fileChanged(file);
       app.stateChanged();
     });
   });

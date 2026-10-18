@@ -12,6 +12,7 @@
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Check_Button.H>
+#include <FL/Fl_Choice.H>
 #include <FL/Fl_Double_Window.H>
 #include <FL/Fl_Return_Button.H>
 
@@ -64,6 +65,41 @@ bool ConfirmUnlessSilenced(const char * inPrefKey, const std::string & inTitle, 
   if (answer == 1 && silence.value())
     Prefs::App().setBool(inPrefKey, true);
   return answer == 1;
+}
+
+int ChooseOne(const std::string & inTitle, const std::string & inMessage, const std::vector<std::string> & inOptions)
+{
+  if (inOptions.empty())
+    return -1;
+  int answer = 0;
+  Fl_Group::current(nullptr);
+  Fl_Double_Window window(400, 140, inTitle.c_str());
+  Fl_Box message(16, 12, 368, 40, inMessage.c_str());
+  message.align(FL_ALIGN_INSIDE | FL_ALIGN_TOP_LEFT | FL_ALIGN_WRAP);
+  Fl_Choice choice(16, 56, 368, 26);
+  for (const std::string & option : inOptions) {
+    std::string label;
+    for (char c : option) {
+      if (c == '/' || c == '\\' || c == '&' || c == '_')
+        label += '\\';
+      label += c;
+    }
+    choice.add(label.c_str());
+  }
+  choice.value(0);
+  Fl_Button cancel(180, 100, 96, 28, "Cancel");
+  cancel.callback(CloseCB, &answer);
+  cancel.argument(0);
+  cancel.shortcut(FL_Escape);
+  Fl_Return_Button go(288, 100, 96, 28, "OK");
+  go.callback(CloseCB, &answer);
+  go.argument(1);
+  window.end();
+  window.set_modal();
+  window.show();
+  while (window.shown())
+    Fl::wait();
+  return answer == 1 ? choice.value() : -1;
 }
 
 } // namespace ncx

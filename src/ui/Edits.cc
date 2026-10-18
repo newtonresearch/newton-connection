@@ -11,6 +11,7 @@
 #include "platform/AppFolders.h"
 #include "translators/Transfer.h"
 
+#include <algorithm>
 #include <exception>
 #include <memory>
 
@@ -70,6 +71,56 @@ std::string ExportEntries(const std::filesystem::path & inFile, int64_t inAppPk,
   } catch (const std::exception & e) {
     return std::string("Not exported: ") + e.what();
   }
+}
+
+std::string ImportIntoFile(const std::filesystem::path & inFile, int64_t inStorePk, const std::vector<ImportItem> & inItems,
+                           std::vector<int64_t> & outEntryPks, std::vector<int64_t> & outSoupPks, bool & outOK)
+{
+  outOK = false;
+  std::string error;
+  std::unique_ptr<DeviceFile> file = DeviceFile::Open(inFile, DeviceFile::kReadWrite, error);
+  if (!file)
+    return "Not imported: " + error;
+  size_t entries = 0, skipped = 0;
+  std::string failed;
+  try {
+    std::optional<StoreRecord> store;
+    for (const StoreRecord & each : file->stores())
+      if (each.pk == inStorePk)
+        store = each;
+    if (!store)
+      return "Not imported: the store is gone";
+    for (const ImportItem & item : inItems) {
+      ImportResult result;
+      CallNewton([&] { result = ImportFile(*file, *store, item.app, item.source); });
+      if (!result.error.empty()) {
+        failed += (failed.empty() ? "" : "; ") + result.error;
+        continue;
+      }
+      entries += result.entries;
+      skipped += result.skipped;
+      outEntryPks.insert(outEntryPks.end(), result.entryPks.begin(), result.entryPks.end());
+      for (const auto & soup : result.soups)
+        if (std::optional<SoupRecord> record = file->findSoup(store->pk, soup.first))
+          if (std::find(outSoupPks.begin(), outSoupPks.end(), record->pk) == outSoupPks.end())
+            outSoupPks.push_back(record->pk);
+    }
+  } catch (const std::exception & e) {
+    return std::string("Not imported: ") + e.what();
+  }
+  outOK = failed.empty();
+  std::string report = "Imported " + Count(entries, "entry", "entries");
+  if (skipped)
+    report += " (" + Count(skipped, "entry", "entries") + " left out: their soup isn't on the store)";
+  if (!failed.empty())
+    report += "; " + failed;
+  return report;
+}
+
+
+std::vector<std::string> ImportAppsForFile(const std::filesystem::path & inSource)
+{
+  return ImportAppsFor(inSource);
 }
 
 } // namespace ncx
