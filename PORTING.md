@@ -18,8 +18,7 @@ interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
 inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
-flows: the device chooser, Import and Restore done, next the ROM and card
-dumps.
+flows, is done; next dropping files on the windows, 7.8.
 
 ---
 
@@ -1143,8 +1142,7 @@ and it):
   `NCX_PREFS=memory` keeps tests out of the user's preferences.
 - Fixed on the way: the controller never told `undocked` (`endSession()`
   cleared the flag it checked).
-- Not yet: images for the toolbar (FLTK's symbols for now), Open Recent,
-  the NewtonOS 1 session choice (the menu only remembers it; 7.7).
+- Not yet: images for the toolbar (FLTK's symbols for now), Open Recent.
 
 - **7.1 UI conventions.**
   - Fluid (`.fl`, compiled by `fltk_run_fluid`) for the fixed panels:
@@ -1293,6 +1291,18 @@ and it):
     the Newton's store, the backed-up store, the apps (all at first), the
     packages, Select All, the warning; then an operation (`Restore::run`,
     with progress). Tests choose through `App::setRestoreChooser`.
+  - 7.7.4 Dump ROM, Dump Card: done (Newton menu). The ROM into a file
+    (the ROMAddress and ROMSize preferences, else the machine's size; a
+    file there already: resume or start again), the cards into a folder;
+    operations with progress.
+  - 7.7.5 NewtonOS 1: done. Such a Newton docks for one thing, chosen
+    before in the Newton 1 menu (the Cocoa app's tags: the session types
+    2, 3, 4): Sync backs it up, Restore opens the restore dialog, Install
+    Package asks for a package; after that operation the app disconnects
+    it. (The handshake says "setting up" as the Cocoa app did.)
+  - 7.7.6 error alerts: done. A failed operation (not a cancel) and a
+    session that broke are told in the status line and an alert
+    (`App::alert`; tests count them instead).
   - Done before: the delete warning with "Don't show this again"
     (`Dialogs.h`, 7.4.3), progress with Cancel in the toolbar (7.2).
 - **7.8 Drag and drop in:** files onto the window, device, store and soup

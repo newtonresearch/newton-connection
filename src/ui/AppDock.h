@@ -109,6 +109,11 @@ public:
                       std::function<void(const std::vector<RestoreChoice> &, const std::string & inError)> inChoices);
   /** Restore it (an operation). */
   void restore(const std::filesystem::path & inFile, const RestoreSelection & inSelection);
+  /** The Newton's ROM into a file (the ROMAddress and ROMSize
+      preferences, else the machine's; inResume: after what the file
+      has), its cards into a folder (an operation each). */
+  void dumpROM(const std::filesystem::path & inFile, bool inResume);
+  void dumpCards(const std::filesystem::path & inFolder);
   /** Delete entries of a soup on the Newton and from its file (packages:
       removed by name). */
   void removeEntries(const std::filesystem::path & inFile, int64_t inSoupPk, const std::vector<int64_t> & inEntryPks);

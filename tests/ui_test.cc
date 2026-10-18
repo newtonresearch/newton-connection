@@ -6,7 +6,9 @@
    shell   a document window for the Einstein backup (fixtures/cocoa): its
            title, its sidebar, the panes, the commands it allows; a window
            waiting for a Newton, closed again
-   drop    files dropped: paths and file: URLs
+   drop    files dropped: paths and file: URLs; keys
+   newton1 a NewtonOS 1 Newton docks: the app backs it up (the Newton 1
+           menu's session)
    dock    the app against the fake Newton: it docks, its file is made
            and shown, Back Up (the command) backs it up, the window shows
            it, Disconnect ends the session quietly
@@ -70,6 +72,7 @@ using namespace ncx;
 namespace {
 
 int gFailed = 0;
+int gAlerts = 0;
 std::filesystem::path gFixtures;
 std::string gFakeNewton;
 
@@ -511,6 +514,26 @@ void TestDock()
   bool restored = WaitFor(20, [&] { return !app.dock().busy() && app.message().find("Restored") == 0; });
   Check(restored, "dock: Restore: " + app.message());
 
+  // Dump ROM (16 KB of it), Dump Card
+  Check(app.canDo(Command::kDumpROM, window) && app.canDo(Command::kDumpCard, window), "dock: the dumps allowed");
+  Prefs::App().setInt(pref::kROMSize, 16384);
+  std::filesystem::path rom = AppDataFolder() / "rom.bin";
+  app.dock().dumpROM(rom, false);
+  bool dumped = WaitFor(20, [&] { return !app.dock().busy() && app.message().find("Read the ROM") == 0; });
+  std::error_code sizeError;
+  Check(dumped && std::filesystem::file_size(rom, sizeError) == 16384, "dock: Dump ROM: " + app.message());
+  // a failure is told (an alert): a ROM file that can't be made
+  int alerts = gAlerts;
+  app.dock().dumpROM(rom / "inside-a-file.bin", false);
+  bool told = WaitFor(20, [&] { return !app.dock().busy() && gAlerts > alerts; });
+  Check(told && app.message().find("The ROM isn't complete") == 0, "dock: a failure is told: " + app.message());
+  gAlerts = alerts;
+  Prefs::App().remove(pref::kROMSize);
+  std::filesystem::path cards = AppDataFolder() / "cards";
+  app.dock().dumpCards(cards);
+  bool cardsRead = WaitFor(30, [&] { return !app.dock().busy() && app.message().find("Read 1 card") == 0; });
+  Check(cardsRead, "dock: Dump Card: " + app.message());
+
   // the screenshot panel: screenshot mode, a shot, saved
   window->sidebar()->select_only(window->sidebar()->find_item("Screenshot"), 1);
   ScreenshotPanel * screenshot = window->screenshotPanel();
@@ -559,6 +582,32 @@ void TestDock()
         "dock: the fake Newton saw it end with 'disc' " + fake.why);
 }
 
+/*-- newton1 ------------------------------------------------------------------*/
+
+void TestNewton1()
+{
+  // NewtonOS 1 docks for what the Newton 1 menu says: Sync (the default)
+  FakeProcess fake;
+  fake.start(gFakeNewton, Port() + 1, "--newton1");
+  App & app = App::get();
+  App::Options options;
+  options.targets = { "tcp:" + std::to_string(Port() + 1) };
+  app.start(options);
+  Check(app.isChecked(Command::kNewton1Sync, nullptr) && !app.isChecked(Command::kNewton1Restore, nullptr),
+        "newton1: Sync is the session at first");
+  bool backedUp = WaitFor(30, [&] { return app.message().find("Backed up") == 0; });
+  Check(backedUp && app.windows().size() == 1 && !app.windows().front()->file().empty(),
+        "newton1: docked and backed up by itself: " + app.message());
+  bool undocked = WaitFor(15, [&] { return !app.docked(); });
+  Check(undocked, "newton1: the session ended after the backup: " + app.dockStatus() + "; " + app.message());
+  app.stop();
+  fake.finish();
+  Check(fake.why.empty(), "newton1: the fake Newton is content " + fake.why);
+  app.command(Command::kNewton1Restore, nullptr);
+  Check(app.isChecked(Command::kNewton1Restore, nullptr) && !app.isChecked(Command::kNewton1Sync, nullptr),
+        "newton1: the menu chooses the session");
+}
+
 } // namespace
 
 
@@ -566,7 +615,7 @@ int main(int argc, char * argv[])
 {
   std::setvbuf(stdout, nullptr, _IONBF, 0);
   if (argc != 4) {
-    std::fprintf(stderr, "usage: ncx_ui_test shell|dock|drop <fixtures> <ncx-fake-newton>\n");
+    std::fprintf(stderr, "usage: ncx_ui_test shell|dock|drop|newton1 <fixtures> <ncx-fake-newton>\n");
     return 2;
   }
   std::string section = argv[1];
@@ -582,16 +631,21 @@ int main(int argc, char * argv[])
   InitCore();
   Fl::lock();
   SetMainThreadRunner(RunOnFLTKThread);
+  // errors are told in the output, not in alerts that wait for a click
+  App::get().setAlert([](const std::string & inText) { std::printf("        alert: %s\n", inText.c_str()); ++gAlerts; });
   if (section == "shell")
     TestShell();
   else if (section == "dock")
     TestDock();
   else if (section == "drop")
     TestDrop();
+  else if (section == "newton1")
+    TestNewton1();
   else {
     std::fprintf(stderr, "no section \"%s\"\n", section.c_str());
     return 2;
   }
+  Check(gAlerts == 0, "no alerts (" + std::to_string(gAlerts) + ")");
   std::printf("%s\n", gFailed ? "FAILED" : "all ok");
   return gFailed ? 1 : 0;
 }

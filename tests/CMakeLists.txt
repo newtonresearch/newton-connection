@@ -84,7 +84,7 @@ add_executable (ncx_ui_test ui_test.cc)
 target_link_libraries (ncx_ui_test PRIVATE ncx_ui)
 target_include_directories (ncx_ui_test PRIVATE ${CMAKE_CURRENT_SOURCE_DIR})
 add_dependencies (ncx_ui_test ncx-fake-newton)
-foreach (section shell drop dock)
+foreach (section shell drop dock newton1)
   add_test (NAME ncx_ui_${section} COMMAND ncx_ui_test ${section} ${CMAKE_CURRENT_SOURCE_DIR}/fixtures $<TARGET_FILE:ncx-fake-newton>)
   set_tests_properties (ncx_ui_${section} PROPERTIES
     ENVIRONMENT "NCX_PREFS=memory;NCX_DATA_DIR=${CMAKE_CURRENT_BINARY_DIR}/ncx_ui_${section}")

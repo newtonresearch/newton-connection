@@ -16,6 +16,7 @@
 #include "base/Prefs.h"
 #include "base/Threads.h"
 #include "base/Version.h"
+#include "comms/DockProtocol.h"
 #include "platform/AppFolders.h"
 
 #include <FL/Fl.H>
@@ -216,7 +217,9 @@ void App::startDock(const std::vector<std::string> & inTargets)
           window = openDocument(inFile);
         if (window)
           window->show();
-        if (Prefs::App().getBool(pref::kAutoBackup) && !inNewton1)
+        if (inNewton1)
+          newton1Session(window);
+        else if (Prefs::App().getBool(pref::kAutoBackup))
           mDock.backUp();
       }
       stateChanged();
@@ -228,7 +231,7 @@ void App::startDock(const std::vector<std::string> & inTargets)
       mDockedFile.clear();
       mDockedName.clear();
       if (inCode != 0)
-        setMessage("The connection ended: " + inWhy);
+        alert("The connection ended: " + inWhy);
       mDockStatus = "Waiting for a Newton";
       if (mRestartDock) {
         mRestartDock = false;
@@ -255,8 +258,9 @@ void App::startDock(const std::vector<std::string> & inTargets)
       setMessage(inReport);
       if (!inFile.empty())
         fileChanged(inFile);
-      if (!inOK)
-        Log(kLogMinimum, "ui: %s", inReport.c_str());
+      // a failure (not a cancel) is told
+      if (!inOK && inReport.find("(cancelled)") == std::string::npos)
+        alert(inReport);
       stateChanged();
     });
   };
@@ -308,6 +312,23 @@ void App::startDock(const std::vector<std::string> & inTargets)
 }
 
 
+void App::newton1Session(DocumentWindow * inWindow)
+{
+  // NewtonOS 1 docks for one thing, chosen before (the Newton 1 menu)
+  switch (Prefs::App().getInt(pref::kNewton1SessionType, kSynchronizeSession)) {
+    case kRestoreSession:
+      command(Command::kRestore, inWindow);
+      break;
+    case kLoadPackageSession:
+      chooseAndInstall();
+      break;
+    default:
+      mDock.backUp();
+      break;
+  }
+}
+
+
 void App::preferencesChanged()
 {
   // logging: at once
@@ -326,6 +347,20 @@ void App::preferencesChanged()
   if (!mDock.start(mHooks, error))
     mDockStatus = "Can't wait for a Newton: " + error;
   stateChanged();
+}
+
+
+void App::alert(const std::string & inText)
+{
+  setMessage(inText);
+  Log(kLogMinimum, "ui: %s", inText.c_str());
+  stateChanged();
+  if (mAlert)
+    mAlert(inText);
+  else {
+    fl_message_title(NCX_NAME);
+    fl_alert("%s", inText.c_str());
+  }
 }
 
 
@@ -386,7 +421,10 @@ bool App::canDo(Command inCommand, DocumentWindow * inTarget) const
     case Command::kRestore:
       return idle && isDockedWindow(inTarget);
     case Command::kInstallPackage:
-      return idle && !mDock.newton1();
+      return idle;
+    case Command::kDumpROM:
+    case Command::kDumpCard:
+      return idle && !mDock.newton1() && isDockedWindow(inTarget);
     case Command::kDisconnect:
       return mDocked;
     case Command::kDelete:
@@ -411,11 +449,11 @@ bool App::canDo(Command inCommand, DocumentWindow * inTarget) const
 
 bool App::isChecked(Command inCommand, DocumentWindow *) const
 {
-  int session = Prefs::App().getInt(pref::kNewton1SessionType, 0);
+  int session = Prefs::App().getInt(pref::kNewton1SessionType, kSynchronizeSession);
   switch (inCommand) {
-    case Command::kNewton1Sync:     return session == 0;
-    case Command::kNewton1Restore:  return session == 1;
-    case Command::kNewton1Install:  return session == 2;
+    case Command::kNewton1Sync:     return session != kRestoreSession && session != kLoadPackageSession;
+    case Command::kNewton1Restore:  return session == kRestoreSession;
+    case Command::kNewton1Install:  return session == kLoadPackageSession;
     default:                        return false;
   }
 }
@@ -487,6 +525,34 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
     case Command::kInstallPackage:
       chooseAndInstall();
       break;
+    case Command::kDumpROM: {
+      Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_SAVE_FILE);
+      chooser.title("Save the Newton's ROM");
+      std::string name = (mDockedName.empty() ? std::string("Newton") : mDockedName) + " ROM.bin";
+      chooser.preset_file(name.c_str());
+      if (chooser.show() != 0 || !chooser.filename())
+        break;
+      std::filesystem::path file = PathFromUTF8(chooser.filename());
+      bool resume = false;
+      std::error_code error;
+      if (std::filesystem::exists(file, error)) {
+        fl_message_title("Dump ROM");
+        int answer = fl_choice("%s is there already. Go on where it stopped, or start again?", "Cancel", "Resume",
+                               "Start Again", UTF8FromPath(file.filename()).c_str());
+        if (answer == 0)
+          break;
+        resume = answer == 1;
+      }
+      mDock.dumpROM(file, resume);
+      break;
+    }
+    case Command::kDumpCard: {
+      Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_DIRECTORY);
+      chooser.title("Save the cards into this folder");
+      if (chooser.show() == 0 && chooser.filename())
+        mDock.dumpCards(PathFromUTF8(chooser.filename()));
+      break;
+    }
     case Command::kDisconnect:
       mDock.disconnect();
       break;
@@ -513,16 +579,16 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
       }
       break;
     }
-    // the session a NewtonOS 1 Newton is offered when it docks (the Cocoa
-    // app's Newton 1 menu); the flow comes with 7.7
+    // what the app does when a NewtonOS 1 Newton docks (the Cocoa app's
+    // Newton 1 menu: its tags, the session types)
     case Command::kNewton1Sync:
-      Prefs::App().setInt(pref::kNewton1SessionType, 0);
+      Prefs::App().setInt(pref::kNewton1SessionType, kSynchronizeSession);
       break;
     case Command::kNewton1Restore:
-      Prefs::App().setInt(pref::kNewton1SessionType, 1);
+      Prefs::App().setInt(pref::kNewton1SessionType, kRestoreSession);
       break;
     case Command::kNewton1Install:
-      Prefs::App().setInt(pref::kNewton1SessionType, 2);
+      Prefs::App().setInt(pref::kNewton1SessionType, kLoadPackageSession);
       break;
     default:
       break;

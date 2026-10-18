@@ -95,6 +95,11 @@ public:
   void setMessage(const std::string & inText, const std::filesystem::path & inFile = {});
   /** A file was changed (not by its windows): they read it again. */
   void fileChanged(const std::filesystem::path & inFile);
+  /** How errors are told: an alert (fl_alert), unless set (tests). */
+  void setAlert(std::function<void(const std::string &)> inAlert) { mAlert = std::move(inAlert); }
+  /** An error the user should see (an operation failed, the connection
+      broke): the status line, and an alert. */
+  void alert(const std::string & inText);
   /** How Restore asks what to restore: the restore dialog, unless set
       (tests). nullopt: nothing. */
   typedef std::function<std::optional<RestoreSelection>(const std::vector<RestoreChoice> &)> RestoreChooser;
@@ -116,6 +121,7 @@ private:
   DocumentWindow * newWindow();
   void chooseAndOpen();
   void chooseAndInstall();
+  void newton1Session(DocumentWindow * inWindow);
 
   AppDock mDock;
   std::vector<DocumentWindow *> mWindows;
@@ -127,6 +133,7 @@ private:
   std::vector<std::string> mTargets;          // given (Options), else the preferences'
   AppDock::Hooks mHooks;
   RestoreChooser mRestoreChooser;
+  std::function<void(const std::string &)> mAlert;
   std::filesystem::path mDockedFile;
   std::string mDockedName;
   std::string mDockStatus;

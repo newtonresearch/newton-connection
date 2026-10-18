@@ -9,11 +9,14 @@
 #include "base/Log.h"
 #include "base/Prefs.h"
 #include "dock/Backup.h"
+#include "dock/Card.h"
+#include "dock/MemoryDump.h"
 #include "dock/DockController.h"
 #include "dock/FileBrowser.h"
 #include "dock/Keyboard.h"
 #include "dock/Packages.h"
 #include "dock/SoupEditor.h"
+#include "comms/Handshake.h"
 #include "comms/Session.h"
 #include "ui/Edits.h"
 #include "model/DeviceList.h"
@@ -168,6 +171,9 @@ void AppDock::Impl::post(DockController & ioDock, const std::string & inTitle,
       throw;      // the controller ends the session
     }
     end(report, ok, file);
+    // NewtonOS 1 docks for one thing: done, it goes
+    if (ioDock.newton().newton1)
+      ioDock.disconnect();
   });
 }
 
@@ -454,6 +460,70 @@ void AppDock::restore(const std::filesystem::path & inFile, const RestoreSelecti
     else if (result != 0)
       report += " (error " + std::to_string(result) + ")";
     return report;
+  });
+}
+
+
+void AppDock::dumpROM(const std::filesystem::path & inFile, bool inResume)
+{
+  mImpl->post(*mDock, "Reading the ROM", [inFile, inResume](DockController & ioDock, Progress & ioProgress, bool & outOK,
+                                                           std::filesystem::path &) -> std::string {
+    Prefs & prefs = Prefs::App();
+    uint32_t address = (uint32_t)prefs.getInt(pref::kROMAddress, 0) & ~3u;
+    uint32_t size = (uint32_t)prefs.getInt(pref::kROMSize, 0) & ~3u;
+    if (size == 0)
+      size = ROMSize(ioDock.newton().info);
+    int error = DumpMemory(ioDock, address, size, inFile, inResume, MemoryReader::kBlock, &ioProgress);
+    outOK = error == 0;
+    if (error == kDockErrAborted)
+      return std::string("The ROM isn't complete (cancelled): Dump ROM again resumes");
+    if (error != 0)
+      return "The ROM isn't complete (" + std::to_string(error) + "): Dump ROM again resumes";
+    return "Read the ROM: " + std::to_string(size) + " bytes into " + UTF8FromPath(inFile.filename());
+  });
+}
+
+
+void AppDock::dumpCards(const std::filesystem::path & inFolder)
+{
+  mImpl->post(*mDock, "Reading the cards", [inFolder](DockController & ioDock, Progress & ioProgress, bool & outOK,
+                                                      std::filesystem::path &) -> std::string {
+    const DockedNewton & newton = ioDock.newton();
+    MemoryReader reader(ioDock);
+    int error = reader.begin();
+    if (error != 0) {
+      outOK = false;
+      return "No cards read: the Newton didn't take the extension (" + std::to_string(error) + ")";
+    }
+    CardReader cards(reader);
+    std::vector<CardSocket> sockets;
+    error = cards.sockets(newton.info, sockets);
+    if (error != 0 || sockets.empty()) {
+      outOK = false;
+      return error != 0 ? "No cards read (" + std::to_string(error) + ")"
+                        : "No cards read: NCX doesn't know the sockets of a " + MachineName(newton.info.fMachineType);
+    }
+    std::string header = "Newton: " + newton.name + ", " + MachineName(newton.info.fMachineType);
+    std::error_code ec;
+    std::filesystem::create_directories(inFolder, ec);
+    size_t read = 0;
+    std::string report;
+    outOK = true;
+    for (const CardSocket & socket : sockets) {
+      if (!socket.inserted)
+        continue;
+      CardDump dump;
+      error = cards.dump(socket.socket, inFolder, header, 0, false, MemoryReader::kBlock, &ioProgress, dump);
+      if (error != 0) {
+        outOK = false;
+        report += "; socket " + std::to_string(socket.socket) + ": " + cards.why() + " (" + std::to_string(error) + ")";
+        if (error == kDockErrAborted)
+          break;
+        continue;
+      }
+      ++read;
+    }
+    return "Read " + std::to_string(read) + (read == 1 ? " card" : " cards") + " into " + UTF8FromPath(inFolder) + report;
   });
 }
 
