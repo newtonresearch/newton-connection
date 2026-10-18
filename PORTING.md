@@ -1315,7 +1315,7 @@ and it):
   another document's window they are copied into the soups of their
   names on its store (`CopyEntries`: new ids, as entries made on the
   desktop), and sent to the Newton when that one is docked. Dragging out
-  to the desktop stays out (D2: file promises; Export instead).
+  to the desktop stays out (D3: file promises; Export instead).
 - **7.9 Help:** HTML help in an `Fl_Help_View` window (or open in a
   browser), and the PDF guide through `fl_open_uri`.
 - **7.10 Platform touches:**
