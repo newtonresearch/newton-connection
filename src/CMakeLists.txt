@@ -75,6 +75,7 @@ add_library (ncx_core STATIC
   model/Records.cc model/Records.h
   model/Restore.cc model/Restore.h
   platform/AppFolders.cc platform/AppFolders.h
+  platform/KeepAwake.cc platform/KeepAwake.h
   platform/SerialPorts.cc platform/SerialPorts.h
   translators/Audio.cc
   translators/Builtin.cc
@@ -101,6 +102,10 @@ target_include_directories (ncx_core PUBLIC
 )
 # fltk::fltk: Fl_Preferences (Prefs.cc)
 target_link_libraries (ncx_core PUBLIC newton_ncx newton_dock ncx_sqlite3 fltk::fltk)
+if (APPLE)
+  # SerialPorts.cc (the serial ports), KeepAwake.cc (power assertions)
+  target_link_libraries (ncx_core PUBLIC "-framework IOKit" "-framework CoreFoundation")
+endif ()
 
 #------------------------------------------------------------------------------
 #   ncx-cli: without a window, for tests and debugging.
@@ -187,9 +192,19 @@ add_library (ncx_ui STATIC
 )
 target_include_directories (ncx_ui PUBLIC "${PROJECT_BINARY_DIR}/generated/ui" "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries (ncx_ui PUBLIC ncx_core)    # FLTK comes with it
-add_executable (NCX WIN32 MACOSX_BUNDLE ui/main.cc ${ncx_icon})
+set (ncx_document_icons "${PROJECT_SOURCE_DIR}/resources/NCX-device.icns" "${PROJECT_SOURCE_DIR}/resources/NCX-package.icns")
+set (ncx_platform_sources "")
+if (APPLE)
+  set (ncx_platform_sources ${ncx_icon} ${ncx_document_icons})
+  set_source_files_properties (${ncx_icon} ${ncx_document_icons} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
+elseif (WIN32)
+  # the icon and the version (cmake/NCX.rc.in)
+  set (NCX_ICO "${PROJECT_SOURCE_DIR}/resources/windows/NCX.ico")
+  configure_file ("${PROJECT_SOURCE_DIR}/cmake/NCX.rc.in" "${PROJECT_BINARY_DIR}/generated/NCX.rc" @ONLY)
+  set (ncx_platform_sources "${PROJECT_BINARY_DIR}/generated/NCX.rc")
+endif ()
+add_executable (NCX WIN32 MACOSX_BUNDLE ui/main.cc ${ncx_platform_sources})
 target_link_libraries (NCX PRIVATE ncx_ui)
-set_source_files_properties (${ncx_icon} PROPERTIES MACOSX_PACKAGE_LOCATION Resources)
 set_target_properties (NCX PROPERTIES
   MACOSX_BUNDLE_INFO_PLIST "${PROJECT_SOURCE_DIR}/cmake/Info.plist.in"
   MACOSX_BUNDLE_BUNDLE_NAME "${PROJECT_DESCRIPTION}"
@@ -205,3 +220,10 @@ install (TARGETS NCX ncx-cli
   BUNDLE DESTINATION . COMPONENT ncx
   RUNTIME DESTINATION bin COMPONENT ncx
 )
+if (UNIX AND NOT APPLE)
+  # the desktop's menu and icon (freedesktop.org)
+  install (FILES "${PROJECT_SOURCE_DIR}/resources/linux/newton-connection.desktop"
+           DESTINATION share/applications COMPONENT ncx)
+  install (FILES "${PROJECT_SOURCE_DIR}/resources/linux/newton-connection.png"
+           DESTINATION share/icons/hicolor/256x256/apps COMPONENT ncx)
+endif ()

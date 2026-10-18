@@ -1,0 +1,31 @@
+// NCX.exe's resources (src/CMakeLists.txt fills in the version): the
+// icon, and the version Windows' file properties show.
+
+#include <winver.h>
+
+1 ICON "@NCX_ICO@"
+
+VS_VERSION_INFO VERSIONINFO
+FILEVERSION     @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+PRODUCTVERSION  @PROJECT_VERSION_MAJOR@,@PROJECT_VERSION_MINOR@,@PROJECT_VERSION_PATCH@,0
+FILEOS          VOS_NT_WINDOWS32
+FILETYPE        VFT_APP
+BEGIN
+  BLOCK "StringFileInfo"
+  BEGIN
+    BLOCK "040904B0"
+    BEGIN
+      VALUE "CompanyName", "Newton Research Group"
+      VALUE "FileDescription", "@PROJECT_DESCRIPTION@"
+      VALUE "FileVersion", "@PROJECT_VERSION@"
+      VALUE "InternalName", "NCX"
+      VALUE "OriginalFilename", "NCX.exe"
+      VALUE "ProductName", "@PROJECT_DESCRIPTION@"
+      VALUE "ProductVersion", "@PROJECT_VERSION@"
+    END
+  END
+  BLOCK "VarFileInfo"
+  BEGIN
+    VALUE "Translation", 0x409, 1200
+  END
+END

@@ -7,6 +7,7 @@
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
 #include "ui/Help.h"
+#include "ui/Images.h"
 #include "ui/Preferences.h"
 #include "ui/RestoreDialog.h"
 #include "ui/panels/KeyboardPanel.h"
@@ -18,10 +19,12 @@
 #include "base/Threads.h"
 #include "base/Version.h"
 #include "comms/DockProtocol.h"
+#include "dock/Packages.h"
 #include "platform/AppFolders.h"
 
 #include <FL/Fl.H>
 #include <FL/Fl_Native_File_Chooser.H>
+#include <FL/Fl_RGB_Image.H>
 #include <FL/Fl_Sys_Menu_Bar.H>
 #include <FL/fl_ask.H>
 #if defined(__APPLE__)
@@ -107,10 +110,20 @@ void PreferencesCB(Fl_Widget *, void *)
   App::get().command(Command::kPreferences, nullptr);
 }
 
-/** macOS: files opened from the Finder, or dropped on the app's icon. */
+/** macOS: files opened from the Finder, or dropped on the app's icon:
+    backups open, packages are installed on the docked Newton. */
 void OpenFileCB(const char * inFile)
 {
-  App::get().openDocument(PathFromUTF8(inFile));
+  App & app = App::get();
+  std::filesystem::path file = PathFromUTF8(inFile);
+  if (IsNewtonPackage(file)) {
+    if (app.canDo(Command::kInstallPackage, app.frontWindow()))
+      app.installPackages({ file });
+    else
+      app.alert("To install " + UTF8FromPath(file.filename()) + ", connect a Newton device first.");
+    return;
+  }
+  app.openDocument(file);
 }
 #endif
 
@@ -140,6 +153,11 @@ void App::start(const Options & inOptions)
   BuildMenu(*mMenuBar);
   Fl_Sys_Menu_Bar::create_window_menu();
   fl_open_callback(OpenFileCB);
+#endif
+#if !defined(__APPLE__)
+  // the windows' icon (macOS: the bundle's)
+  if (Fl_RGB_Image * icon = dynamic_cast<Fl_RGB_Image *>(BuiltinImage("app-icon")))
+    Fl_Window::default_icon(icon);
 #endif
   for (const std::filesystem::path & file : inOptions.files)
     openDocument(file);

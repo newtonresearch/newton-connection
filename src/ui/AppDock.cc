@@ -21,6 +21,7 @@
 #include "ui/Edits.h"
 #include "model/DeviceList.h"
 #include "platform/AppFolders.h"
+#include "platform/KeepAwake.h"
 
 #include <atomic>
 
@@ -156,6 +157,7 @@ void AppDock::Impl::post(DockController & ioDock, const std::string & inTitle,
       return;
     }
     begin(inTitle);
+    KeepAwake awake(inTitle);     // a transfer may take long, untouched
     bool ok = true;
     std::filesystem::path file;
     std::string report;
@@ -215,6 +217,7 @@ bool AppDock::start(const Hooks & inHooks, std::string & outError, const std::ve
       ~Count() { --count; }
     } count { impl.operations };
     impl.begin("Backing up");
+    KeepAwake awake("Backing up a Newton");
     bool ok = true;
     std::filesystem::path file;
     std::string report = BackUp(ioDock, impl.hooks, true, *impl.progress, ok, file);

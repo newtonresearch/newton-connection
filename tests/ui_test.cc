@@ -26,6 +26,7 @@
 #include "base/Threads.h"
 #include "dock/Keyboard.h"
 #include "platform/AppFolders.h"
+#include "platform/KeepAwake.h"
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
@@ -482,6 +483,13 @@ void TestDrop()
   Check(ParseEntriesPayload(EntriesPayload(c, { 3, 14, 15 }), from, pks) && from == c
         && pks == std::vector<int64_t>({ 3, 14, 15 }) && !ParseEntriesPayload(FileURL(c, ""), from, pks),
         "drop: entries dragged between windows: the payload");
+  // keeping the computer awake (Linux: if systemd-inhibit is there)
+  {
+    KeepAwake awake("NCX ui_test");
+#if defined(__APPLE__) || defined(_WIN32)
+    Check(awake.active(), "keep awake: on");
+#endif
+  }
   // keys for the keyboard panel
   Check(NewtonKeyFor(FL_BackSpace) == newtonkey::kBackspace && NewtonKeyFor(FL_Enter) == newtonkey::kReturn
         && NewtonKeyFor(FL_Up) == newtonkey::kUp && NewtonKeyFor(FL_F + 3) == newtonkey::kF1 + 2
@@ -537,7 +545,11 @@ void TestDock()
           + std::to_string(data.rows.size()) + ") " + data.error);
     // Delete, docked: on the Newton and from the file
     window->soupPanel()->selectRow(0, true);
-    Check(app.canDo(Command::kDelete, window), "dock: Delete allowed");
+    Check(app.canDo(Command::kDelete, window), std::string("dock: Delete allowed (docked window ")
+          + (app.isDockedWindow(window) ? "yes" : "no") + ", busy " + (app.dock().busy() ? "yes" : "no")
+          + ", writable " + (window->writable() ? "yes" : "no") + ", selected "
+          + std::to_string(window->soupPanel()->selectedEntries().size()) + ", loading "
+          + (window->soupPanel()->loading() ? "yes" : "no") + ")");
     app.command(Command::kDelete, window);
     bool deleted = WaitFor(15, [&] { return !app.dock().busy() && app.message().find("Deleted") == 0
                                             && !window->soupPanel()->loading()

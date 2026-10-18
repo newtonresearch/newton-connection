@@ -1,0 +1,11 @@
+[Desktop Entry]
+Type=Application
+Name=Newton Connection
+GenericName=Newton desktop companion
+Comment=Back up, restore and install packages on Apple Newton devices
+Exec=NCX %F
+Icon=newton-connection
+Terminal=false
+Categories=Utility;
+MimeType=application/x-newton-device;application/x-newton-compatible-pkg;
+Keywords=Newton;MessagePad;eMate;backup;

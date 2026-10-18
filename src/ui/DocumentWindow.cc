@@ -39,6 +39,7 @@
 
 #include <algorithm>
 #include <cstdint>
+#include <fstream>
 #include <utility>
 
 namespace ncx {
@@ -193,10 +194,9 @@ bool DocumentWindow::bind(const std::filesystem::path & inFile, std::string & ou
     return false;
   mDeviceFile = std::move(file);
   mFile = inFile;
-  {
-    std::string ignored;
-    mWritable = DeviceFile::Open(inFile, DeviceFile::kReadWrite, ignored) != nullptr;
-  }
+  // may it change the file? (the file's permission, not an SQLite open: that
+  // may wait on the dock thread's locks)
+  mWritable = std::fstream(inFile, std::ios::in | std::ios::out | std::ios::binary).is_open();
   std::string name = mDeviceFile->newtonName();
   mTitle = name.empty() ? UTF8FromPath(inFile.stem()) : name;
   copy_label(mTitle.c_str());

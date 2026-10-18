@@ -83,6 +83,8 @@ public:
       sidebar, else the internal store and the app that imports the kind
       of file): on the Newton too when it is docked. */
   bool canImport() const;
+  /** It may change its file (Delete, Import; tests). */
+  bool writable() const { return mWritable; }
   void importFiles(const std::vector<std::filesystem::path> & inFiles);
 
   /** Its menu bar (nullptr on macOS: the app has one). */

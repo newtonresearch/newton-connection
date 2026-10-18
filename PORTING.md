@@ -18,8 +18,9 @@ interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
 inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
-flows, 7.8, drag and drop in, and 7.9, help, are done; next the
-platform touches, 7.10.
+flows, 7.8, drag and drop in, 7.9, help, and 7.10, the platform touches,
+are done: Phase 7 waits for its test, a full session against Einstein on
+all three systems and against a real Newton over serial.
 
 ---
 
@@ -1326,11 +1327,22 @@ and it):
   now for images and help) and shown in a Help window (`Help.h`, an
   `Fl_Help_View`; links within it followed, web links opened in the
   browser). Plain HTML: `Fl_Help_View` knows few entities (no `&rsquo;`).
-- **7.10 Platform touches:**
-  - Keep the machine awake during transfers.
-  - macOS bundle with `Info.plist` and icon (`fltk_set_bundle_icon`).
-  - Windows `.rc` with icon and version.
-  - Linux `.desktop` file and icon.
+- **7.10 Platform touches:** done.
+  - Keep the machine awake during transfers: `platform/KeepAwake.h`, held
+    by every dock operation (macOS an IOKit power assertion, Windows
+    `SetThreadExecutionState` on the dock thread, Linux `systemd-inhibit`
+    when it is there).
+  - macOS: the bundle's `Info.plist` has the Cocoa app's document types
+    (`.newtondevice` as com.newton.device, its owner; packages as
+    com.newton.package) and their icons; packages opened from the Finder
+    are installed on the docked Newton.
+  - Windows: `cmake/NCX.rc.in` (the icon `resources/windows/NCX.ico`, PNGs
+    made from NCX.icns; the version).
+  - Linux: `resources/linux/newton-connection.desktop` and a 256 pixel
+    icon, installed into share/applications and share/icons.
+  - Windows and Linux: the windows' icon (`app-icon`, embedded).
+  - Not ported: the `.nbku` (NCX 1 backup) document type (opening one
+    needs the import into a new file: BackupImport, a later step).
 - Done when: a full session (connect, backup, browse soups, export Names,
   install a package, screenshot, keyboard) works on all three systems
   against Einstein, and on at least one with a real Newton over serial.
