@@ -1,0 +1,67 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0401
+header_name {.h}
+code_name {.cxx}
+comment {//
+// The store panel's layout (PORTING.md 7.4; the Cocoa app's
+// Store.storyboard). Its behaviour: StorePanel.cc.
+//} {in_source in_header
+}
+widget_class StorePanelUI {open
+  xywh {0 0 560 400}
+  class Fl_Group visible position_relative
+} {
+  Fl_Group mStoreBox {
+    label Store open
+    xywh {16 28 528 220} box ENGRAVED_FRAME labelfont 1 labelsize 13 align 5
+  } {
+    Fl_Box mPicture {
+      xywh {28 40 150 168}
+    }
+    Fl_Box {} {
+      label {Kind:}
+      xywh {186 50 100 22} align 24
+    }
+    Fl_Box mKind {
+      xywh {290 50 242 22} labelfont 1 align 84
+    }
+    Fl_Box {} {
+      label {Status:}
+      xywh {186 76 100 22} align 24
+    }
+    Fl_Box mStatus {
+      xywh {290 76 242 22} labelfont 1 align 84
+    }
+    Fl_Box {} {
+      label {Signature:}
+      xywh {186 102 100 22} align 24
+    }
+    Fl_Box mSignature {
+      xywh {290 102 242 22} labelfont 1 align 84
+    }
+    Fl_Box {} {
+      label {Capacity:}
+      xywh {186 128 100 22} align 24
+    }
+    Fl_Box mCapacity {
+      xywh {290 128 242 22} labelfont 1 align 84
+    }
+    Fl_Box {} {
+      label {Used:}
+      xywh {186 154 100 22} align 24
+    }
+    Fl_Box mUsed {
+      xywh {290 154 242 22} labelfont 1 align 84
+    }
+    Fl_Box {} {
+      label {Free:}
+      xywh {186 180 100 22} align 24
+    }
+    Fl_Box mFree {
+      xywh {290 180 242 22} labelfont 1 align 84
+    }
+    Fl_Progress mLevel {
+      tooltip {How full the store is} xywh {290 212 242 16}
+    }
+  }
+}

@@ -8,6 +8,7 @@
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
+#include "ui/Format.h"
 #include "ui/Images.h"
 
 #include "base/Dates.h"
@@ -25,18 +26,6 @@ namespace ncx {
 namespace {
 
 enum Row { kManufacturerRow, kSerialRow, kVersionRow };
-
-/** 4096 as "4,096". */
-std::string Grouped(uint64_t inNumber)
-{
-  std::string digits = std::to_string(inNumber), text;
-  for (size_t i = 0; i < digits.size(); ++i) {
-    if (i > 0 && (digits.size() - i) % 3 == 0)
-      text += ',';
-    text += digits[i];
-  }
-  return text;
-}
 
 const char * PictureName(const NewtonInfo & inInfo)
 {
@@ -93,7 +82,7 @@ void DevicePanel::update(DeviceFile & inFile)
   mManufacturerRow = 0;
   mPicture->image(BuiltinImage(PictureName(mInfo)));
   mType->copy_label(mDevice ? MachineTypeName(mInfo).c_str() : "");
-  mRAM->copy_label(mDevice && !Is1xData(mInfo) ? (Grouped(mInfo.fRAMSize / 1024) + "K").c_str() : "");
+  mRAM->copy_label(mDevice && !Is1xData(mInfo) ? (GroupedNumber(mInfo.fRAMSize / 1024) + "K").c_str() : "");
   mProcessor->copy_label(mDevice && mDevice->processor ? mDevice->processor->c_str() : "");
   mBackupStatus->copy_label(BackupStatusText(mDevice ? mDevice->backupDate : std::nullopt).c_str());
   showRows();

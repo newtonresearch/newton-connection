@@ -15,8 +15,8 @@ ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu); the panels (7.4): the device panel
-done, next the store panel.
+Back Up and Install from the menu); the panels (7.4): device and store
+done, next the soup panel.
 
 ---
 
@@ -1195,6 +1195,10 @@ and it):
     the Newton ID, the ROM version), the backup status, Back Up, Restore
     (enabled with 7.7). Packages dropped on it are installed on the docked
     Newton (`Drop.h`: paths and `file:` URLs).
+  - 7.4.2 store panel: done. The store's picture, kind, status (default,
+    password protected, read only), signature, capacity, used, free, and
+    how full it is (an `Fl_Progress`: green, yellow from 80 %, red from
+    90 %, as the Cocoa app's level indicator).
 - **7.4 Panels** (one step each): device (with the package list and
   dropping packages), store (capacity indicator), soup (an `Fl_Table_Row`
   subclass with columns per soup, sorting, multiple selection, delete and

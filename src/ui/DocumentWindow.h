@@ -41,6 +41,7 @@ namespace ncx {
 
 class DeviceFile;
 class DevicePanel;
+class StorePanel;
 
 class DocumentWindow : public Fl_Double_Window
 {
@@ -70,6 +71,7 @@ public:
   /** The sidebar, the status line's message, the panels (tests). */
   Fl_Tree * sidebar() { return mSidebar; }
   DevicePanel * devicePanel() { return mDevicePanel; }
+  StorePanel * storePanel() { return mStorePanel; }
   const char * messageText() const;
 
   /** Closed: the app forgets it. */
@@ -110,6 +112,7 @@ private:
   Fl_Group * mContent = nullptr;
   Fl_Box * mInfo = nullptr;
   DevicePanel * mDevicePanel = nullptr;
+  StorePanel * mStorePanel = nullptr;
   Fl_Text_Display * mInspector = nullptr;
   Fl_Text_Buffer * mInspectorText = nullptr;
   Fl_Box * mMessage = nullptr;

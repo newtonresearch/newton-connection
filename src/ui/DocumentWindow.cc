@@ -9,6 +9,7 @@
 #include "ui/Commands.h"
 #include "ui/Images.h"
 #include "ui/panels/DevicePanel.h"
+#include "ui/panels/StorePanel.h"
 
 #include "base/Dates.h"
 #include "base/Prefs.h"
@@ -57,11 +58,6 @@ std::string LabelText(const std::string & inText)
       text += '@';
   }
   return text;
-}
-
-std::string Kilobytes(int64_t inBytes)
-{
-  return std::to_string((inBytes + 512) / 1024) + " KB";
 }
 
 } // namespace
@@ -133,6 +129,8 @@ DocumentWindow::DocumentWindow()
   mInfo->align(FL_ALIGN_INSIDE | FL_ALIGN_TOP_LEFT | FL_ALIGN_WRAP | FL_ALIGN_CLIP);
   mDevicePanel = new DevicePanel(mContent->x(), top, mContent->w(), tileHeight);
   mDevicePanel->hide();
+  mStorePanel = new StorePanel(mContent->x(), top, mContent->w(), tileHeight);
+  mStorePanel->hide();
   mContent->resizable(mInfo);
   mContent->end();
   mInspectorText = new Fl_Text_Buffer();
@@ -284,50 +282,60 @@ void DocumentWindow::TreeCB(Fl_Widget *, void * inWindow)
 }
 
 
-/** The content for what the sidebar has selected. For now a summary; the
-    panels come with PORTING.md 7.4. */
+/** The content for what the sidebar has selected: its panel, or a summary
+    (what has no panel yet). */
 void DocumentWindow::showSelection()
 {
   std::string text;
   Fl_Tree_Item * item = mSidebar->first_selected_item();
   const Node * node = item ? static_cast<const Node *>(item->user_data()) : nullptr;
-  // a panel, else the summary
-  if (mDeviceFile && node && node->kind == Node::kDevice) {
+  Fl_Group * panel = nullptr;
+  if (mDeviceFile && node) {
     try {
-      mDevicePanel->update(*mDeviceFile);
+      switch (node->kind) {
+        case Node::kDevice:
+          mDevicePanel->update(*mDeviceFile);
+          panel = mDevicePanel;
+          break;
+        case Node::kStore:
+          for (const StoreRecord & store : mDeviceFile->stores())
+            if (store.pk == node->storePk) {
+              mStorePanel->update(store);
+              panel = mStorePanel;
+            }
+          break;
+        default:
+          break;
+      }
     } catch (const ModelError & error) {
-      mInfo->copy_label(LabelText(error.what()).c_str());
+      panel = nullptr;
+      text = error.what();
     }
+  }
+  for (Fl_Group * each : { (Fl_Group *)mDevicePanel, (Fl_Group *)mStorePanel })
+    if (each != panel)
+      each->hide();
+  mContent->redraw();
+  if (panel) {
     mInfo->hide();
-    mDevicePanel->show();
-    mContent->redraw();
+    panel->show();
     return;
   }
-  mDevicePanel->hide();
   mInfo->show();
   if (!mDeviceFile) {
     text = "Waiting for a Newton.\n\nOn the Newton, open Dock (Connection on NewtonOS 1) and connect "
            "with TCP/IP or serial. Or open a backup with File > Open.";
-  } else if (!node) {
-    text = "";
-  } else {
+  } else if (node && text.empty()) {      // (text: why the panel couldn't be shown)
     try {
       switch (node->kind) {
         case Node::kDevice:
+        case Node::kStore:
           break;
         case Node::kKeyboard:
           text = "Type on the Newton from this computer's keyboard (comes with PORTING.md 7.4).";
           break;
         case Node::kScreenshot:
           text = "The Newton's screen (comes with PORTING.md 7.4).";
-          break;
-        case Node::kStore:
-          for (const StoreRecord & store : mDeviceFile->stores())
-            if (store.pk == node->storePk) {
-              text = store.name + "\n\n" + store.kind + (store.defaultStore ? ", the default store" : "")
-                   + (store.readOnly ? ", read only" : "") + "\n"
-                   + Kilobytes(store.usedSize) + " used of " + Kilobytes(store.totalSize) + "\n";
-            }
           break;
         case Node::kApp: {
           text = item->label() + std::string("\n\n");

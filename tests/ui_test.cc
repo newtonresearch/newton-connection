@@ -26,9 +26,14 @@
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
 #include "ui/panels/DevicePanel.h"
+#include "ui/panels/StorePanel.h"
 
 #include <FL/Fl.H>
+#include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Image_Surface.H>
+#include <FL/Fl_PNG_Image.H>
+#include <FL/Fl_Progress.H>
 #include <FL/Fl_Tree.H>
 
 #include <chrono>
@@ -84,6 +89,20 @@ bool WaitFor(double inSeconds, const std::function<bool()> & inDone)
     Fl::wait(0.05);
   }
   return true;
+}
+
+/** The window as a PNG in the test's folder (to look at). */
+void Snapshot(Fl_Window * inWindow, const std::string & inName)
+{
+  Fl::check();
+  Fl_Image_Surface surface(inWindow->w(), inWindow->h());
+  Fl_Surface_Device::push_current(&surface);
+  surface.draw(inWindow);
+  Fl_RGB_Image * image = surface.image();
+  Fl_Surface_Device::pop_current();
+  if (image)
+    fl_write_png(UTF8FromPath(AppDataFolder() / (inName + ".png")).c_str(), image);
+  delete image;
 }
 
 /** The labels of a tree item's children. */
@@ -148,10 +167,21 @@ void TestShell()
         + device->versionText() + ")");
   device->mSerialLabel->do_callback();
   Check(device->serialText() == "0000-4E65-7774-6F6E", "shell: ... and back");
+  Snapshot(window, "device");
   window->sidebar()->select_only(window->sidebar()->find_item("Internal"), 1);
-  Check(!device->visible(), "shell: a store selected: no device panel");
+  StorePanel * store = window->storePanel();
+  Check(!device->visible() && store->visible(), "shell: a store selected: its panel");
+  Check(std::string(store->mKind->label()) == "Internal" && std::string(store->mStatus->label()) == "Default store"
+        && std::string(store->mCapacity->label()).find("K  (") != std::string::npos
+        && store->mLevel->value() > 0 && store->mLevel->value() <= 100,
+        "shell: ... kind, status, capacity, how full (" + std::string(store->mCapacity->label()) + ", "
+        + std::string(store->mUsed->label()) + ")");
+  Snapshot(window, "store");
+  window->sidebar()->select_only(window->sidebar()->find_item("Card"), 1);
+  Check(store->visible() && std::string(store->mKind->label()) != "Internal", "shell: the card: " + std::string(store->mKind->label())
+        + ", " + store->mStatus->label());
   window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
-  Check(device->visible(), "shell: the device again: its panel");
+  Check(device->visible() && !store->visible(), "shell: the device again: its panel");
 
   Check(!app.canDo(Command::kBackUp, window) && !app.canDo(Command::kInstallPackage, window)
         && app.canDo(Command::kOpen, window) && app.canDo(Command::kToggleSidebar, window),
