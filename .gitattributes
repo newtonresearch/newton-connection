@@ -1,0 +1,2 @@
+# test data stays byte for byte as it is (no line-end conversion on any system)
+tests/fixtures/** binary
