@@ -814,8 +814,14 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
      no more than the DMA can take, and wake when NewtonOS starts it again);
      then the incremental backup went through (20 soups, 2 entries came). A
      big frame sent right after one of the Newton's is still refused once
-     and taken when sent again at once (its MNP, harmless). Still to do: a
-     real Newton.
+     and taken when sent again at once (its MNP, harmless). Again on
+     Einstein (Matt, 2026-10-18), a MessagePad setup sharing its Newton ID
+     with an eMate setup (one backup file for both, soups of the two
+     mixed): one backup broke off at Names' `sinf` (no acknowledgement);
+     the next, with a to-do and a card added, went through (21 soups, the
+     to-dos, 9 cards, 7 meetings, the packages), and the Cocoa NCX read the
+     file without errors. The break wasn't seen again; likely the mix.
+     Still to do: a real Newton.
   5. restore
      ✅ (fake Newton) `dock/Restore.h`, the Cocoa app's desktop half: what
      to restore from `model/Restore.h`'s choices (a store of the Newton, a
