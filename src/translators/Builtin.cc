@@ -39,10 +39,11 @@ public:
     mFile = write(std::string(), "Newton " + inContext.appName, "text");
     if (mFile.empty())
       return;
+    // binary: LF line ends everywhere (Windows' text mode would make them CR LF)
 #if defined(_WIN32)
-    mOut = _wfopen(mFile.wstring().c_str(), L"w");
+    mOut = _wfopen(mFile.wstring().c_str(), L"wb");
 #else
-    mOut = std::fopen(mFile.c_str(), "w");
+    mOut = std::fopen(mFile.c_str(), "wb");
 #endif
     if (!mOut)
       return;
