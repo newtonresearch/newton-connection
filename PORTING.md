@@ -10,17 +10,21 @@ that builds and can be checked.
 
 **Where we are (2026-10-18):** Phases 0 to 6 done: the framework
 groundwork, the build and CI, the base, comms, model, dock and translator
-layers, all without a GUI, used through `ncx-cli` (71 ctests, clean under
-ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
-Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
-against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
-interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu), the panels (7.4: device, store, soup
-with Delete and Export, package info, screenshot, keyboard) and the
-inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
-flows, 7.8, drag and drop in, 7.9, help, and 7.10, the platform touches,
-are done: Phase 7 waits for its test, a full session against Einstein on
-all three systems and against a real Newton over serial.
+layers, used through `ncx-cli`. Phase 7, the FLTK user interface, is
+written (7.1 to 7.10: document windows and menus, all panels, inspector,
+preferences, dialogs and flows, drag and drop, help, platform touches);
+76 ctests, clean under ASan/UBSan and ThreadSanitizer, CI green on all
+five builds (0603742). Decisions D1 to D10 settled.
+
+Next: Phase 7's test. Matt's first walkthrough against Einstein went well;
+he is collecting the minor issues. Known so far: after a PCMCIA card dump
+the Newton's progress dialog stays up (the card read doesn't end its
+status / operation on the Newton). Still to do: a full session against
+Einstein on all three systems, against a real Newton over serial; real
+mouse drags and drops from file managers (not automated). Rare test flakes
+seen once each, not reproduced: `ncx_dock_backup` ("the MNP link didn't
+come up"), `ncx_ui_dock` (Delete not allowed; the check now reports its
+state).
 
 ---
 
