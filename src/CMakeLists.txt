@@ -154,8 +154,11 @@ add_library (ncx_ui STATIC
   ui/Edits.cc
   ui/Format.cc
   ui/Images.cc
+  ui/Inspector.cc
+  ui/PackageInfo.cc
   ui/SoupData.cc
   ui/panels/DevicePanel.cc
+  ui/panels/PackageView.cc
   ui/panels/SoupPanel.cc
   ui/panels/StorePanel.cc
   ${ncx_fluid_sources}

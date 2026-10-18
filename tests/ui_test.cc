@@ -26,6 +26,8 @@
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
+#include "ui/Inspector.h"
+#include "ui/panels/PackageView.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
@@ -239,6 +241,29 @@ void TestShell()
   Check(!soup->selectedEntries().empty() && !app.canDo(Command::kDelete, window),
         "shell: not docked, packages can't be deleted");
 
+  // the inspector: a package's info
+  if (!window->inspectorShown())
+    app.command(Command::kToggleInspector, window);
+  Inspector * inspector = window->inspector();
+  bool inspected = WaitFor(10, [&] { return !inspector->loading() && inspector->status().empty(); });
+  std::vector<std::string> rows = inspector->packageView()->rowTexts();
+  std::string all;
+  for (const std::string & row : rows)
+    all += row + "; ";
+  Check(inspected && inspector->packageView()->visible() && inspector->packageView()->info().error.empty()
+        && all.find("Name: hello:SIG") != std::string::npos && all.find("Part 0  (form)") != std::string::npos,
+        "shell: the inspector: the package's info: " + all + inspector->packageView()->info().error);
+  Snapshot(window, "package");
+  soup->selectRow(0, false);
+  Check(inspector->status() == "No selection", "shell: the inspector: no selection");
+  window->sidebar()->select_only(window->sidebar()->find_item("Internal/Names/Names"), 1);
+  WaitFor(10, [&] { return !soup->loading(); });
+  soup->selectRow(0, true);
+  soup->selectRow(1, true);
+  Check(inspector->status() == "Multiple selection", "shell: the inspector: multiple selection");
+  window->sidebar()->select_only(window->sidebar()->find_item("Internal"), 1);
+  Check(inspector->status() == "Inspector not applicable", "shell: the inspector: a store: not applicable");
+
   window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
   Check(device->visible() && !store->visible() && !soup->visible(), "shell: the device again: its panel");
 
@@ -250,9 +275,9 @@ void TestShell()
   Check(window->sidebarShown() != sidebar && window->sidebar()->visible() == !sidebar, "shell: the sidebar toggled");
   app.command(Command::kToggleSidebar, window);
   Check(window->sidebar()->visible() && window->sidebar()->w() > 0, "shell: ... and back");
-  bool inspector = window->inspectorShown();
+  bool inspectorShown = window->inspectorShown();
   app.command(Command::kToggleInspector, window);
-  Check(window->inspectorShown() != inspector, "shell: the inspector toggled");
+  Check(window->inspectorShown() != inspectorShown, "shell: the inspector toggled");
 
   // a window waiting for a Newton, closed again
   app.command(Command::kNewConnection, window);

@@ -32,14 +32,13 @@ class Fl_Button;
 class Fl_Group;
 class Fl_Menu_;
 class Fl_Progress;
-class Fl_Text_Buffer;
-class Fl_Text_Display;
 class Fl_Tile;
 class Fl_Tree;
 
 namespace ncx {
 
 class DeviceFile;
+class Inspector;
 class DevicePanel;
 class StorePanel;
 class SoupPanel;
@@ -86,6 +85,7 @@ public:
   DevicePanel * devicePanel() { return mDevicePanel; }
   StorePanel * storePanel() { return mStorePanel; }
   SoupPanel * soupPanel() { return mSoupPanel; }
+  Inspector * inspector() { return mInspector; }
   const char * messageText() const;
 
   /** Closed: the app forgets it. */
@@ -96,6 +96,7 @@ private:
   const Node * selectedNode() const;
   void fillTree();
   void showSelection();
+  void inspectSelection();
   void layoutTile();
   void rememberLayout();
   void updateProgress();
@@ -129,8 +130,7 @@ private:
   DevicePanel * mDevicePanel = nullptr;
   StorePanel * mStorePanel = nullptr;
   SoupPanel * mSoupPanel = nullptr;
-  Fl_Text_Display * mInspector = nullptr;
-  Fl_Text_Buffer * mInspectorText = nullptr;
+  Inspector * mInspector = nullptr;
   Fl_Box * mMessage = nullptr;
   Fl_Box * mDockState = nullptr;
 };

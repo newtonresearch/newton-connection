@@ -15,8 +15,8 @@ ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu); the panels (7.4): device, store and
-soup (table, Delete, Export) done; next the package info panel.
+Back Up and Install from the menu); the panels (7.4): device, store, soup
+(table, Delete, Export), package info done; next the screenshot panel.
 
 ---
 
@@ -1217,6 +1217,14 @@ and it):
     the translators write them (object work: `Edits.h`). Select All. A
     message belongs to a file (the window of that file shows it) or to the
     dock (the docked Newton's window).
+  - 7.4.4 package info: done, in the inspector as the Cocoa app had it
+    (`Inspector.h`: No selection, Multiple selection, Inspector not
+    applicable, a package entry's info; entries come with 7.5).
+    `PackageInfo` reads the package with the framework's `NewtonPackage`
+    (directory, parts; a form's text and icon, drawn with `RenderBitmap`;
+    a book's title, ISBN, author, copyright, date) and frees the parts'
+    data when done. `PackageView` lays the rows out to the inspector's
+    width.
 - **7.4 Panels** (one step each): device (with the package list and
   dropping packages), store (capacity indicator), soup (an `Fl_Table_Row`
   subclass with columns per soup, sorting, multiple selection, delete and

@@ -10,6 +10,7 @@
 #include "ui/Dialogs.h"
 #include "ui/Edits.h"
 #include "ui/Images.h"
+#include "ui/Inspector.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
@@ -27,7 +28,6 @@
 #include <FL/Fl_Menu_Bar.H>
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Progress.H>
-#include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Tile.H>
 #include <FL/Fl_Toggle_Button.H>
 #include <FL/Fl_Tree.H>
@@ -138,14 +138,13 @@ DocumentWindow::DocumentWindow()
   mStorePanel->hide();
   mSoupPanel = new SoupPanel(mContent->x(), top, mContent->w(), tileHeight);
   mSoupPanel->hide();
-  mSoupPanel->setSelectionChanged([] { App::get().selectionChanged(); });
+  mSoupPanel->setSelectionChanged([this] {
+    App::get().selectionChanged();
+    inspectSelection();
+  });
   mContent->resizable(mInfo);
   mContent->end();
-  mInspectorText = new Fl_Text_Buffer();
-  mInspector = new Fl_Text_Display(w() - mInspectorWidth, top, mInspectorWidth, tileHeight);
-  mInspector->buffer(mInspectorText);
-  mInspector->wrap_mode(Fl_Text_Display::WRAP_AT_BOUNDS, 0);
-  mInspectorText->text("Select an entry to see it here.");
+  mInspector = new Inspector(w() - mInspectorWidth, top, mInspectorWidth, tileHeight);
   mTile->resizable(mContent);
   mTile->end();
   top += tileHeight;
@@ -172,8 +171,6 @@ DocumentWindow::DocumentWindow()
 DocumentWindow::~DocumentWindow()
 {
   Fl::remove_timeout(ProgressTimer, this);
-  mInspector->buffer(nullptr);
-  delete mInspectorText;
 }
 
 
@@ -328,6 +325,7 @@ void DocumentWindow::showSelection()
     if (each != panel)
       each->hide();
   mContent->redraw();
+  inspectSelection();
   if (panel) {
     mInfo->hide();
     panel->show();
@@ -364,6 +362,20 @@ void DocumentWindow::showSelection()
   }
   mInfo->copy_label(LabelText(text).c_str());
   mContent->redraw();
+}
+
+
+/** The inspector follows the soup panel's selection (only while it shows:
+    reading an entry costs). */
+void DocumentWindow::inspectSelection()
+{
+  if (!mInspectorShown)
+    return;
+  const Node * node = selectedNode();
+  if (!mDeviceFile || !node || node->kind != Node::kSoup)
+    mInspector->notApplicable();
+  else if (!mSoupPanel->loading())
+    mInspector->inspect(mFile, mSoupPanel->data().soupName, mSoupPanel->selectedEntries());
 }
 
 
@@ -526,6 +538,7 @@ void DocumentWindow::showInspector(bool inShow)
     mInspectorWidth = mInspector->w();
   mInspectorShown = inShow;
   layoutTile();
+  inspectSelection();
 }
 
 
