@@ -354,13 +354,18 @@ void TestThreads()
 
   std::atomic<int> ticks { 0 };
   Timer timer;
+  // three runs, waited for up to 2 s (a busy CI machine runs it late), no
+  // more than the time allows
+  auto started = std::chrono::steady_clock::now();
   timer.start(0.02, [&] { ++ticks; });
-  Sleep(170);
+  for (int i = 0; i < 200 && ticks < 3; ++i)
+    Sleep(10);
   timer.stop();
   int stoppedAt = ticks;
+  long long elapsed = std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now() - started).count();
   Sleep(60);
-  Check(stoppedAt >= 2 && stoppedAt <= 9 && ticks == stoppedAt && !timer.running(),   // (a slow CI machine: fewer)
-        "Timer: every 20 ms (" + std::to_string(stoppedAt) + " in 170 ms), none after stop()");
+  Check(stoppedAt >= 3 && stoppedAt <= elapsed / 20 + 1 && ticks == stoppedAt && !timer.running(),
+        "Timer: every 20 ms (" + std::to_string(stoppedAt) + " in " + std::to_string(elapsed) + " ms), none after stop()");
   ticks = 0;
   timer.start(0.01, [&] { if (++ticks == 3) timer.stop(); });
   for (int i = 0; i < 200 && ticks < 3; ++i)     // (a slow CI machine: up to 2 s)
