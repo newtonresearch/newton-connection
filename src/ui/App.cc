@@ -7,6 +7,7 @@
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
 #include "ui/Preferences.h"
+#include "ui/RestoreDialog.h"
 #include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/ScreenshotPanel.h"
 
@@ -382,6 +383,7 @@ bool App::canDo(Command inCommand, DocumentWindow * inTarget) const
     case Command::kToggleSidebar:
       return inTarget && !inTarget->file().empty();
     case Command::kBackUp:
+    case Command::kRestore:
       return idle && isDockedWindow(inTarget);
     case Command::kInstallPackage:
       return idle && !mDock.newton1();
@@ -455,6 +457,33 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
     case Command::kBackUp:
       mDock.backUp();
       break;
+    case Command::kRestore: {
+      // what can be restored (the dock asks the Newton), then what to restore
+      std::filesystem::path file = mDockedFile;
+      setMessage("Restore: reading what can be restored...");
+      mDock.restoreChoices(file, [this, file](const std::vector<RestoreChoice> & inChoices, const std::string & inError) {
+        RunOnMainThread([this, file, inChoices, inError]() {
+          if (!inError.empty() || !mDocked || mDockedFile != file) {
+            setMessage("Nothing restored: " + (inError.empty() ? std::string("the Newton disconnected") : inError));
+            stateChanged();
+            return;
+          }
+          std::optional<RestoreSelection> selection;
+          if (mRestoreChooser)
+            selection = mRestoreChooser(inChoices);
+          else {
+            RestoreDialog dialog(inChoices);
+            selection = dialog.run();
+          }
+          if (selection && mDocked && mDockedFile == file)
+            mDock.restore(file, *selection);
+          else
+            setMessage("Nothing restored");
+          stateChanged();
+        });
+      });
+      break;
+    }
     case Command::kInstallPackage:
       chooseAndInstall();
       break;

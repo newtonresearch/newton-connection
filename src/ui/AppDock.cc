@@ -14,6 +14,7 @@
 #include "dock/Keyboard.h"
 #include "dock/Packages.h"
 #include "dock/SoupEditor.h"
+#include "comms/Session.h"
 #include "ui/Edits.h"
 #include "model/DeviceList.h"
 #include "platform/AppFolders.h"
@@ -385,6 +386,74 @@ void AppDock::importFiles(const std::filesystem::path & inFile, int64_t inStoreP
       return report + "; the Newton took " + std::to_string(editor.counts().added) + " (error " + std::to_string(result) + ")";
     }
     return report + ", sent to the Newton";
+  });
+}
+
+
+void AppDock::restoreChoices(const std::filesystem::path & inFile,
+                             std::function<void(const std::vector<RestoreChoice> &, const std::string &)> inChoices)
+{
+  unsigned session = mDock->sessionNumber();
+  mDock->post([inFile, inChoices, session](DockController & ioDock) {
+    if (ioDock.sessionNumber() != session) {
+      inChoices({}, "the Newton disconnected");
+      return;
+    }
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(inFile, DeviceFile::kReadOnly, error);
+    if (!file) {
+      inChoices({}, error);
+      return;
+    }
+    // the Newton's stores now, as the file has them (ncx-cli restore); if
+    // the connection breaks meanwhile, the UI hears of it (and the session
+    // ends)
+    struct Broken
+    {
+      const std::function<void(const std::vector<RestoreChoice> &, const std::string &)> & tell;
+      bool told = false;
+      ~Broken() { if (!told) tell({}, "the connection broke"); }
+    } broken { inChoices };
+    std::vector<StoreRecord> newtonStores;
+    ioDock.setDesktopControl(true);
+    RefVar stores(ioDock.session().getAllStores());
+    ioDock.setDesktopControl(false);
+    broken.told = true;
+    std::vector<StoreRecord> backedUp = file->stores();
+    for (ArrayIndex i = 0, count = IsArray(stores) ? Length(stores) : 0; i < count; ++i) {
+      RefVar signature(GetFrameSlot(RefVar(GetArraySlot(stores, i)), MakeSymbol("signature")));
+      for (const StoreRecord & store : backedUp)
+        if (ISINT(signature) && store.signature == RINT(signature))
+          newtonStores.push_back(store);
+    }
+    std::vector<RestoreChoice> choices = RestoreChoices(*file, newtonStores);
+    inChoices(choices, choices.empty() ? std::string("nothing in the backup fits the Newton's stores") : std::string());
+  });
+}
+
+
+void AppDock::restore(const std::filesystem::path & inFile, const RestoreSelection & inSelection)
+{
+  mImpl->post(*mDock, "Restoring", [inFile, inSelection](DockController & ioDock, Progress & ioProgress, bool & outOK,
+                                                          std::filesystem::path & outFile) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(inFile, DeviceFile::kReadWrite, error);
+    if (!file) {
+      outOK = false;
+      return "Not restored: " + error;
+    }
+    outFile = inFile;
+    Restore restore(ioDock, *file);
+    int result = restore.run(inSelection, &ioProgress);
+    const RestoreCounts & counts = restore.counts();
+    outOK = result == 0;
+    std::string report = "Restored " + std::to_string(counts.soups) + " soups, " + std::to_string(counts.entries)
+                       + " entries, " + std::to_string(counts.packages) + " packages";
+    if (result == kDockErrAborted)
+      report += " (cancelled)";
+    else if (result != 0)
+      report += " (error " + std::to_string(result) + ")";
+    return report;
   });
 }
 

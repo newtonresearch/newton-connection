@@ -24,6 +24,7 @@
 #include <filesystem>
 #include <functional>
 #include <memory>
+#include <optional>
 #include <string>
 #include <vector>
 
@@ -94,6 +95,10 @@ public:
   void setMessage(const std::string & inText, const std::filesystem::path & inFile = {});
   /** A file was changed (not by its windows): they read it again. */
   void fileChanged(const std::filesystem::path & inFile);
+  /** How Restore asks what to restore: the restore dialog, unless set
+      (tests). nullopt: nothing. */
+  typedef std::function<std::optional<RestoreSelection>(const std::vector<RestoreChoice> &)> RestoreChooser;
+  void setRestoreChooser(RestoreChooser inChooser) { mRestoreChooser = std::move(inChooser); }
   /** The preferences changed (the preferences window's OK): logging at
       once; where the dock listens, now or once no Newton is docked. */
   void preferencesChanged();
@@ -121,6 +126,7 @@ private:
   bool mRestartDock = false;                  // where it listens changed while docked
   std::vector<std::string> mTargets;          // given (Options), else the preferences'
   AppDock::Hooks mHooks;
+  RestoreChooser mRestoreChooser;
   std::filesystem::path mDockedFile;
   std::string mDockedName;
   std::string mDockStatus;

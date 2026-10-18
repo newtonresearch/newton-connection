@@ -5,8 +5,8 @@
  the Newton's picture and what it is (three rows show one of two things,
  a click on their label switches: manufacturer or when it was made, serial
  number or Newton ID, OS or ROM version), and its backups: when the last
- one was, Back Up, Restore. Packages dropped on it are installed on the
- docked Newton. Its layout: DevicePanelUI.fl.
+ one was, Back Up, Restore (RestoreDialog). Packages dropped on it are
+ installed on the docked Newton. Its layout: DevicePanelUI.fl.
  */
 
 #ifndef NCX_UI_PANELS_DEVICEPANEL_H

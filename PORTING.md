@@ -18,7 +18,8 @@ interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
 inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
-flows: the device chooser and Import done, next Restore.
+flows: the device chooser, Import and Restore done, next the ROM and card
+dumps.
 
 ---
 
@@ -1286,6 +1287,12 @@ and it):
     only, after the Cocoa app's warning (with "Don't show this again").
     The window reads its file only: whether it may change it (Delete,
     Import) it learns when it opens it.
+  - 7.7.3 Restore: done (Newton > Restore, the device panel's button). The
+    dock reads the Newton's stores (as ncx-cli restore) and the choices
+    (`RestoreChoices`); `RestoreDialog` (Fluid) as the Cocoa app's sheet:
+    the Newton's store, the backed-up store, the apps (all at first), the
+    packages, Select All, the warning; then an operation (`Restore::run`,
+    with progress). Tests choose through `App::setRestoreChooser`.
   - Done before: the delete warning with "Don't show this again"
     (`Dialogs.h`, 7.4.3), progress with Cancel in the toolbar (7.2).
 - **7.8 Drag and drop in:** files onto the window, device, store and soup

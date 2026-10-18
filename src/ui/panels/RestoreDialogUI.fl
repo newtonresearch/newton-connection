@@ -1,0 +1,56 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0401
+header_name {.h}
+code_name {.cxx}
+comment {//
+// The restore dialog's layout (PORTING.md 7.7; the Cocoa app's restore
+// sheet in Device.storyboard). Its behaviour: RestoreDialog.cc.
+//} {in_source in_header
+}
+widget_class RestoreDialogUI {open
+  xywh {0 0 460 470}
+  class Fl_Double_Window visible
+} {
+  Fl_Choice mTarget {
+    label {Restore:} open
+    xywh {150 14 200 24} down_box BORDER_BOX
+  } {}
+  Fl_Choice mSource {
+    label {store from backup:} open
+    xywh {150 44 200 24} down_box BORDER_BOX
+  } {}
+  Fl_Box {} {
+    label {Information to restore:}
+    xywh {16 78 300 20} labelfont 1 align 20
+  }
+  Fl_Button mAllApps {
+    label {Select All}
+    xywh {354 76 90 22} labelsize 12
+  }
+  Fl_Check_Browser mApps {
+    xywh {16 100 428 140}
+  }
+  Fl_Box {} {
+    label {Packages to restore:}
+    xywh {16 250 300 20} labelfont 1 align 20
+  }
+  Fl_Button mAllPackages {
+    label {Select All}
+    xywh {354 248 90 22} labelsize 12
+  }
+  Fl_Check_Browser mPackages {
+    xywh {16 272 428 110}
+  }
+  Fl_Box {} {
+    label {Restore replaces the information on your Newton device with the information in the backup and then restarts.}
+    xywh {16 388 428 36} labelsize 12 align 212
+  }
+  Fl_Button mCancel {
+    label Cancel
+    xywh {244 432 96 28}
+  }
+  Fl_Return_Button mRestore {
+    label Restore
+    xywh {348 432 96 28}
+  }
+}

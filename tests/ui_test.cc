@@ -29,6 +29,8 @@
 #include "ui/Drop.h"
 #include "ui/Inspector.h"
 #include "ui/Preferences.h"
+#include "ui/RestoreDialog.h"
+#include "model/DeviceFile.h"
 #include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/PackageView.h"
 #include "ui/panels/PassthroughArea.h"
@@ -42,6 +44,7 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Check_Browser.H>
 #include <FL/Fl_Check_Button.H>
 #include <FL/Fl_Choice.H>
 #include <FL/Fl_Input.H>
@@ -348,6 +351,29 @@ void TestShell()
   Prefs::App().remove(pref::kSerialPort);
   Prefs::App().setBool(pref::kAutoBackup, false);
 
+  // the restore dialog, with what the backup has for its own stores
+  {
+    std::string error;
+    std::unique_ptr<DeviceFile> backup = DeviceFile::Open(file, DeviceFile::kReadOnly, error);
+    std::vector<RestoreChoice> choices = backup ? RestoreChoices(*backup, backup->stores()) : std::vector<RestoreChoice>();
+    Check(!choices.empty() && !choices[0].sources.empty(), "shell: restore: choices for the backup's stores " + error);
+    if (!choices.empty() && !choices[0].sources.empty()) {
+      RestoreDialog dialog(choices);
+      RestoreSelection chosen = dialog.selection();
+      Check(chosen.target.name == "Internal" && chosen.apps.size() == choices[0].sources[0].apps.size()
+            && chosen.packages.empty(), "shell: restore: all apps at first, no packages ("
+            + std::to_string(chosen.apps.size()) + " apps)");
+      dialog.mAllPackages->do_callback();
+      dialog.mApps->checked(1, 0);
+      chosen = dialog.selection();
+      Check(chosen.packages.size() == choices[0].sources[0].packages.size() && !chosen.packages.empty()
+            && chosen.apps.size() + 1 == choices[0].sources[0].apps.size(), "shell: restore: packages chosen, an app not");
+      dialog.show();
+      Snapshot(&dialog, "restore");
+      dialog.hide();
+    }
+  }
+
   // a window waiting for a Newton, closed again
   app.command(Command::kNewConnection, window);
   Fl::check();
@@ -470,6 +496,21 @@ void TestDock()
           "dock: Import: into the file and to the Newton: " + app.message());
   }
 
+  // Restore: what to restore (all apps, as the dialog has it), restored
+  app.setRestoreChooser([](const std::vector<RestoreChoice> & inChoices) -> std::optional<RestoreSelection> {
+    if (inChoices.empty() || inChoices[0].sources.empty())
+      return std::nullopt;
+    RestoreSelection selection;
+    selection.target = inChoices[0].store;
+    selection.source = inChoices[0].sources[0].store;
+    selection.apps = inChoices[0].sources[0].apps;
+    return selection;
+  });
+  Check(app.canDo(Command::kRestore, window), "dock: Restore allowed");
+  app.command(Command::kRestore, window);
+  bool restored = WaitFor(20, [&] { return !app.dock().busy() && app.message().find("Restored") == 0; });
+  Check(restored, "dock: Restore: " + app.message());
+
   // the screenshot panel: screenshot mode, a shot, saved
   window->sidebar()->select_only(window->sidebar()->find_item("Screenshot"), 1);
   ScreenshotPanel * screenshot = window->screenshotPanel();
@@ -509,6 +550,7 @@ void TestDock()
   fake.finish();
   Check(fake.deleted == std::vector<int64_t>({ 100 }), "dock: the fake Newton deleted Ada (100)");
   Check(!fake.added.empty(), "dock: the fake Newton got the entries imported (" + std::to_string(fake.added.size()) + ")");
+  Check(!fake.restored.empty(), "dock: the fake Newton was restored (" + std::to_string(fake.restored.size()) + ")");
   bool typed = false;
   for (const std::string & each : fake.typed)
     typed = typed || each.find("Hello") != std::string::npos;
