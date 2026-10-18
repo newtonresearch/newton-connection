@@ -5,7 +5,7 @@
  NCInspectorViewController): what the soup panel has selected. "No
  selection", "Multiple selection", "Inspector not applicable" (nothing to
  inspect where the sidebar is); a package entry's info (PackageView); an
- entry (7.5). What it shows is read as object work, as the soup panel's
+ entry as its translator exports it (RichView: EntryPreview.h). What it shows is read as object work, as the soup panel's
  entries are.
  */
 
@@ -25,6 +25,7 @@ class Fl_Box;
 namespace ncx {
 
 class PackageView;
+class RichView;
 
 class Inspector : public Fl_Group
 {
@@ -34,13 +35,14 @@ public:
   /** Nothing to inspect here. */
   void notApplicable();
   /** The soup's entries selected in the file. */
-  void inspect(const std::filesystem::path & inFile, const std::string & inSoupName,
+  void inspect(const std::filesystem::path & inFile, const std::string & inSoupName, const std::string & inAppName,
                const std::vector<int64_t> & inEntryPks);
 
   /** What it shows (tests): the status ("" when it shows an entry), the
       package view, whether it is reading. */
   std::string status() const;
   PackageView * packageView() { return mPackage; }
+  RichView * richView() { return mPreview; }
   bool loading() const { return mLoading; }
 
 private:
@@ -48,6 +50,7 @@ private:
 
   Fl_Box * mStatus = nullptr;
   PackageView * mPackage = nullptr;
+  RichView * mPreview = nullptr;
   bool mLoading = false;
   unsigned mGeneration = 0;
   std::shared_ptr<bool> mAlive;

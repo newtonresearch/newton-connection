@@ -31,6 +31,7 @@
 #include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/PackageView.h"
 #include "ui/panels/PassthroughArea.h"
+#include "ui/panels/RichView.h"
 #include "ui/panels/ScreenshotPanel.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/SoupPanel.h"
@@ -265,6 +266,31 @@ void TestShell()
   soup->selectRow(0, true);
   soup->selectRow(1, true);
   Check(inspector->status() == "Multiple selection", "shell: the inspector: multiple selection");
+  // an entry as its translator exports it
+  soup->selectRow(1, false);
+  bool shown = WaitFor(10, [&] { return !inspector->loading() && inspector->status().empty(); });
+  Check(shown && inspector->richView()->visible() && inspector->richView()->text().find("BEGIN:VCARD") != std::string::npos,
+        "shell: the inspector: a card, as vCard " + inspector->status());
+  // notes and Works: rich text, pictures in place
+  int pictures = 0;
+  std::string texts;
+  for (const char * path : { "Internal/Notes/Notes", "Internal/Newton Works/NewtWorks" }) {
+    window->sidebar()->select_only(window->sidebar()->find_item(path), 1);
+    WaitFor(10, [&] { return !soup->loading(); });
+    for (int row = 0; row < (int)soup->data().rows.size(); ++row) {
+      soup->clearSelection();
+      soup->selectRow(row, true);
+      WaitFor(10, [&] { return !inspector->loading(); });
+      pictures += inspector->richView()->pictures();
+      for (char c : inspector->richView()->text().substr(0, 20))
+        texts += c == '\n' ? '/' : c;
+      texts += " | ";
+      if (inspector->richView()->pictures() > 0)
+        Snapshot(window, "inspector-picture");
+    }
+  }
+  Check(pictures > 0 && texts.size() > 20, "shell: the inspector: notes and Works, " + std::to_string(pictures)
+        + " pictures: " + texts);
   window->sidebar()->select_only(window->sidebar()->find_item("Internal"), 1);
   Check(inspector->status() == "Inspector not applicable", "shell: the inspector: a store: not applicable");
 

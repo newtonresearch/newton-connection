@@ -80,6 +80,10 @@ std::filesystem::path Exporter::write(const std::string & inData, const std::str
 
 std::filesystem::path Exporter::writeRichText(const RichDocument & inDocument, const std::string & inName)
 {
+  if (mContext.richTextSink) {
+    mContext.richTextSink(inDocument);
+    return std::filesystem::path();
+  }
   bool rtfd = mContext.richText == RichTextFormat::kRTFD
               || (mContext.richText == RichTextFormat::kRTFDWithPictures && HasPictures(inDocument));
   if (!rtfd)

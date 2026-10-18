@@ -272,6 +272,14 @@ void SoupPanel::selectAll()
 }
 
 
+void SoupPanel::clearSelection()
+{
+  mTable->select_all_rows(0);
+  if (mSelectionChanged)
+    mSelectionChanged();
+}
+
+
 void SoupPanel::selectRow(int inRow, bool inSelected)
 {
   mTable->select_row(inRow, inSelected ? 1 : 0);

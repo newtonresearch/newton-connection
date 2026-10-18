@@ -43,15 +43,18 @@ namespace ncx {
 enum class RichTextFormat { kRTF, kRTFD, kRTFDWithPictures };
 RichTextFormat DefaultRichTextFormat();
 
+struct RichDocument;
+
 struct TranslatorContext
 {
   std::filesystem::path folder;     // export: where the files go
   std::string appName;              // the Newton app ("Names")
   int64_t userFont = 0;             // the Newton's user font (a packed font spec), 0: none
   RichTextFormat richText = DefaultRichTextFormat();
+  /** Export: rich text (notes, Works) goes here instead of into a file
+      (the app's inspector shows it, with its pictures). */
+  std::function<void(const RichDocument &)> richTextSink;
 };
-
-struct RichDocument;
 
 class Exporter
 {

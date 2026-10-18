@@ -152,6 +152,7 @@ add_library (ncx_ui STATIC
   ui/DocumentWindow.cc
   ui/Drop.cc
   ui/Edits.cc
+  ui/EntryPreview.cc
   ui/Format.cc
   ui/Images.cc
   ui/Inspector.cc
@@ -161,6 +162,7 @@ add_library (ncx_ui STATIC
   ui/panels/KeyboardPanel.cc
   ui/panels/PackageView.cc
   ui/panels/PassthroughArea.cc
+  ui/panels/RichView.cc
   ui/panels/ScreenshotPanel.cc
   ui/panels/SoupPanel.cc
   ui/panels/StorePanel.cc

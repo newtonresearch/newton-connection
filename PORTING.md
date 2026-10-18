@@ -15,9 +15,9 @@ ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu); the panels (7.4) are done (device,
-store, soup with Delete and Export, package info, screenshot, keyboard);
-next the inspector, 7.5.
+Back Up and Install from the menu), the panels (7.4: device, store, soup
+with Delete and Export, package info, screenshot, keyboard) and the
+inspector (7.5) are done; next the preferences window, 7.6.
 
 ---
 
@@ -1250,8 +1250,17 @@ and it):
   subclass with columns per soup, sorting, multiple selection, delete and
   export), package info, screenshot (show, save, copy to clipboard), and
   keyboard (passthrough widget, paste, dropping text).
-- **7.5 Inspector:** an entry shown as styled text (`Fl_Text_Display` with
-  a style table) plus the rendered image for ink and drawings.
+- **7.5 Inspector:** done. As the Cocoa app (which exported the entry and
+  showed the file with QuickLook): `EntryPreview` exports the entry with
+  its translator into a folder of its own; rich text comes straight from
+  the translator (`TranslatorContext::richTextSink`: notes and Works with
+  their pictures in place: ink, drawings), a PNG as a picture, vCard,
+  iCalendar, CSV and NewtonScript as text, others named. `RichView` shows
+  it as HTML in an `Fl_Help_View` (the Newton's families as helvetica,
+  times, courier; size, bold, italic, underline, alignment; pictures as
+  PNG files in its own temporary folder, a new name each time:
+  `Fl_Shared_Image` keeps images by name). Package entries show their info
+  (7.4.4).
 - **7.6 Preferences window:** `Fl_Tabs` for general, connection
   (serial port list, baud rate, TCP port, password), and backup/sync
   options.

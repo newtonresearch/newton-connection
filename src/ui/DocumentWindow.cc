@@ -398,8 +398,16 @@ void DocumentWindow::inspectSelection()
   const Node * node = selectedNode();
   if (!mDeviceFile || !node || node->kind != Node::kSoup)
     mInspector->notApplicable();
-  else if (!mSoupPanel->loading())
-    mInspector->inspect(mFile, mSoupPanel->data().soupName, mSoupPanel->selectedEntries());
+  else if (!mSoupPanel->loading()) {
+    std::string app;
+    try {
+      for (const AppRecord & each : mDeviceFile->apps())
+        if (each.pk == node->appPk)
+          app = each.name;
+    } catch (const ModelError &) {
+    }
+    mInspector->inspect(mFile, mSoupPanel->data().soupName, app, mSoupPanel->selectedEntries());
+  }
 }
 
 
