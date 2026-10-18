@@ -1147,6 +1147,46 @@ void TestCard()
     std::filesystem::remove_all(folder);
 }
 
+/*-- objectwork --------------------------------------------------------------*/
+
+/** Work with Newton objects on the dock thread without a Newton: while
+    listening, and with no target that can be used (keepTrying). */
+void TestObjectWork()
+{
+  auto runs = [](DockController & dock) {
+    std::atomic<int> result { 0 };
+    dock.postObjectWork([&] {
+      RefVar frame(AllocateFrame());
+      SetFrameSlot(frame, SYMA(name), RefVar(MakeStringFromUTF8("Ada")));
+      result = UTF8FromString(GetFrameSlot(frame, SYMA(name))) == "Ada" ? 1 : -1;
+    });
+    for (int i = 0; i < 300 && result == 0; ++i)
+      std::this_thread::sleep_for(std::chrono::milliseconds(10));
+    return result == 1;
+  };
+  {
+    DockController dock;
+    DockController::Settings settings;
+    settings.targets = { "tcp:" + std::to_string(Port(27)) };
+    std::string error;
+    bool started = dock.start(settings, error);
+    Check(started && runs(dock), "objectwork: Newton objects on the dock thread while it listens " + error);
+    dock.stop();
+  }
+  {
+    DockController dock;
+    DockController::Settings settings;
+    settings.targets = { "serial:/dev/no-such-port" };
+    settings.keepTrying = true;
+    std::string error;
+    bool started = dock.start(settings, error);
+    Check(!started && !error.empty() && dock.isRunning() && runs(dock),
+          "objectwork: no target can be used, the thread runs anyway (" + error + ")");
+    dock.stop();
+    Check(!dock.isRunning(), "objectwork: stopped");
+  }
+}
+
 } // namespace
 
 
@@ -1169,7 +1209,8 @@ int main(int argc, char * argv[])
     { "memory", TestMemory }, { "packagefiles", TestPackageFiles }, { "install", TestInstall },
     { "browse", TestBrowse }, { "backup", TestBackup }, { "deletions", TestDeletions }, { "restore", TestRestore },
     { "edit", TestEdit }, { "keyboard", TestKeyboard },
-    { "newton1", TestNewton1 }, { "card", TestCard } };
+    { "newton1", TestNewton1 }, { "card", TestCard },
+    { "objectwork", TestObjectWork } };
   bool found = false;
   for (auto & s : sections)
     if (section == "all" || section == s.name) {

@@ -45,10 +45,11 @@ bool DockController::start(const Settings & inSettings, std::string & outError)
     mWhy.clear();
   }
   // the first listener here, so that a target that can't be used is told
-  if (!listen(outError))
+  bool listening = listen(outError);
+  if (!listening && !mSettings.keepTrying)
     return false;
   mThread = std::thread([this] { run(); });
-  return true;
+  return listening;
 }
 
 
@@ -64,6 +65,7 @@ void DockController::stop()
     mThread.join();
   std::lock_guard<std::mutex> lock(mLock);
   mTasks.clear();
+  mObjectWork.clear();
 }
 
 
@@ -85,6 +87,40 @@ void DockController::post(Task inTask)
 {
   std::lock_guard<std::mutex> lock(mLock);
   mTasks.push_back(std::move(inTask));
+}
+
+
+void DockController::postObjectWork(ObjectWork inWork)
+{
+  std::lock_guard<std::mutex> lock(mLock);
+  mObjectWork.push_back(std::move(inWork));
+}
+
+
+bool DockController::hasObjectWork()
+{
+  std::lock_guard<std::mutex> lock(mLock);
+  return !mObjectWork.empty();
+}
+
+
+void DockController::runObjectWork()
+{
+  for (;;) {
+    ObjectWork work;
+    {
+      std::lock_guard<std::mutex> lock(mLock);
+      if (mObjectWork.empty())
+        return;
+      work = std::move(mObjectWork.front());
+      mObjectWork.pop_front();
+    }
+    try {
+      CallNewton([&] { work(); });
+    } catch (const std::exception & e) {
+      Log(kLogMinimum, "dock: %s in object work", e.what());
+    }
+  }
 }
 
 
@@ -123,17 +159,32 @@ void DockController::setListener(std::unique_ptr<Listener> inListener)
 void DockController::run()
 {
   InitCore();
+  bool haveListener;
+  {
+    std::lock_guard<std::mutex> lock(mListenerLock);
+    haveListener = mListener != nullptr;
+  }
   for (bool first = true; !mStopping; first = false) {
     std::string error;
-    if (!first && !listen(error)) {
-      endSession(kDockErrBadConnection, error);
-      break;
+    if ((!first || !haveListener) && !listen(error)) {
+      if (!mSettings.keepTrying) {
+        endSession(kDockErrBadConnection, error);
+        break;
+      }
+      // no target can be used (yet): object work, and again in a while
+      Log(kLogMinimum, "dock: can't listen: %s", error.c_str());
+      for (int i = 0; i < 50 && !mStopping; ++i) {
+        runObjectWork();
+        std::this_thread::sleep_for(std::chrono::milliseconds(100));
+      }
+      continue;
     }
-    // wait for a Newton
+    // wait for a Newton (object work in between)
     std::unique_ptr<Connection> connection;
     auto started = std::chrono::steady_clock::now();
     while (!mStopping && !connection) {
-      connection = mListener->waitForConnection(250, error);
+      runObjectWork();
+      connection = mListener->waitForConnection(hasObjectWork() ? 0 : 100, error);
       if (!connection && !error.empty()) {
         Log(kLogMinimum, "dock: %s", error.c_str());
         error.clear();
@@ -189,6 +240,7 @@ void DockController::serve()
   while (!mStopping && mDocked) {
     if (!runTasks())
       break;
+    runObjectWork();
     DockEvent event;
     EventQueue::Result result = mQueue->next(event, kIdleWait);
     if (result == EventQueue::kClosed) {

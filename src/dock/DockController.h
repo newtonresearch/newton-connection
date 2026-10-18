@@ -48,6 +48,8 @@ public:
     DockAppInfo app;
     bool once = false;                    // end after one session (ncx-cli)
     int waitSeconds = -1;                 // give up waiting for a Newton then (-1: never)
+    bool keepTrying = false;              // the app: if no target can be used, the thread runs
+                                          // anyway (object work) and tries again every few seconds
   };
 
   /** What happens, told on the dock thread. */
@@ -96,6 +98,15 @@ public:
       before it). */
   void disconnect();
 
+  /** Work with Newton objects that needs no Newton (exporting, an entry's
+      text for the UI): run on the dock thread soon, docked or not (between
+      operations), in order. It must not use the session. Dropped by
+      stop(). */
+  typedef std::function<void()> ObjectWork;
+  void postObjectWork(ObjectWork inWork);
+  /** The dock thread runs (start() made it, stop() hasn't ended it). */
+  bool isRunning() const { return mThread.joinable() && !mStopping; }
+
   /*-- the dock thread only --*/
 
   Session & session() { return *mSession; }
@@ -120,6 +131,8 @@ private:
   void serve();
   void handleNewton(const DockEvent & inEvent);
   bool runTasks();
+  void runObjectWork();
+  bool hasObjectWork();
   void endSession(int inCode, const std::string & inWhy);
   void flushOperationDone();
   void sendDisconnect();
@@ -138,6 +151,7 @@ private:
   bool mInControl = false;
   std::mutex mLock;                         // mTasks, mWhy
   std::deque<Task> mTasks;
+  std::deque<ObjectWork> mObjectWork;
   std::string mWhy;
   std::atomic<bool> mStopping { false };
   std::atomic<bool> mDocked { false };
