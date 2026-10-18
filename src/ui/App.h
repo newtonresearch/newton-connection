@@ -94,6 +94,9 @@ public:
   void setMessage(const std::string & inText, const std::filesystem::path & inFile = {});
   /** A file was changed (not by its windows): they read it again. */
   void fileChanged(const std::filesystem::path & inFile);
+  /** The preferences changed (the preferences window's OK): logging at
+      once; where the dock listens, now or once no Newton is docked. */
+  void preferencesChanged();
   /** The windows and menus show the state as it is now. */
   void stateChanged();
   /** A window's selection changed: the menus follow. */
@@ -114,6 +117,10 @@ private:
   Fl_Sys_Menu_Bar * mMenuBar = nullptr;       // macOS
   bool mDocked = false;
   bool mQuit = false;
+  bool mListening = false;                    // the dock was started
+  bool mRestartDock = false;                  // where it listens changed while docked
+  std::vector<std::string> mTargets;          // given (Options), else the preferences'
+  AppDock::Hooks mHooks;
   std::filesystem::path mDockedFile;
   std::string mDockedName;
   std::string mDockStatus;

@@ -4,8 +4,8 @@
  The app's dock (PORTING.md 7.2): the DockController, with what the app
  does with a Newton:
    - it listens all the time, for one Newton after the other (keepTrying:
-     also when no port can be opened yet), on tcp-all:<TCPIPPort> and, on
-     macOS, Einstein's pipes
+     also when no port can be opened yet), where the preferences say
+     (DefaultTargets)
    - a Newton that docks gets its .newtondevice file in the app's folder
      (found by its id, or made) brought up to date (UpdateDevice): then
      the UI hears of it
@@ -78,6 +78,10 @@ public:
   bool start(const Hooks & inHooks, std::string & outError, const std::vector<std::string> & inTargets = {});
   /** Disconnect, end the dock thread. */
   void stop();
+  /** Where the app listens by the preferences: tcp-all:<TCPIPPort>, the
+      serial port at its speed (SerialPort, BaudRate) if one is set, and on
+      macOS Einstein's pipes. */
+  static std::vector<std::string> DefaultTargets();
 
   bool docked() const;
   /** The docked Newton runs NewtonOS 1. */

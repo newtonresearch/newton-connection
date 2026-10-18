@@ -17,7 +17,8 @@ against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
-inspector (7.5) are done; next the preferences window, 7.6.
+inspector (7.5) and the preferences (7.6) are done; next the dialogs and
+flows, 7.7.
 
 ---
 
@@ -1261,9 +1262,15 @@ and it):
   PNG files in its own temporary folder, a new name each time:
   `Fl_Shared_Image` keeps images by name). Package entries show their info
   (7.4.4).
-- **7.6 Preferences window:** `Fl_Tabs` for general, connection
-  (serial port list, baud rate, TCP port, password), and backup/sync
-  options.
+- **7.6 Preferences window:** done (`Preferences.h`, its layout in
+  Fluid). General: set the Newton's date and time when it connects, back
+  up on auto dock, the Newton's password, logging (level, the log file);
+  Connection: the TCP/IP port, the serial port (`ListSerialPorts`; one
+  that is set but unplugged is kept), its speed. OK writes them; logging
+  changes at once, and the dock listens where they say
+  (`AppDock::DefaultTargets`, now with the serial port) at once, or once
+  the docked Newton is gone. The Cocoa app's update checks (Sparkle) are
+  left out. `NCX --target` overrides where it listens.
 - **7.7 Dialogs and flows:** device chooser at start, backup/restore/import
   dialogs, delete warnings with "don't show again", progress with cancel,
   error alerts.

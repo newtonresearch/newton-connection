@@ -6,9 +6,11 @@
 
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
+#include "ui/Preferences.h"
 #include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/ScreenshotPanel.h"
 
+#include "base/Core.h"
 #include "base/Log.h"
 #include "base/Prefs.h"
 #include "base/Threads.h"
@@ -227,6 +229,10 @@ void App::startDock(const std::vector<std::string> & inTargets)
       if (inCode != 0)
         setMessage("The connection ended: " + inWhy);
       mDockStatus = "Waiting for a Newton";
+      if (mRestartDock) {
+        mRestartDock = false;
+        preferencesChanged();     // the dock listens where the preferences say now
+      }
       stateChanged();
     });
   };
@@ -291,10 +297,34 @@ void App::startDock(const std::vector<std::string> & inTargets)
       stateChanged();
     });
   };
+  mHooks = hooks;
+  mTargets = inTargets;
+  mListening = true;
   std::string error;
   mDockStatus = "Waiting for a Newton";
   if (!mDock.start(hooks, error, inTargets))
     mDockStatus = "Can't wait for a Newton: " + error;
+}
+
+
+void App::preferencesChanged()
+{
+  // logging: at once
+  SetLogFile(std::filesystem::path());
+  StartLogging();
+  // where to listen (only the preferences', not targets given)
+  if (!mListening || !mTargets.empty())
+    return;
+  if (mDocked) {
+    mRestartDock = true;
+    return;
+  }
+  mDock.stop();
+  std::string error;
+  mDockStatus = "Waiting for a Newton";
+  if (!mDock.start(mHooks, error))
+    mDockStatus = "Can't wait for a Newton: " + error;
+  stateChanged();
 }
 
 
@@ -397,8 +427,7 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
       fl_message("%s %s\n\nThe Newton's desktop companion,\nfor Windows, Linux and macOS.", NCX_NAME, NCX_VERSION);
       break;
     case Command::kPreferences:
-      fl_message_title("Preferences");
-      fl_message("The preferences window comes with PORTING.md 7.6.");
+      PreferencesWindow::Show();
       break;
     case Command::kQuit:
       mQuit = true;

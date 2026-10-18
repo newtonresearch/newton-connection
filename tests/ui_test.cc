@@ -28,6 +28,7 @@
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
 #include "ui/Inspector.h"
+#include "ui/Preferences.h"
 #include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/PackageView.h"
 #include "ui/panels/PassthroughArea.h"
@@ -40,6 +41,10 @@
 #include <FL/Fl.H>
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
+#include <FL/Fl_Check_Button.H>
+#include <FL/Fl_Choice.H>
+#include <FL/Fl_Input.H>
+#include <FL/Fl_Int_Input.H>
 #include <FL/Fl_Image_Surface.H>
 #include <FL/Fl_PNG_Image.H>
 #include <FL/Fl_Progress.H>
@@ -308,6 +313,31 @@ void TestShell()
   bool inspectorShown = window->inspectorShown();
   app.command(Command::kToggleInspector, window);
   Check(window->inspectorShown() != inspectorShown, "shell: the inspector toggled");
+
+  // the preferences window: the preferences in, and out again
+  Prefs::App().setInt(pref::kTCPIPPort, 3700);
+  Prefs::App().setBool(pref::kSetNewtonTime, true);
+  PreferencesWindow & prefs = PreferencesWindow::Show();
+  Fl::check();
+  Check(prefs.shown() && std::string(prefs.mTCPPort->value()) == "3700" && prefs.mSetTime->value() == 1
+        && prefs.mBaud->value() == 0 && prefs.mSerialPort->value() == 0, "shell: preferences: shown as they are");
+  Snapshot(&prefs, "preferences");
+  prefs.mTCPPort->value("3800");
+  prefs.mAutoBackup->value(1);
+  prefs.mBaud->value(2);
+  prefs.mPassword->value("secret");
+  prefs.save();
+  prefs.hide();
+  Check(Prefs::App().tcpPort() == 3800 && Prefs::App().getBool(pref::kAutoBackup) && Prefs::App().baudRate() == 115200
+        && Prefs::App().getString(pref::kPassword) == "secret", "shell: preferences: saved");
+  Prefs::App().setString(pref::kSerialPort, "/dev/ttyNewton");
+  std::vector<std::string> targets = AppDock::DefaultTargets();
+  Check(targets.size() >= 2 && targets[0] == "tcp-all:3800" && targets[1] == "serial:/dev/ttyNewton@115200",
+        "shell: preferences: where the app listens (" + targets[0] + ", " + (targets.size() > 1 ? targets[1] : "") + ")");
+  prefs.load();
+  Check(prefs.mSerialPort->value() > 0, "shell: preferences: a serial port that isn't there is kept");
+  Prefs::App().remove(pref::kSerialPort);
+  Prefs::App().setBool(pref::kAutoBackup, false);
 
   // a window waiting for a Newton, closed again
   app.command(Command::kNewConnection, window);

@@ -1,0 +1,87 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0401
+header_name {.h}
+code_name {.cxx}
+comment {//
+// The preferences window's layout (PORTING.md 7.6; the Cocoa app's
+// Preferences in Main.storyboard). Its behaviour: Preferences.cc.
+//} {in_source in_header
+}
+widget_class PreferencesUI {open
+  xywh {0 0 480 310}
+  class Fl_Double_Window visible
+} {
+  Fl_Tabs mTabs {open
+    xywh {10 10 460 250}
+  } {
+    Fl_Group mGeneral {
+      label General open
+      xywh {10 35 460 225}
+    } {
+      Fl_Box {} {
+        label {When connecting:}
+        xywh {20 50 140 24} align 24
+      }
+      Fl_Check_Button mSetTime {
+        label {Set Newton date and time}
+        xywh {166 50 290 24} down_box DOWN_BOX
+      }
+      Fl_Box {} {
+        label {On Auto Dock:}
+        xywh {20 80 140 24} align 24
+      }
+      Fl_Check_Button mAutoBackup {
+        label {Back up}
+        xywh {166 80 290 24} down_box DOWN_BOX
+      }
+      Fl_Input mPassword {
+        label {Password:}
+        tooltip {The Newton's password (Dock asks for it), if it has one} xywh {166 116 200 24} type Secret
+      }
+      Fl_Choice mLogLevel {
+        label {Logging:} open
+        xywh {166 156 140 24} down_box BORDER_BOX
+      } {}
+      Fl_Check_Button mLogToFile {
+        label {Save log file}
+        xywh {166 186 290 24} down_box DOWN_BOX
+      }
+      Fl_Box mLogPath {
+        xywh {186 210 270 36} labelsize 11 align 213
+      }
+    }
+    Fl_Group mConnection {
+      label Connection open
+      xywh {10 35 460 225} hide
+    } {
+      Fl_Input mTCPPort {
+        label {TCP/IP port:}
+        tooltip {Where the Newton connects over TCP/IP (3679 unless set)} xywh {166 54 90 24} type Int
+      }
+      Fl_Choice mSerialPort {
+        label {Use serial port:} open
+        xywh {166 94 230 24} down_box BORDER_BOX
+      } {}
+      Fl_Button mRefresh {
+        label Refresh
+        tooltip {List the serial ports again} xywh {402 94 60 24} labelsize 12
+      }
+      Fl_Choice mBaud {
+        label {Serial speed:} open
+        xywh {166 130 140 24} down_box BORDER_BOX
+      } {}
+      Fl_Box {} {
+        label {This speed must also be selected in Newton Dock.}
+        xywh {166 158 290 36} labelsize 12 align 213
+      }
+    }
+  }
+  Fl_Button mCancel {
+    label Cancel
+    xywh {270 272 96 28}
+  }
+  Fl_Return_Button mOK {
+    label OK
+    xywh {374 272 96 28}
+  }
+}

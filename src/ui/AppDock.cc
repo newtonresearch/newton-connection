@@ -186,13 +186,7 @@ bool AppDock::start(const Hooks & inHooks, std::string & outError, const std::ve
   mImpl->hooks = inHooks;
   Impl & impl = *mImpl;
   DockController::Settings settings;
-  settings.targets = inTargets;
-  if (settings.targets.empty()) {
-    settings.targets.push_back("tcp-all:" + std::to_string(Prefs::App().tcpPort()));
-#if defined(__APPLE__)
-    settings.targets.push_back("einstein-pipes");
-#endif
-  }
+  settings.targets = inTargets.empty() ? DefaultTargets() : inTargets;
   settings.password = Prefs::App().getString(pref::kPassword);
   settings.keepTrying = true;
 
@@ -258,6 +252,20 @@ bool AppDock::start(const Hooks & inHooks, std::string & outError, const std::ve
     return false;
   }
   return true;
+}
+
+
+std::vector<std::string> AppDock::DefaultTargets()
+{
+  Prefs & prefs = Prefs::App();
+  std::vector<std::string> targets = { "tcp-all:" + std::to_string(prefs.tcpPort()) };
+  std::string serial = prefs.getString(pref::kSerialPort);
+  if (!serial.empty())
+    targets.push_back("serial:" + serial + "@" + std::to_string(prefs.baudRate()));
+#if defined(__APPLE__)
+  targets.push_back("einstein-pipes");
+#endif
+  return targets;
 }
 
 
