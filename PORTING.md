@@ -18,7 +18,8 @@ interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
 inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
-flows, and 7.8, drag and drop in, are done; next help, 7.9.
+flows, 7.8, drag and drop in, and 7.9, help, are done; next the
+platform touches, 7.10.
 
 ---
 
@@ -1151,7 +1152,8 @@ and it):
   - Hand-written C++ for the main window shell and custom widgets.
   - Each panel is a class with `update(const Model&)`; there are no
     bindings.
-  - Images are embedded PNGs (like the framework's `EmbedImages.cmake`).
+  - Images are embedded PNGs (like the framework's `EmbedImages.cmake`;
+    NCX's `cmake/EmbedFiles.cmake`).
 - **7.2 Main window:**
   - Toolbar (image buttons, plus the segmented pane toggles); no tab bar
     (D9).
@@ -1188,7 +1190,7 @@ and it):
     turn that off, so their layout stays as designed.
   - Images: `resources/images/*.png` (the Cocoa app's device pictures as
     PNG, its sidebar icons, its store pictures; colour profiles and text
-    chunks stripped), embedded by `cmake/EmbedImages.cmake`,
+    chunks stripped), embedded by `cmake/EmbedFiles.cmake`,
     `BuiltinImage(name)`. The sidebar has its icons.
   - 7.4.1 device panel: done. Picture, the info rows (a click on
     Manufacturer, Serial Number, OS Version switches to when it was made,
@@ -1316,8 +1318,14 @@ and it):
   names on its store (`CopyEntries`: new ids, as entries made on the
   desktop), and sent to the Newton when that one is docked. Dragging out
   to the desktop stays out (D3: file promises; Export instead).
-- **7.9 Help:** HTML help in an `Fl_Help_View` window (or open in a
-  browser), and the PDF guide through `fl_open_uri`.
+- **7.9 Help:** done. The Cocoa app's Help Book (20 pages, Mac only) and
+  PDF guide (Mac screenshots) are replaced by one new page for all three
+  systems (`resources/help/help.html`: connecting, backup, restore,
+  packages, keyboard, transfers, screenshots, working without a Newton,
+  NewtonOS 1, dumps, where the files are), embedded (`cmake/EmbedFiles.cmake`,
+  now for images and help) and shown in a Help window (`Help.h`, an
+  `Fl_Help_View`; links within it followed, web links opened in the
+  browser). Plain HTML: `Fl_Help_View` knows few entities (no `&rsquo;`).
 - **7.10 Platform touches:**
   - Keep the machine awake during transfers.
   - macOS bundle with `Info.plist` and icon (`fltk_set_bundle_icon`).

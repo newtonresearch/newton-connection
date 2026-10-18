@@ -1,0 +1,175 @@
+<html>
+<head><title>Newton Connection Help</title></head>
+<body>
+
+<h2><a name="top">Newton Connection Help</a></h2>
+
+<p>Newton Connection backs up your Newton MessagePad or eMate, restores it,
+installs packages, and moves information between the Newton and this
+computer. It connects to Newton OS 2 and Newton OS 1 devices, and to the
+Einstein emulator.</p>
+
+<ul>
+<li><a href="#connecting">Connecting a Newton device</a></li>
+<li><a href="#backup">Backing up</a></li>
+<li><a href="#restore">Restoring</a></li>
+<li><a href="#packages">Installing packages</a></li>
+<li><a href="#keyboard">Using this computer's keyboard</a></li>
+<li><a href="#transfer">Transferring information</a></li>
+<li><a href="#screenshot">Taking a screenshot</a></li>
+<li><a href="#offline">Working without a Newton device</a></li>
+<li><a href="#newton1">Newton OS 1 devices</a></li>
+<li><a href="#dumps">Saving the ROM and memory cards</a></li>
+<li><a href="#files">Where Newton Connection keeps its files</a></li>
+</ul>
+
+
+<h3><a name="connecting">Connecting a Newton device</a></h3>
+
+<p>Newton Connection waits for a Newton device all the time it runs. On the
+Newton, open the Dock app (Connection on Newton OS 1), choose how to
+connect, and tap Connect. When the Newton is docked, its window opens with
+its backup.</p>
+
+<p><b>TCP/IP (ethernet or wireless).</b> The Newton needs the Newton
+Internet Enabler (NIE), a driver for its network card, and a Dock with a
+TCP/IP option (for example Dock_TCP or EthernetDock). Enter this computer's
+address in the Dock app. Newton Connection listens on port 3679; another
+port can be set in the Preferences (Connection). Your firewall must let
+Newton Connection accept connections.</p>
+
+<p><b>Serial.</b> Connect the Newton's serial cable to a serial port or a
+USB serial adapter. Choose the port in the Preferences (Connection). The
+Dock app connects at 38,400 bps; higher speeds need a package on the
+Newton (for example Ser115200) and the same speed in the Preferences. Both
+ends must use the same speed.</p>
+
+<p><b>Einstein.</b> On macOS, Newton Connection also listens on Einstein's
+serial port; elsewhere connect Einstein over TCP/IP.</p>
+
+<p><b>Password.</b> A password in the Preferences (General) is asked of
+every Newton that connects. It isn't the Newton's own PIN.</p>
+
+
+<h3><a name="backup">Backing up</a></h3>
+
+<p>Each Newton device has a backup on this computer, made the first time it
+connects, named by its serial number. To back up, click Back Up in the
+device view, or choose Newton &gt; Back Up. You can also start a backup on
+the Newton: Dock's Backup. The toolbar shows the progress; Cancel stops
+it.</p>
+
+<p>Backups are synchronized: what changed on the Newton comes into the
+backup, and what you changed in the backup (entries deleted or imported
+without the Newton) goes to the Newton. If a backup would delete more than
+a few entries on the Newton, Newton Connection asks first.</p>
+
+<p>The Preferences can have Newton Connection set the Newton's date and time
+when it connects, and back it up when it docks by itself.</p>
+
+<p>A backup is an ordinary file: copy it somewhere to keep the Newton's
+state of that day.</p>
+
+
+<h3><a name="restore">Restoring</a></h3>
+
+<p><b>Restoring replaces information on the Newton device with the
+information in its backup.</b> Click Restore in the device view (or choose
+Newton &gt; Restore), choose the Newton's store to restore and the backed
+up store to restore it from, the information (apps) and the packages, and
+click Restore. Only what you choose is replaced: if you restore Names, the
+Notes on the Newton stay as they are. When it is done, the Newton asks to
+restart. A PIN is not restored.</p>
+
+<p>A card's backup can be restored to a card, not to the internal store.</p>
+
+
+<h3><a name="packages">Installing packages</a></h3>
+
+<p>Packages add applications, books and updates to a Newton device. Package
+files end in <tt>.newtonpkg</tt> or <tt>.pkg</tt>. Choose Newton &gt; Install
+Package, or drop package files on the docked Newton's window. On the
+Newton, Dock's Install can also browse this computer's folders and install
+from there. A package that is on the Newton already is replaced only if
+you say so.</p>
+
+
+<h3><a name="keyboard">Using this computer's keyboard</a></h3>
+
+<p>Select Keyboard in the sidebar of the docked Newton's window. Set an
+insertion point on the Newton, click the keyboard area, and type: the text
+goes to the Newton. Edit &gt; Paste, or dropping text on the area, sends
+text from elsewhere. Starting the keyboard on the Newton (Dock's Keyboard)
+shows this view too.</p>
+
+
+<h3><a name="transfer">Transferring information</a></h3>
+
+<p><b>Export.</b> Select entries in a soup (or a soup, or an app in the
+sidebar) and choose File &gt; Export. Names become vCards, Dates iCalendar
+files, Notes and Newton Works documents RTF (with their drawings and ink),
+drawings PNG images, recordings sound files, packages package files;
+other entries are written as NewtonScript text. The inspector (View &gt;
+Inspector) shows an entry as it would be exported.</p>
+
+<p><b>Import.</b> Choose File &gt; Import, or drop files on a window: vCards
+go to Names, iCalendar files to Dates, text and RTF to Notes. When the
+Newton is docked, the entries go to it at once.</p>
+
+<p><b>Between backups.</b> Drag entries from one backup's window to
+another's: they are copied into the soups of the same names.</p>
+
+
+<h3><a name="screenshot">Taking a screenshot</a></h3>
+
+<p>Select Screenshot in the sidebar of the docked Newton's window. The
+Dock slip goes away; arrange the Newton's screen and click Take
+Screenshot. Save writes it as a PNG image, Copy puts it on the
+clipboard. Screenshots need the Toolkit app on the Newton (it comes with
+the Newton Toolkit).</p>
+
+
+<h3><a name="offline">Working without a Newton device</a></h3>
+
+<p>Open any backup with File &gt; Open, or from the list in the window that
+waits for a Newton. You can browse it, export from it, delete entries and
+import files. Entries you delete or import are deleted on, or added to,
+the Newton when you next back it up.</p>
+
+
+<h3><a name="newton1">Newton OS 1 devices</a></h3>
+
+<p>Before a Newton OS 1 device connects, choose what it is to do in the
+Newton &gt; NewtonOS 1 Session menu: Sync (back up), Restore, or Install
+Package. That is done once it connects, and then it is disconnected.</p>
+
+
+<h3><a name="dumps">Saving the ROM and memory cards</a></h3>
+
+<p>Newton &gt; Dump ROM saves the docked Newton's ROM into a file; a dump
+that was stopped can be resumed. Newton &gt; Dump Card saves the memory
+cards in its slots (their CIS, attribute and common memory) into a
+folder. Both need Newton OS 2.</p>
+
+
+<h3><a name="files">Where Newton Connection keeps its files</a></h3>
+
+<p>Backups (<tt>.newtondevice</tt> files):</p>
+<ul>
+<li>macOS: <tt>~/Library/Application Support/Newton Connection</tt></li>
+<li>Windows: <tt>%APPDATA%\Newton Connection</tt></li>
+<li>Linux: <tt>~/.local/share/newton-connection</tt></li>
+</ul>
+<p>The log, if the Preferences save it:</p>
+<ul>
+<li>macOS: <tt>~/Library/Logs/NewtonConnection.log</tt></li>
+<li>Windows: <tt>%LOCALAPPDATA%\Newton Connection\NewtonConnection.log</tt></li>
+<li>Linux: <tt>~/.local/state/newton-connection/NewtonConnection.log</tt></li>
+</ul>
+
+<p>Problems and ideas: Help &gt; Report a Bug.</p>
+
+<p><a href="#top">Contents</a></p>
+
+</body>
+</html>

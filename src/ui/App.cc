@@ -6,6 +6,7 @@
 
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
+#include "ui/Help.h"
 #include "ui/Preferences.h"
 #include "ui/RestoreDialog.h"
 #include "ui/panels/KeyboardPanel.h"
@@ -409,6 +410,7 @@ bool App::canDo(Command inCommand, DocumentWindow * inTarget) const
     case Command::kPreferences:
     case Command::kQuit:
     case Command::kReportBug:
+    case Command::kHelp:
     case Command::kNewConnection:
     case Command::kOpen:
       return true;
@@ -476,6 +478,9 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
       break;
     case Command::kReportBug:
       fl_open_uri(kBugsURL);
+      break;
+    case Command::kHelp:
+      HelpWindow::Show();
       break;
     case Command::kNewConnection:
       waitingWindow()->show();

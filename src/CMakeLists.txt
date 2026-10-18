@@ -115,15 +115,26 @@ target_link_libraries (ncx-cli PRIVATE ncx_core)    # fl_write_png: fltk::images
 set (ncx_icon "${PROJECT_SOURCE_DIR}/resources/NCX.icns")
 #   ncx_ui: the app but main(), for the tests too (ui_test). The panels'
 #   layouts are Fluid files (ui/panels/*.fl, compiled by FLTK's fluid), the
-#   images resources/images/*.png (embedded by cmake/EmbedImages.cmake).
+#   images resources/images/*.png and the help resources/help/*.html
+#   (embedded by cmake/EmbedFiles.cmake).
 file (GLOB ncx_image_files CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/resources/images/*.png")
 set (ncx_image_data "${PROJECT_BINARY_DIR}/generated/ImageData.cc")
 add_custom_command (
   OUTPUT "${ncx_image_data}"
-  COMMAND "${CMAKE_COMMAND}" -DDIR=${PROJECT_SOURCE_DIR}/resources/images -DOUT=${ncx_image_data}
-          -P "${PROJECT_SOURCE_DIR}/cmake/EmbedImages.cmake"
-  DEPENDS ${ncx_image_files} "${PROJECT_SOURCE_DIR}/cmake/EmbedImages.cmake"
+  COMMAND "${CMAKE_COMMAND}" -DDIR=${PROJECT_SOURCE_DIR}/resources/images -DGLOB=*.png -DTABLE=kEmbeddedImages
+          -DOUT=${ncx_image_data} -P "${PROJECT_SOURCE_DIR}/cmake/EmbedFiles.cmake"
+  DEPENDS ${ncx_image_files} "${PROJECT_SOURCE_DIR}/cmake/EmbedFiles.cmake"
   COMMENT "Embedding the images"
+  VERBATIM
+)
+file (GLOB ncx_help_files CONFIGURE_DEPENDS "${PROJECT_SOURCE_DIR}/resources/help/*.html")
+set (ncx_help_data "${PROJECT_BINARY_DIR}/generated/HelpData.cc")
+add_custom_command (
+  OUTPUT "${ncx_help_data}"
+  COMMAND "${CMAKE_COMMAND}" -DDIR=${PROJECT_SOURCE_DIR}/resources/help -DGLOB=*.html -DTABLE=kEmbeddedHelp
+          -DOUT=${ncx_help_data} -P "${PROJECT_SOURCE_DIR}/cmake/EmbedFiles.cmake"
+  DEPENDS ${ncx_help_files} "${PROJECT_SOURCE_DIR}/cmake/EmbedFiles.cmake"
+  COMMENT "Embedding the help"
   VERBATIM
 )
 if (TARGET fltk::fluid-cmd)
@@ -154,6 +165,7 @@ add_library (ncx_ui STATIC
   ui/Edits.cc
   ui/EntryPreview.cc
   ui/Format.cc
+  ui/Help.cc
   ui/Images.cc
   ui/Inspector.cc
   ui/PackageInfo.cc
@@ -171,6 +183,7 @@ add_library (ncx_ui STATIC
   ui/panels/StorePanel.cc
   ${ncx_fluid_sources}
   "${ncx_image_data}"
+  "${ncx_help_data}"
 )
 target_include_directories (ncx_ui PUBLIC "${PROJECT_BINARY_DIR}/generated/ui" "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries (ncx_ui PUBLIC ncx_core)    # FLTK comes with it

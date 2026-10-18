@@ -29,6 +29,7 @@
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
+#include "ui/Help.h"
 #include "ui/Inspector.h"
 #include "ui/Preferences.h"
 #include "ui/RestoreDialog.h"
@@ -48,6 +49,7 @@
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Check_Browser.H>
 #include <FL/Fl_Check_Button.H>
+#include <FL/Fl_Help_View.H>
 #include <FL/Fl_Choice.H>
 #include <FL/Fl_Input.H>
 #include <FL/Fl_Int_Input.H>
@@ -328,6 +330,20 @@ void TestShell()
   bool inspectorShown = window->inspectorShown();
   app.command(Command::kToggleInspector, window);
   Check(window->inspectorShown() != inspectorShown, "shell: the inspector toggled");
+
+  // the help
+  Check(app.canDo(Command::kHelp, window), "shell: Help allowed");
+  app.command(Command::kHelp, window);
+  HelpWindow & help = HelpWindow::Show();
+  Fl::check();
+  const char * helpText = help.view()->value();
+  Check(help.shown() && helpText && std::strstr(helpText, "Newton Connection Help") && std::strstr(helpText, "name=\"restore\""),
+        "shell: the help window");
+  Snapshot(&help, "help");
+  HelpWindow::Show("restore");
+  Fl::check();
+  Check(help.view()->topline() > 0, "shell: ... at a section (" + std::to_string(help.view()->topline()) + ")");
+  help.hide();
 
   // the preferences window: the preferences in, and out again
   Prefs::App().setInt(pref::kTCPIPPort, 3700);
