@@ -20,6 +20,7 @@
 #include "FakeProcess.h"
 
 #include "base/Core.h"
+#include "base/Prefs.h"
 #include "base/Threads.h"
 #include "platform/AppFolders.h"
 #include "ui/App.h"
@@ -211,6 +212,33 @@ void TestShell()
         "shell: ... two selected, still after sorting again");
   Snapshot(window, "soup");
 
+  // Delete, not docked: from the file only (the warning silenced)
+  Prefs::App().setBool(pref::kNoDeleteWarning, true);
+  Check(app.canDo(Command::kDelete, window) && app.canDo(Command::kExport, window), "shell: Delete and Export allowed");
+  app.command(Command::kDelete, window);
+  bool deleted = WaitFor(10, [&] { return app.message().find("Deleted") == 0 && !soup->loading() && soup->data().rows.size() == 7; });
+  Check(deleted && app.messageFile() == window->file(), "shell: Delete: two entries left the file: " + app.message()
+        + " (" + std::to_string(soup->data().rows.size()) + ")");
+  Check(std::string(window->messageText()).find("Deleted 2 entries") == 0, "shell: ... the window says so");
+  // Export: all of the soup (none selected)
+  std::filesystem::path exported = AppDataFolder() / "exported";
+  std::filesystem::create_directories(exported);
+  window->exportEntriesTo(exported);
+  bool exportedAll = WaitFor(20, [&] { return app.message().find("Exported") == 0; });
+  size_t files = 0;
+  for (const auto & each : std::filesystem::directory_iterator(exported))
+    files += each.path().extension() == ".vcf" ? 1 : 0;
+  Check(exportedAll && app.message().find("Exported 7 entries") == 0 && files > 0,
+        "shell: Export: " + app.message());
+  app.command(Command::kSelectAll, window);
+  Check(soup->selectedEntries().size() == 7, "shell: Select All");
+  // packages leave only from the Newton
+  window->sidebar()->select_only(window->sidebar()->find_item("Internal/Packages/Packages"), 1);
+  WaitFor(10, [&] { return !soup->loading(); });
+  app.command(Command::kSelectAll, window);
+  Check(!soup->selectedEntries().empty() && !app.canDo(Command::kDelete, window),
+        "shell: not docked, packages can't be deleted");
+
   window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
   Check(device->visible() && !store->visible() && !soup->visible(), "shell: the device again: its panel");
 
@@ -318,6 +346,14 @@ void TestDock()
     Check(read && data.rows.size() == 2 && data.rows[0].cells.size() > 1 && data.rows[0].cells[1] == "Ada Lovelace",
           "dock: the Names soup's entries, read on the dock thread ("
           + std::to_string(data.rows.size()) + ") " + data.error);
+    // Delete, docked: on the Newton and from the file
+    window->soupPanel()->selectRow(0, true);
+    Check(app.canDo(Command::kDelete, window), "dock: Delete allowed");
+    app.command(Command::kDelete, window);
+    bool deleted = WaitFor(15, [&] { return !app.dock().busy() && app.message().find("Deleted") == 0
+                                            && !window->soupPanel()->loading()
+                                            && window->soupPanel()->data().rows.size() == 1; });
+    Check(deleted, "dock: Delete: on the Newton and from the file: " + app.message());
   }
 
   app.command(Command::kDisconnect, window);
@@ -326,6 +362,7 @@ void TestDock()
   Check(undocked && !Has(Children(window->sidebar()->root()), "Keyboard"), "dock: no Keyboard once undocked");
   app.stop();
   fake.finish();
+  Check(fake.deleted == std::vector<int64_t>({ 100 }), "dock: the fake Newton deleted Ada (100)");
   Check(fake.why.empty() && !fake.received.empty() && fake.received.back() == "disc",
         "dock: the fake Newton saw it end with 'disc' " + fake.why);
 }

@@ -7,6 +7,8 @@
 #include "ui/DocumentWindow.h"
 #include "ui/App.h"
 #include "ui/Commands.h"
+#include "ui/Dialogs.h"
+#include "ui/Edits.h"
 #include "ui/Images.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/SoupPanel.h"
@@ -14,6 +16,7 @@
 
 #include "base/Dates.h"
 #include "base/Prefs.h"
+#include "base/Threads.h"
 #include "base/Version.h"
 #include "model/DeviceFile.h"
 #include "platform/AppFolders.h"
@@ -22,6 +25,7 @@
 #include <FL/Fl_Box.H>
 #include <FL/Fl_Button.H>
 #include <FL/Fl_Menu_Bar.H>
+#include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Progress.H>
 #include <FL/Fl_Text_Display.H>
 #include <FL/Fl_Tile.H>
@@ -134,6 +138,7 @@ DocumentWindow::DocumentWindow()
   mStorePanel->hide();
   mSoupPanel = new SoupPanel(mContent->x(), top, mContent->w(), tileHeight);
   mSoupPanel->hide();
+  mSoupPanel->setSelectionChanged([] { App::get().selectionChanged(); });
   mContent->resizable(mInfo);
   mContent->end();
   mInspectorText = new Fl_Text_Buffer();
@@ -362,6 +367,121 @@ void DocumentWindow::showSelection()
 }
 
 
+/*-- the soup panel's entries ---------------------------------------------------*/
+
+const DocumentWindow::Node * DocumentWindow::selectedNode() const
+{
+  Fl_Tree_Item * item = mSidebar->first_selected_item();
+  return item ? static_cast<const Node *>(item->user_data()) : nullptr;
+}
+
+
+bool DocumentWindow::canDeleteEntries() const
+{
+  const Node * node = selectedNode();
+  if (!mDeviceFile || !node || node->kind != Node::kSoup || !mSoupPanel->visible() || mSoupPanel->loading()
+      || mSoupPanel->selectedEntries().empty())
+    return false;
+  App & app = App::get();
+  if (app.isDockedWindow(this))
+    return !app.dock().busy();
+  // packages are removed from the Newton only (a backup doesn't remove them)
+  return mSoupPanel->data().soupName != "Packages";
+}
+
+
+void DocumentWindow::deleteEntries()
+{
+  if (!canDeleteEntries())
+    return;
+  const Node * node = selectedNode();
+  std::vector<int64_t> entries = mSoupPanel->selectedEntries();
+  App & app = App::get();
+  if (app.isDockedWindow(this)) {
+    app.dock().removeEntries(mFile, node->soupPk, entries);
+    app.updateMenus();
+    return;
+  }
+  if (!ConfirmUnlessSilenced(pref::kNoDeleteWarning, "Delete", "You are not connected to a Newton device.",
+                             "Soup entries will be deleted from your Newton device when you back up next.", "Delete"))
+    return;
+  std::filesystem::path file = mFile;
+  app.objectWork([file, entries]() {
+    bool ok = false;
+    std::string report = DeleteFromFile(file, entries, ok);
+    RunOnMainThread([file, report]() {
+      App & app = App::get();
+      app.setMessage(report, file);
+      app.fileChanged(file);
+      app.stateChanged();
+    });
+  });
+}
+
+
+bool DocumentWindow::canExport() const
+{
+  const Node * node = selectedNode();
+  if (!mDeviceFile || !node)
+    return false;
+  if (node->kind == Node::kApp)
+    return true;
+  return node->kind == Node::kSoup && mSoupPanel->visible() && !mSoupPanel->loading() && !mSoupPanel->data().rows.empty();
+}
+
+
+void DocumentWindow::exportEntries()
+{
+  if (!canExport())
+    return;
+  Fl_Native_File_Chooser chooser(Fl_Native_File_Chooser::BROWSE_DIRECTORY);
+  chooser.title("Export into this folder");
+  if (chooser.show() == 0 && chooser.filename())
+    exportEntriesTo(PathFromUTF8(chooser.filename()));
+}
+
+
+void DocumentWindow::exportEntriesTo(const std::filesystem::path & inFolder)
+{
+  if (!canExport())
+    return;
+  const Node * node = selectedNode();
+  std::vector<int64_t> entries;
+  if (node->kind == Node::kSoup) {
+    entries = mSoupPanel->selectedEntries();
+    if (entries.empty())          // none selected: all of the soup
+      for (const SoupData::Row & row : mSoupPanel->data().rows)
+        entries.push_back(row.entryPk);
+  }
+  std::filesystem::path folder = inFolder, file = mFile;
+  int64_t appPk = node->appPk, storePk = node->storePk;
+  App::get().setMessage("Exporting...", file);
+  updateState();
+  App::get().objectWork([file, appPk, storePk, folder, entries]() {
+    bool ok = false;
+    std::string report = ExportEntries(file, appPk, storePk, folder, entries, ok);
+    RunOnMainThread([file, report]() {
+      App & app = App::get();
+      app.setMessage(report, file);
+      app.stateChanged();
+    });
+  });
+}
+
+
+bool DocumentWindow::canSelectAll() const
+{
+  return mSoupPanel->visible() && !mSoupPanel->loading() && !mSoupPanel->data().rows.empty();
+}
+
+
+void DocumentWindow::selectAll()
+{
+  if (canSelectAll())
+    mSoupPanel->selectAll();
+}
+
+
 /*-- panes --------------------------------------------------------------------*/
 
 void DocumentWindow::layoutTile()
@@ -438,7 +558,8 @@ void DocumentWindow::updateState()
   if (mDeviceFile && (app.isDockedWindow(this) && !app.dock().newton1()) != mShowsDockItems)
     fillTree();
   bool mine = mFile.empty() || app.isDockedWindow(this);
-  mMessage->copy_label(LabelText(mine ? app.message() : std::string()).c_str());
+  bool message = app.messageFile().empty() ? mine : app.messageFile() == mFile;
+  mMessage->copy_label(LabelText(message ? app.message() : std::string()).c_str());
   std::string state = app.dockStatus();
   if (app.docked() && !mFile.empty() && !app.isDockedWindow(this))
     state = app.dockedName() + " is docked (another window)";

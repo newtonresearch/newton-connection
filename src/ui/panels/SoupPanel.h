@@ -38,6 +38,8 @@ public:
   /** What is shown (tests): rows, columns, the selection. */
   const SoupData & data() const { return mData; }
   bool loading() const { return mLoading; }
+  /** Select all rows. */
+  void selectAll();
   /** Select a row as the table shows them now (tests; a click). */
   void selectRow(int inRow, bool inSelected);
   /** The entries selected (their pks), in the table's order. */

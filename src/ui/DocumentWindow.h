@@ -66,6 +66,18 @@ public:
   bool inspectorShown() const { return mInspectorShown; }
   void showInspector(bool inShow);
 
+  /** The soup panel's entries: delete those selected (on the Newton too
+      when it is docked; packages only then), export those selected (or
+      all of the soup, or of the app selected in the sidebar), select all
+      of them. */
+  bool canDeleteEntries() const;
+  void deleteEntries();
+  bool canExport() const;
+  void exportEntries();
+  void exportEntriesTo(const std::filesystem::path & inFolder);
+  bool canSelectAll() const;
+  void selectAll();
+
   /** Its menu bar (nullptr on macOS: the app has one). */
   Fl_Menu_ * menuBar() { return mMenuBar; }
 
@@ -81,6 +93,7 @@ public:
 
 private:
   struct Node;
+  const Node * selectedNode() const;
   void fillTree();
   void showSelection();
   void layoutTile();

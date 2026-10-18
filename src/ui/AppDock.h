@@ -24,6 +24,7 @@
 
 #include "base/Progress.h"
 
+#include <cstdint>
 #include <filesystem>
 #include <functional>
 #include <memory>
@@ -81,6 +82,9 @@ public:
   /** Operations, posted (they run once docked, one after the other). */
   void backUp();
   void install(const std::vector<std::filesystem::path> & inFiles);
+  /** Delete entries of a soup on the Newton and from its file (packages:
+      removed by name). */
+  void removeEntries(const std::filesystem::path & inFile, int64_t inSoupPk, const std::vector<int64_t> & inEntryPks);
   void disconnect();
 
   DockController & controller() { return *mDock; }

@@ -148,8 +148,10 @@ add_library (ncx_ui STATIC
   ui/App.cc
   ui/AppDock.cc
   ui/Commands.cc
+  ui/Dialogs.cc
   ui/DocumentWindow.cc
   ui/Drop.cc
+  ui/Edits.cc
   ui/Format.cc
   ui/Images.cc
   ui/SoupData.cc

@@ -87,8 +87,17 @@ public:
   const std::string & dockedName() const { return mDockedName; }
   /** "Waiting for a Newton on ...", "Matt's MessagePad is docked", ... */
   const std::string & dockStatus() const { return mDockStatus; }
-  /** The last operation's report, or what the dock says now. */
+  /** The last operation's report, or what the dock says now; the file it
+      is about ("": the dock's, for the docked Newton's window). */
   const std::string & message() const { return mMessage; }
+  const std::filesystem::path & messageFile() const { return mMessageFile; }
+  void setMessage(const std::string & inText, const std::filesystem::path & inFile = {});
+  /** A file was changed (not by its windows): they read it again. */
+  void fileChanged(const std::filesystem::path & inFile);
+  /** The windows and menus show the state as it is now. */
+  void stateChanged();
+  /** A window's selection changed: the menus follow. */
+  void selectionChanged();
   AppDock & dock() { return mDock; }
   /** The window shows the docked Newton's file. */
   bool isDockedWindow(const DocumentWindow * inWindow) const;
@@ -96,7 +105,6 @@ public:
 private:
   App() { }
   void startDock(const std::vector<std::string> & inTargets);
-  void stateChanged();
   DocumentWindow * newWindow();
   void chooseAndOpen();
   void chooseAndInstall();
@@ -110,6 +118,7 @@ private:
   std::string mDockedName;
   std::string mDockStatus;
   std::string mMessage;
+  std::filesystem::path mMessageFile;
 };
 
 } // namespace ncx

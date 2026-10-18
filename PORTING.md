@@ -15,8 +15,8 @@ ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu); the panels (7.4): device, store, and
-the soup table done; next Delete and Export in the soup panel.
+Back Up and Install from the menu); the panels (7.4): device, store and
+soup (table, Delete, Export) done; next the package info panel.
 
 ---
 
@@ -1208,7 +1208,15 @@ and it):
     on a header sorts (again: the other way; the selection stays with its
     entries); several rows can be selected. The folder shows its tag: the
     user's folder names are in UserInfo's keyed archive, not read yet.
-    Next: Delete and Export.
+  - 7.4.3 soup panel, Delete and Export: done. Delete (Edit > Delete):
+    docked, on the Newton and from the file (an operation: SoupEditor,
+    packages removed by name); otherwise from the file only, after the
+    Cocoa app's warning with "Don't show this again" (`Dialogs.h`), and
+    never packages. Export (File > Export): the entries selected, or all
+    of the soup, or of the app selected in the sidebar, into a folder, as
+    the translators write them (object work: `Edits.h`). Select All. A
+    message belongs to a file (the window of that file shows it) or to the
+    dock (the docked Newton's window).
 - **7.4 Panels** (one step each): device (with the package list and
   dropping packages), store (capacity indicator), soup (an `Fl_Table_Row`
   subclass with columns per soup, sorting, multiple selection, delete and

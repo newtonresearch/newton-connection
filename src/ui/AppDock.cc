@@ -12,6 +12,7 @@
 #include "dock/DockController.h"
 #include "dock/FileBrowser.h"
 #include "dock/Packages.h"
+#include "dock/SoupEditor.h"
 #include "model/DeviceList.h"
 #include "platform/AppFolders.h"
 
@@ -329,6 +330,33 @@ void AppDock::install(const std::vector<std::filesystem::path> & inFiles)
       report += ", " + std::to_string(skipped) + " left as they were";
     if (!failed.empty())
       report += "; not installed: " + failed;
+    return report;
+  });
+}
+
+
+void AppDock::removeEntries(const std::filesystem::path & inFile, int64_t inSoupPk, const std::vector<int64_t> & inEntryPks)
+{
+  std::string title = "Deleting " + std::to_string(inEntryPks.size()) + (inEntryPks.size() == 1 ? " entry" : " entries");
+  mImpl->post(*mDock, title, [inFile, inSoupPk, inEntryPks](DockController & ioDock, Progress &, bool & outOK,
+                                                             std::filesystem::path & outFile) {
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(inFile, DeviceFile::kReadWrite, error);
+    if (!file) {
+      outOK = false;
+      return "Not deleted: " + error;
+    }
+    outFile = inFile;
+    SoupEditor editor(ioDock, *file);
+    int result = editor.remove(inSoupPk, inEntryPks);
+    const SoupEditCounts & counts = editor.counts();
+    outOK = result == 0;
+    std::string report = "Deleted " + std::to_string(counts.deleted + counts.fileOnly)
+                       + (counts.deleted + counts.fileOnly == 1 ? " entry" : " entries");
+    if (counts.packages)
+      report += ", removed " + std::to_string(counts.packages) + (counts.packages == 1 ? " package" : " packages");
+    if (result != 0)
+      report += " (the Newton refused the rest: " + std::to_string(result) + ")";
     return report;
   });
 }

@@ -264,6 +264,14 @@ std::vector<int64_t> SoupPanel::selectedEntries() const
 }
 
 
+void SoupPanel::selectAll()
+{
+  mTable->select_all_rows(1);
+  if (mSelectionChanged)
+    mSelectionChanged();
+}
+
+
 void SoupPanel::selectRow(int inRow, bool inSelected)
 {
   mTable->select_row(inRow, inSelected ? 1 : 0);

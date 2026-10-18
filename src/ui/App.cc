@@ -190,7 +190,7 @@ void App::startDock(const std::vector<std::string> & inTargets)
       mDockStatus = (inName.empty() ? std::string("A Newton") : inName) + " is docked"
                   + (inNewton1 ? " (NewtonOS 1)" : "");
       if (inFile.empty()) {
-        mMessage = "Can't keep its backup: " + inError;
+        setMessage("Can't keep its backup: " + inError);
       } else {
         // its window: the one open, else the waiting one, else a new one
         DocumentWindow * window = nullptr;
@@ -203,7 +203,7 @@ void App::startDock(const std::vector<std::string> & inTargets)
               window = each;
         std::string error;
         if (window && window->file().empty() && !window->bind(inFile, error))
-          mMessage = error;
+          setMessage(error);
         else if (window)
           window->reload();
         else
@@ -222,7 +222,7 @@ void App::startDock(const std::vector<std::string> & inTargets)
       mDockedFile.clear();
       mDockedName.clear();
       if (inCode != 0)
-        mMessage = "The connection ended: " + inWhy;
+        setMessage("The connection ended: " + inWhy);
       mDockStatus = "Waiting for a Newton";
       stateChanged();
     });
@@ -230,23 +230,21 @@ void App::startDock(const std::vector<std::string> & inTargets)
   hooks.status = [this](const std::string & inText) {
     RunOnMainThread([this, inText]() {
       if (!inText.empty())
-        mMessage = inText;
+        setMessage(inText);
       stateChanged();
     });
   };
   hooks.started = [this](const std::string & inTitle) {
     RunOnMainThread([this, inTitle]() {
-      mMessage = inTitle;
+      setMessage(inTitle);
       stateChanged();
     });
   };
   hooks.finished = [this](const std::string & inReport, bool inOK, const std::filesystem::path & inFile) {
     RunOnMainThread([this, inReport, inOK, inFile]() {
-      mMessage = inReport;
+      setMessage(inReport);
       if (!inFile.empty())
-        for (DocumentWindow * window : mWindows)
-          if (window->file() == inFile)
-            window->reload();
+        fileChanged(inFile);
       if (!inOK)
         Log(kLogMinimum, "ui: %s", inReport.c_str());
       stateChanged();
@@ -269,6 +267,27 @@ void App::startDock(const std::vector<std::string> & inTargets)
   mDockStatus = "Waiting for a Newton";
   if (!mDock.start(hooks, error, inTargets))
     mDockStatus = "Can't wait for a Newton: " + error;
+}
+
+
+void App::setMessage(const std::string & inText, const std::filesystem::path & inFile)
+{
+  mMessage = inText;
+  mMessageFile = inFile;
+}
+
+
+void App::fileChanged(const std::filesystem::path & inFile)
+{
+  for (DocumentWindow * window : mWindows)
+    if (window->file() == inFile)
+      window->reload();
+}
+
+
+void App::selectionChanged()
+{
+  ++gStateSerial;
 }
 
 
@@ -310,6 +329,12 @@ bool App::canDo(Command inCommand, DocumentWindow * inTarget) const
       return idle && !mDock.newton1();
     case Command::kDisconnect:
       return mDocked;
+    case Command::kDelete:
+      return inTarget && inTarget->canDeleteEntries();
+    case Command::kExport:
+      return inTarget && inTarget->canExport();
+    case Command::kSelectAll:
+      return inTarget && inTarget->canSelectAll();
     case Command::kNewton1Sync:
     case Command::kNewton1Restore:
     case Command::kNewton1Install:
@@ -374,6 +399,15 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
       break;
     case Command::kDisconnect:
       mDock.disconnect();
+      break;
+    case Command::kDelete:
+      inTarget->deleteEntries();
+      break;
+    case Command::kExport:
+      inTarget->exportEntries();
+      break;
+    case Command::kSelectAll:
+      inTarget->selectAll();
       break;
     // the session a NewtonOS 1 Newton is offered when it docks (the Cocoa
     // app's Newton 1 menu); the flow comes with 7.7
