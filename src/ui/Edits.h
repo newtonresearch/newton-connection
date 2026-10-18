@@ -41,6 +41,15 @@ struct ImportItem
 std::string ImportIntoFile(const std::filesystem::path & inFile, int64_t inStorePk, const std::vector<ImportItem> & inItems,
                            std::vector<int64_t> & outEntryPks, std::vector<int64_t> & outSoupPks, bool & outOK);
 
+/** Entries of one backup copied into another (inEntryPks of inSource),
+    each into the soup of its name on the store (left out if the store
+    has none), as entries made on the desktop (new ids from kImportIdBase
+    on). Their pks in outEntryPks, their soups in outSoupPks. "Copied 3
+    entries" or why not. */
+std::string CopyEntries(const std::filesystem::path & inSource, const std::vector<int64_t> & inEntryPks,
+                        const std::filesystem::path & inFile, int64_t inStorePk,
+                        std::vector<int64_t> & outEntryPks, std::vector<int64_t> & outSoupPks, bool & outOK);
+
 /** The apps that import a file of that kind (ImportAppsFor). */
 std::vector<std::string> ImportAppsForFile(const std::filesystem::path & inSource);
 

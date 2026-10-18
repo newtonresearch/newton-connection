@@ -8,6 +8,7 @@
 #include "ui/App.h"
 #include "ui/Commands.h"
 #include "ui/Dialogs.h"
+#include "ui/Drop.h"
 #include "ui/Edits.h"
 #include "ui/Images.h"
 #include "ui/Inspector.h"
@@ -21,6 +22,7 @@
 #include "base/Dates.h"
 #include "base/Prefs.h"
 #include "base/Threads.h"
+#include "dock/Packages.h"
 #include "base/Version.h"
 #include "model/DeviceFile.h"
 #include "platform/AppFolders.h"
@@ -557,17 +559,9 @@ void DocumentWindow::importFiles(const std::vector<std::filesystem::path> & inFi
     return;
   // where: the store and app selected, else the internal store
   const Node * node = selectedNode();
-  int64_t storePk = 0;
+  int64_t storePk = targetStore();
   std::string preferred;
   try {
-    if (node && (node->kind == Node::kStore || node->kind == Node::kApp || node->kind == Node::kSoup))
-      storePk = node->storePk;
-    if (!storePk) {
-      std::vector<StoreRecord> stores = mDeviceFile->stores();
-      SortStores(stores);
-      if (!stores.empty())
-        storePk = stores[0].pk;
-    }
     if (node && (node->kind == Node::kApp || node->kind == Node::kSoup))
       for (const AppRecord & each : mDeviceFile->apps())
         if (each.pk == node->appPk)
@@ -632,6 +626,108 @@ void DocumentWindow::importFiles(const std::vector<std::filesystem::path> & inFi
       app.stateChanged();
     });
   });
+}
+
+
+int64_t DocumentWindow::targetStore() const
+{
+  const Node * node = selectedNode();
+  if (node && (node->kind == Node::kStore || node->kind == Node::kApp || node->kind == Node::kSoup))
+    return node->storePk;
+  try {
+    std::vector<StoreRecord> stores = mDeviceFile->stores();
+    SortStores(stores);
+    return stores.empty() ? 0 : stores[0].pk;
+  } catch (const ModelError &) {
+    return 0;
+  }
+}
+
+
+void DocumentWindow::copyEntriesHere(const std::filesystem::path & inSource, const std::vector<int64_t> & inEntryPks)
+{
+  App & app = App::get();
+  int64_t storePk = canImport() ? targetStore() : 0;
+  if (inSource == mFile || inEntryPks.empty() || !storePk)
+    return;
+  if (app.isDockedWindow(this)) {
+    if (app.dock().busy()) {
+      app.setMessage("Not copied: the Newton is busy", mFile);
+      app.stateChanged();
+      return;
+    }
+    app.dock().copyEntries(inSource, inEntryPks, mFile, storePk);
+    app.updateMenus();
+    return;
+  }
+  if (!ConfirmUnlessSilenced(pref::kNoAddWarning, "Copy", "You are not connected to a Newton device.",
+                             "Soup entries will be added to your Newton device when you sync next.", "OK"))
+    return;
+  std::filesystem::path file = mFile;
+  app.objectWork([inSource, inEntryPks, file, storePk]() {
+    std::vector<int64_t> entries, soups;
+    bool ok = false;
+    std::string report = CopyEntries(inSource, inEntryPks, file, storePk, entries, soups, ok);
+    RunOnMainThread([file, report]() {
+      App & app = App::get();
+      app.setMessage(report, file);
+      app.fileChanged(file);
+      app.stateChanged();
+    });
+  });
+}
+
+
+void DocumentWindow::dropped(const std::string & inText)
+{
+  std::filesystem::path source;
+  std::vector<int64_t> entries;
+  if (ParseEntriesPayload(inText, source, entries)) {
+    copyEntriesHere(source, entries);
+    return;
+  }
+  std::vector<std::filesystem::path> packages, others;
+  for (const std::filesystem::path & file : DroppedFiles(inText))
+    (IsNewtonPackage(file) ? packages : others).push_back(file);
+  App & app = App::get();
+  if (!packages.empty()) {
+    if (app.isDockedWindow(this))
+      app.installPackages(packages);
+    else
+      others.insert(others.end(), packages.begin(), packages.end());   // the importers may take them
+  }
+  if (!others.empty())
+    importFiles(others);
+}
+
+
+int DocumentWindow::handle(int inEvent)
+{
+  switch (inEvent) {
+    case FL_DND_ENTER:
+    case FL_DND_DRAG:
+      if (Fl_Double_Window::handle(inEvent)) {
+        mDropping = false;  // a panel takes it
+        return 1;
+      }
+      mDropping = mDeviceFile != nullptr;
+      return mDropping ? 1 : 0;
+    case FL_DND_LEAVE:
+      mDropping = false;
+      return Fl_Double_Window::handle(inEvent);
+    case FL_DND_RELEASE:
+      if (mDropping)
+        return 1;
+      return Fl_Double_Window::handle(inEvent);
+    case FL_PASTE:
+      if (mDropping) {
+        mDropping = false;
+        dropped(std::string(Fl::event_text() ? Fl::event_text() : "", Fl::event_length()));
+        return 1;
+      }
+      break;
+  }
+  return Fl_Double_Window::handle(inEvent);
 }
 
 

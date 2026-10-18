@@ -103,12 +103,24 @@ public:
   void paste();
   const char * messageText() const;
 
+  /** Entries of another backup copied here (dragged from its window):
+      into their soups on the store selected (else the internal one); on
+      the Newton too when it is docked. */
+  void copyEntriesHere(const std::filesystem::path & inSource, const std::vector<int64_t> & inEntryPks);
+  /** Something dropped (files: packages installed on the docked Newton,
+      others imported; entries from another window: copied here), as
+      FLTK's drag and drop hands it over. */
+  void dropped(const std::string & inText);
+
+  /** Drops on the window (where no panel takes them). */
+  int handle(int inEvent) override;
   /** Closed: the app forgets it. */
   void hide() override;
 
 private:
   struct Node;
   const Node * selectedNode() const;
+  int64_t targetStore() const;
   void fillTree();
   void showSelection();
   void inspectSelection();
@@ -126,6 +138,7 @@ private:
   std::vector<std::unique_ptr<Node>> mNodes;
   bool mShowsDockItems = false;
   bool mWritable = false;          // the file could be written (the window reads it only)
+  bool mDropping = false;
   bool mSidebarShown = true;
   bool mInspectorShown = false;
   int mSidebarWidth = 220;

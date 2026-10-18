@@ -6,6 +6,7 @@
 
 #include "ui/panels/SoupPanel.h"
 #include "ui/App.h"
+#include "ui/Drop.h"
 #include "ui/Format.h"
 
 #include "base/Threads.h"
@@ -17,6 +18,7 @@
 
 #include <algorithm>
 #include <cctype>
+#include <cstdlib>
 #include <cstring>
 #include <functional>
 #include <numeric>
@@ -114,6 +116,53 @@ public:
 
   int dataRow(int inRow) const { return inRow >= 0 && inRow < (int)mOrder.size() ? mOrder[inRow] : -1; }
 
+  /** Rows selected and dragged go to another window (D9): a click on a
+      selected row waits to see whether it becomes a drag (then the
+      selection stays) or a click (then that row alone is selected). */
+  int handle(int inEvent) override
+  {
+    switch (inEvent) {
+      case FL_PUSH: {
+        int row = -1, col = -1;
+        ResizeFlag resize = RESIZE_NONE;
+        TableContext context = cursor2rowcol(row, col, resize);
+        mPressedRow = -1;
+        if (context == CONTEXT_CELL && Fl::event_button() == FL_LEFT_MOUSE && row_selected(row)
+            && !Fl::event_state(FL_SHIFT | FL_COMMAND | FL_CTRL) && !Fl::event_clicks()) {
+          mPressedRow = row;
+          mPressX = Fl::event_x();
+          mPressY = Fl::event_y();
+          take_focus();
+          return 1;
+        }
+        break;
+      }
+      case FL_DRAG:
+        if (mPressedRow >= 0) {
+          if (std::abs(Fl::event_x() - mPressX) + std::abs(Fl::event_y() - mPressY) > 6) {
+            mPressedRow = -1;
+            std::string payload = EntriesPayload(mPanel.mFile, mPanel.selectedEntries());
+            Fl::copy(payload.c_str(), (int)payload.size(), 0);
+            Fl::dnd();
+          }
+          return 1;
+        }
+        break;
+      case FL_RELEASE:
+        if (mPressedRow >= 0) {
+          // a click after all: that row alone
+          select_all_rows(0);
+          select_row(mPressedRow, 1);
+          mPressedRow = -1;
+          if (mPanel.mSelectionChanged)
+            mPanel.mSelectionChanged();
+          return 1;
+        }
+        break;
+    }
+    return Fl_Table_Row::handle(inEvent);
+  }
+
 protected:
   void draw_cell(TableContext inContext, int inRow, int inCol, int inX, int inY, int inW, int inH) override
   {
@@ -178,6 +227,8 @@ private:
 
   SoupPanel & mPanel;
   std::vector<int> mOrder;
+  int mPressedRow = -1;           // a click on a selected row: a drag, or a click?
+  int mPressX = 0, mPressY = 0;
   int mSortColumn = 0;
   bool mAscending = true;
 };

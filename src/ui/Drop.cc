@@ -8,9 +8,14 @@
 
 #include "platform/AppFolders.h"
 
+#include <cstdlib>
+#include <cstring>
+
 namespace ncx {
 
 namespace {
+
+const char * const kEntriesTag = "ncx-entries:";
 
 int HexValue(char c)
 {
@@ -72,6 +77,39 @@ std::vector<std::filesystem::path> DroppedFiles(const std::string & inText)
       files.push_back(path);
   }
   return files;
+}
+
+
+std::string EntriesPayload(const std::filesystem::path & inFile, const std::vector<int64_t> & inEntryPks)
+{
+  std::string text = kEntriesTag + std::to_string(inEntryPks.size()) + "\n" + UTF8FromPath(inFile) + "\n";
+  for (size_t i = 0; i < inEntryPks.size(); ++i)
+    text += (i ? " " : "") + std::to_string(inEntryPks[i]);
+  return text + "\n";
+}
+
+
+bool ParseEntriesPayload(const std::string & inText, std::filesystem::path & outFile, std::vector<int64_t> & outEntryPks)
+{
+  size_t tag = std::strlen(kEntriesTag);
+  if (inText.compare(0, tag, kEntriesTag) != 0)
+    return false;
+  size_t first = inText.find('\n'), second = first == std::string::npos ? first : inText.find('\n', first + 1);
+  if (second == std::string::npos)
+    return false;
+  size_t count = std::strtoul(inText.c_str() + tag, nullptr, 10);
+  outFile = PathFromUTF8(inText.substr(first + 1, second - first - 1));
+  outEntryPks.clear();
+  const char * p = inText.c_str() + second + 1;
+  while (*p) {
+    char * end = nullptr;
+    long long pk = std::strtoll(p, &end, 10);
+    if (end == p)
+      break;
+    outEntryPks.push_back(pk);
+    p = end;
+  }
+  return !outFile.empty() && outEntryPks.size() == count && count > 0;
 }
 
 } // namespace ncx

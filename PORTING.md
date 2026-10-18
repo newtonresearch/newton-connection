@@ -18,7 +18,7 @@ interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu), the panels (7.4: device, store, soup
 with Delete and Export, package info, screenshot, keyboard) and the
 inspector (7.5) and the preferences (7.6) are done; 7.7, the dialogs and
-flows, is done; next dropping files on the windows, 7.8.
+flows, and 7.8, drag and drop in, are done; next help, 7.9.
 
 ---
 
@@ -1305,8 +1305,17 @@ and it):
     (`App::alert`; tests count them instead).
   - Done before: the delete warning with "Don't show this again"
     (`Dialogs.h`, 7.4.3), progress with Cancel in the toolbar (7.2).
-- **7.8 Drag and drop in:** files onto the window, device, store and soup
-  panels; text onto the keyboard panel.
+- **7.8 Drag and drop in:** done. Files dropped on a document window
+  (where no panel takes them): packages installed on the docked Newton,
+  others imported (7.7.2); packages on the device panel (7.4.1); text on
+  the keyboard panel (7.4.6). Entries between windows (D9): rows dragged
+  from a soup table (a click on a selected row waits: a drag keeps the
+  selection) go as FLTK text drag and drop with NCX's own payload
+  (`EntriesPayload`: the backup file, the entries' pks); dropped on
+  another document's window they are copied into the soups of their
+  names on its store (`CopyEntries`: new ids, as entries made on the
+  desktop), and sent to the Newton when that one is docked. Dragging out
+  to the desktop stays out (D2: file promises; Export instead).
 - **7.9 Help:** HTML help in an `Fl_Help_View` window (or open in a
   browser), and the PDF guide through `fl_open_uri`.
 - **7.10 Platform touches:**

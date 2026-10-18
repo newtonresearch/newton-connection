@@ -396,6 +396,37 @@ void AppDock::importFiles(const std::filesystem::path & inFile, int64_t inStoreP
 }
 
 
+void AppDock::copyEntries(const std::filesystem::path & inSource, const std::vector<int64_t> & inEntryPks,
+                          const std::filesystem::path & inFile, int64_t inStorePk)
+{
+  std::string title = "Copying " + std::to_string(inEntryPks.size()) + (inEntryPks.size() == 1 ? " entry" : " entries");
+  mImpl->post(*mDock, title, [inSource, inEntryPks, inFile, inStorePk](DockController & ioDock, Progress &, bool & outOK,
+                                                                        std::filesystem::path & outFile) {
+    std::vector<int64_t> entries, soups;
+    std::string report = CopyEntries(inSource, inEntryPks, inFile, inStorePk, entries, soups, outOK);
+    outFile = inFile;
+    if (entries.empty())
+      return report;
+    std::string error;
+    std::unique_ptr<DeviceFile> file = DeviceFile::Open(inFile, DeviceFile::kReadWrite, error);
+    if (!file) {
+      outOK = false;
+      return report + "; not sent to the Newton: " + error;
+    }
+    SoupEditor editor(ioDock, *file);
+    int result = 0;
+    for (int64_t soup : soups)
+      if (result == 0)
+        result = editor.add(soup, entries);
+    if (result != 0) {
+      outOK = false;
+      return report + "; the Newton took " + std::to_string(editor.counts().added) + " (error " + std::to_string(result) + ")";
+    }
+    return report + ", sent to the Newton";
+  });
+}
+
+
 void AppDock::restoreChoices(const std::filesystem::path & inFile,
                              std::function<void(const std::vector<RestoreChoice> &, const std::string &)> inChoices)
 {

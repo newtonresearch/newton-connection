@@ -8,8 +8,11 @@
 
 #include "base/NewtonCall.h"
 #include "model/DeviceFile.h"
+#include "model/NewtonModel.h"
 #include "platform/AppFolders.h"
 #include "translators/Transfer.h"
+
+#include "RSSymbols.h"
 
 #include <algorithm>
 #include <exception>
@@ -114,6 +117,55 @@ std::string ImportIntoFile(const std::filesystem::path & inFile, int64_t inStore
     report += " (" + Count(skipped, "entry", "entries") + " left out: their soup isn't on the store)";
   if (!failed.empty())
     report += "; " + failed;
+  return report;
+}
+
+
+std::string CopyEntries(const std::filesystem::path & inSource, const std::vector<int64_t> & inEntryPks,
+                        const std::filesystem::path & inFile, int64_t inStorePk,
+                        std::vector<int64_t> & outEntryPks, std::vector<int64_t> & outSoupPks, bool & outOK)
+{
+  outOK = false;
+  std::string error;
+  std::unique_ptr<DeviceFile> source = DeviceFile::Open(inSource, DeviceFile::kReadOnly, error);
+  if (!source)
+    return "Not copied: " + error;
+  std::unique_ptr<DeviceFile> file = DeviceFile::Open(inFile, DeviceFile::kReadWrite, error);
+  if (!file)
+    return "Not copied: " + error;
+  size_t copied = 0, skipped = 0;
+  try {
+    DeviceFile::Transaction transaction(*file);
+    for (int64_t pk : inEntryPks) {
+      std::optional<EntryRecord> entry = source->entry(pk, true);
+      std::optional<SoupRecord> from = entry ? source->soup(entry->soupPk) : std::nullopt;
+      std::optional<SoupRecord> to = from ? file->findSoup(inStorePk, from->name) : std::nullopt;
+      if (!to) {
+        ++skipped;
+        continue;
+      }
+      CallNewton([&] {
+        RefVar frame(EntryFrame(*entry));
+        if (!IsFrame(frame))
+          return;
+        // a new entry here: a new id, from kImportIdBase on (AddImportedEntry)
+        RemoveSlot(frame, SYMA(_uniqueId));
+        EntryRecord made = AddImportedEntry(*file, *to, frame);
+        outEntryPks.push_back(made.pk);
+        ++copied;
+      });
+      if (std::find(outSoupPks.begin(), outSoupPks.end(), to->pk) == outSoupPks.end())
+        outSoupPks.push_back(to->pk);
+    }
+    transaction.commit();
+  } catch (const std::exception & e) {
+    outEntryPks.clear();
+    return std::string("Not copied: ") + e.what();
+  }
+  outOK = true;
+  std::string report = "Copied " + Count(copied, "entry", "entries");
+  if (skipped)
+    report += " (" + Count(skipped, "entry", "entries") + " left out: their soup isn't on the store)";
   return report;
 }
 

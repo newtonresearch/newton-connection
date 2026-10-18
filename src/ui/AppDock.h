@@ -103,6 +103,10 @@ public:
       has them (source, app). */
   void importFiles(const std::filesystem::path & inFile, int64_t inStorePk,
                    const std::vector<std::pair<std::filesystem::path, std::string>> & inItems);
+  /** Entries of another backup copied into the docked Newton's file (on a
+      store, CopyEntries), then sent to the Newton. */
+  void copyEntries(const std::filesystem::path & inSource, const std::vector<int64_t> & inEntryPks,
+                   const std::filesystem::path & inFile, int64_t inStorePk);
   /** What can be restored to the docked Newton from its file (its stores
       now, model/Restore.h); told on the dock thread (inError: why not). */
   void restoreChoices(const std::filesystem::path & inFile,

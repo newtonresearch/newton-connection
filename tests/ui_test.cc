@@ -390,6 +390,35 @@ void TestShell()
   app.command(Command::kClose, waiting);
   Fl::check();
   Check(app.windows().size() == 1, "shell: Close closes it");
+  // entries dragged from this window to another document's (D9)
+  {
+    std::filesystem::path other = AppDataFolder() / "other.newtondevice";
+    std::filesystem::copy_file(gFixtures / "cocoa" / "einstein.newtondevice", other,
+                               std::filesystem::copy_options::overwrite_existing);
+    DocumentWindow * second = app.openDocument(other);
+    window->sidebar()->select_only(window->sidebar()->find_item("Internal/Names/Names"), 1);
+    WaitFor(10, [&] { return !soup->loading(); });
+    soup->selectRow(0, true);
+    soup->selectRow(1, true);
+    std::vector<int64_t> dragged = soup->selectedEntries();
+    Check(second && dragged.size() == 2, "shell: a second document, two Names entries to drag");
+    if (second) {
+      second->sidebar()->select_only(second->sidebar()->find_item("Internal/Names/Names"), 1);
+      WaitFor(10, [&] { return !second->soupPanel()->loading(); });
+      size_t before = second->soupPanel()->data().rows.size();
+      second->dropped(EntriesPayload(window->file(), dragged));
+      bool copied = WaitFor(10, [&] { return app.message().find("Copied") == 0 && !second->soupPanel()->loading()
+                                             && second->soupPanel()->data().rows.size() == before + 2; });
+      Check(copied && app.messageFile() == second->file(), "shell: dropped on it: copied into its Names: " + app.message());
+      // a file dropped: imported
+      second->dropped(UTF8FromPath(gFixtures / "cocoa" / "names-person.vcf"));
+      bool imported = WaitFor(10, [&] { return app.message().find("Imported") == 0; });
+      Check(imported, "shell: a file dropped on it: imported: " + app.message());
+      app.command(Command::kClose, second);
+      Fl::check();
+    }
+  }
+
   // the same file again: the same window
   app.openDocument(file);
   Check(app.windows().size() == 1, "shell: a file open already: its window");
@@ -431,6 +460,12 @@ void TestDrop()
         "drop: a file: URL (%-escaped), a path; what isn't there left out (" + std::to_string(files.size()) + ")");
   files = DroppedFiles(FileURL(c, "localhost"));
   Check(files.size() == 1 && files[0] == c, "drop: file://localhost/...");
+  // entries dragged between windows
+  std::filesystem::path from;
+  std::vector<int64_t> pks;
+  Check(ParseEntriesPayload(EntriesPayload(c, { 3, 14, 15 }), from, pks) && from == c
+        && pks == std::vector<int64_t>({ 3, 14, 15 }) && !ParseEntriesPayload(FileURL(c, ""), from, pks),
+        "drop: entries dragged between windows: the payload");
   // keys for the keyboard panel
   Check(NewtonKeyFor(FL_BackSpace) == newtonkey::kBackspace && NewtonKeyFor(FL_Enter) == newtonkey::kReturn
         && NewtonKeyFor(FL_Up) == newtonkey::kUp && NewtonKeyFor(FL_F + 3) == newtonkey::kF1 + 2
