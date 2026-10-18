@@ -16,7 +16,8 @@ Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
 Back Up and Install from the menu); the panels (7.4): device, store, soup
-(table, Delete, Export), package info done; next the screenshot panel.
+(table, Delete, Export), package info, screenshot done; next the keyboard
+panel.
 
 ---
 
@@ -1225,6 +1226,17 @@ and it):
     a book's title, ISBN, author, copyright, date) and frees the parts'
     data when done. `PackageView` lays the rows out to the inspector's
     width.
+  - 7.4.5 screenshot panel: done. Shown while docked, the Newton goes into
+    screenshot mode (`AppDock::beginScreenshots`: the Dock slip away; a
+    `ScreenshotSession` on the dock thread until the panel goes, the
+    window closes, or the Newton undocks); Take Screenshot (an operation
+    with progress), Save (PNG), Copy (`Fl_Copy_Surface`: to the
+    clipboard). Without the Toolkit app the panel says so (the Cocoa app
+    offered to install Toolkit.newtonpkg: NCX doesn't carry it).
+  - Linux: a UI file must not include both FLTK's `platform.H` (X11's
+    `GC`) and the framework's headers (its `GC`); framework headers stay
+    in files without FLTK (`AppDock.cc`, `SoupData.cc`, `Edits.cc`,
+    `PackageInfo.cc`).
 - **7.4 Panels** (one step each): device (with the package list and
   dropping packages), store (capacity indicator), soup (an `Fl_Table_Row`
   subclass with columns per soup, sorting, multiple selection, delete and

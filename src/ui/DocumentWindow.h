@@ -42,6 +42,7 @@ class Inspector;
 class DevicePanel;
 class StorePanel;
 class SoupPanel;
+class ScreenshotPanel;
 
 class DocumentWindow : public Fl_Double_Window
 {
@@ -86,6 +87,7 @@ public:
   StorePanel * storePanel() { return mStorePanel; }
   SoupPanel * soupPanel() { return mSoupPanel; }
   Inspector * inspector() { return mInspector; }
+  ScreenshotPanel * screenshotPanel() { return mScreenshotPanel; }
   const char * messageText() const;
 
   /** Closed: the app forgets it. */
@@ -130,6 +132,7 @@ private:
   DevicePanel * mDevicePanel = nullptr;
   StorePanel * mStorePanel = nullptr;
   SoupPanel * mSoupPanel = nullptr;
+  ScreenshotPanel * mScreenshotPanel = nullptr;
   Inspector * mInspector = nullptr;
   Fl_Box * mMessage = nullptr;
   Fl_Box * mDockState = nullptr;

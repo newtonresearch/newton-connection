@@ -12,6 +12,7 @@
 #include "ui/Images.h"
 #include "ui/Inspector.h"
 #include "ui/panels/DevicePanel.h"
+#include "ui/panels/ScreenshotPanel.h"
 #include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
 
@@ -138,6 +139,8 @@ DocumentWindow::DocumentWindow()
   mStorePanel->hide();
   mSoupPanel = new SoupPanel(mContent->x(), top, mContent->w(), tileHeight);
   mSoupPanel->hide();
+  mScreenshotPanel = new ScreenshotPanel(mContent->x(), top, mContent->w(), tileHeight);
+  mScreenshotPanel->hide();
   mSoupPanel->setSelectionChanged([this] {
     App::get().selectionChanged();
     inspectSelection();
@@ -214,6 +217,8 @@ void DocumentWindow::hide()
   bool shown = this->shown();
   Fl_Double_Window::hide();
   if (shown) {
+    if (mScreenshotPanel->active())
+      mScreenshotPanel->leave();
     rememberLayout();
     App::get().windowClosed(this);
   }
@@ -313,6 +318,9 @@ void DocumentWindow::showSelection()
           mSoupPanel->load(mFile, node->soupPk);
           panel = mSoupPanel;
           break;
+        case Node::kScreenshot:
+          panel = mScreenshotPanel;
+          break;
         default:
           break;
       }
@@ -321,9 +329,15 @@ void DocumentWindow::showSelection()
       text = error.what();
     }
   }
-  for (Fl_Group * each : { (Fl_Group *)mDevicePanel, (Fl_Group *)mStorePanel, (Fl_Group *)mSoupPanel })
+  for (Fl_Group * each : { (Fl_Group *)mDevicePanel, (Fl_Group *)mStorePanel, (Fl_Group *)mSoupPanel,
+                           (Fl_Group *)mScreenshotPanel })
     if (each != panel)
       each->hide();
+  // screenshot mode while its panel shows
+  if (panel == mScreenshotPanel)
+    mScreenshotPanel->enter();
+  else if (mScreenshotPanel->active())
+    mScreenshotPanel->leave();
   mContent->redraw();
   inspectSelection();
   if (panel) {
@@ -341,12 +355,10 @@ void DocumentWindow::showSelection()
         case Node::kDevice:
         case Node::kStore:
         case Node::kSoup:
+        case Node::kScreenshot:
           break;
         case Node::kKeyboard:
           text = "Type on the Newton from this computer's keyboard (comes with PORTING.md 7.4).";
-          break;
-        case Node::kScreenshot:
-          text = "The Newton's screen (comes with PORTING.md 7.4).";
           break;
         case Node::kApp: {
           text = item->label() + std::string("\n\n");
@@ -583,6 +595,8 @@ void DocumentWindow::updateState()
   }
   if (mDevicePanel->visible())
     mDevicePanel->updateState();
+  if (mScreenshotPanel->visible())
+    mScreenshotPanel->updateState();
   updateProgress();
   redraw();
 }

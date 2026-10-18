@@ -28,6 +28,7 @@ struct AppDock::Impl
   std::atomic<int> operations { 0 };          // posted, not ended
   mutable std::mutex lock;                    // progress
   std::shared_ptr<Progress> progress;
+  std::unique_ptr<ScreenshotSession> screenshots;   // the dock thread's; while begun
 
   /** inWork as an operation of the session it is posted in: with a
       Progress, started and finished told; not run if that session ended
@@ -232,6 +233,7 @@ bool AppDock::start(const Hooks & inHooks, std::string & outError, const std::ve
     });
   };
   events.undocked = [&impl](int inCode, const std::string & inWhy) {
+    impl.screenshots.reset();
     if (impl.hooks.undocked)
       impl.hooks.undocked(inCode, inWhy);
   };
@@ -359,6 +361,60 @@ void AppDock::removeEntries(const std::filesystem::path & inFile, int64_t inSoup
       report += " (the Newton refused the rest: " + std::to_string(result) + ")";
     return report;
   });
+}
+
+
+void AppDock::beginScreenshots()
+{
+  Impl & impl = *mImpl;
+  unsigned session = mDock->sessionNumber();
+  mDock->post([&impl, session](DockController & ioDock) {
+    if (ioDock.sessionNumber() != session)
+      return;
+    impl.screenshots.reset(new ScreenshotSession(ioDock));
+    int result = impl.screenshots->begin();
+    if (result != 0)
+      impl.screenshots.reset();
+    if (impl.hooks.screenshotReady)
+      impl.hooks.screenshotReady(result);
+  });
+}
+
+
+void AppDock::takeScreenshot()
+{
+  Impl & impl = *mImpl;
+  impl.post(*mDock, "Taking a screenshot", [&impl](DockController &, Progress & ioProgress, bool & outOK,
+                                                   std::filesystem::path &) {
+    Screenshot shot;
+    int result = impl.screenshots ? impl.screenshots->take(shot, &ioProgress) : kDockErrFileNotFound;
+    outOK = result == 0;
+    if (impl.hooks.screenshotTaken)
+      impl.hooks.screenshotTaken(shot, result);
+    return result == 0 ? "Took a screenshot, " + std::to_string(shot.width) + " x " + std::to_string(shot.height)
+                       : "No screenshot (" + std::to_string(result) + ")";
+  });
+}
+
+
+void AppDock::endScreenshots()
+{
+  Impl & impl = *mImpl;
+  unsigned session = mDock->sessionNumber();
+  mDock->post([&impl, session](DockController & ioDock) {
+    if (impl.screenshots && ioDock.sessionNumber() == session)
+      impl.screenshots->end();
+    impl.screenshots.reset();
+  });
+}
+
+
+bool AppDock::postObjectWork(std::function<void()> inWork)
+{
+  if (!mDock->isRunning())
+    return false;
+  mDock->postObjectWork(std::move(inWork));
+  return true;
 }
 
 

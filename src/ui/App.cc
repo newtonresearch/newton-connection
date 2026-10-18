@@ -6,19 +6,21 @@
 
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
+#include "ui/panels/ScreenshotPanel.h"
 
 #include "base/Log.h"
 #include "base/Prefs.h"
 #include "base/Threads.h"
 #include "base/Version.h"
-#include "dock/DockController.h"
 #include "platform/AppFolders.h"
 
 #include <FL/Fl.H>
 #include <FL/Fl_Native_File_Chooser.H>
 #include <FL/Fl_Sys_Menu_Bar.H>
 #include <FL/fl_ask.H>
-#include <FL/platform.H>
+#if defined(__APPLE__)
+#include <FL/platform.H>         // Fl_Mac_App_Menu, fl_open_callback (X11's would clash with the framework's GC)
+#endif
 
 #include <atomic>
 #include <memory>
@@ -263,6 +265,20 @@ void App::startDock(const std::vector<std::string> & inTargets)
                        inName.c_str()) == 1;
     }, false);
   };
+  hooks.screenshotReady = [this](int inError) {
+    RunOnMainThread([this, inError]() {
+      for (DocumentWindow * window : mWindows)
+        if (isDockedWindow(window))
+          window->screenshotPanel()->ready(inError);
+    });
+  };
+  hooks.screenshotTaken = [this](const Screenshot & inShot, int inError) {
+    RunOnMainThread([this, inShot, inError]() {
+      for (DocumentWindow * window : mWindows)
+        if (isDockedWindow(window))
+          window->screenshotPanel()->taken(inShot, inError);
+    });
+  };
   std::string error;
   mDockStatus = "Waiting for a Newton";
   if (!mDock.start(hooks, error, inTargets))
@@ -465,9 +481,7 @@ void App::chooseAndInstall()
 
 void App::objectWork(std::function<void()> inWork)
 {
-  if (mDock.controller().isRunning())
-    mDock.controller().postObjectWork(std::move(inWork));
-  else
+  if (!mDock.postObjectWork(inWork))
     inWork();
 }
 

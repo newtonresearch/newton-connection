@@ -23,6 +23,7 @@
 #define NCX_UI_APPDOCK_H
 
 #include "base/Progress.h"
+#include "dock/Screenshot.h"
 
 #include <cstdint>
 #include <filesystem>
@@ -57,6 +58,11 @@ public:
     std::function<bool(const std::string & inText)> confirmDeletions;
     /** Replace the package of that name on the Newton? */
     std::function<bool(const std::string & inName)> replacePackage;
+    /** Screenshots: the Newton is ready (0), or why not
+        (kDockErrFileNotFound: no Toolkit app); a shot taken (0), or why
+        not. */
+    std::function<void(int inError)> screenshotReady;
+    std::function<void(const Screenshot & inShot, int inError)> screenshotTaken;
   };
 
   AppDock();
@@ -86,6 +92,17 @@ public:
       removed by name). */
   void removeEntries(const std::filesystem::path & inFile, int64_t inSoupPk, const std::vector<int64_t> & inEntryPks);
   void disconnect();
+
+  /** Screenshots (ScreenshotSession): the Newton gets ready (the Dock
+      slip goes away), shots are taken (operations), the slip comes back.
+      Told through the hooks. */
+  void beginScreenshots();
+  void takeScreenshot();
+  void endScreenshots();
+
+  /** Work with Newton objects on the dock thread (DockController::
+      postObjectWork). False if the dock thread doesn't run. */
+  bool postObjectWork(std::function<void()> inWork);
 
   DockController & controller() { return *mDock; }
 

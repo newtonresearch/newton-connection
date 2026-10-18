@@ -28,6 +28,7 @@
 #include "ui/Drop.h"
 #include "ui/Inspector.h"
 #include "ui/panels/PackageView.h"
+#include "ui/panels/ScreenshotPanel.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
@@ -380,6 +381,23 @@ void TestDock()
                                             && window->soupPanel()->data().rows.size() == 1; });
     Check(deleted, "dock: Delete: on the Newton and from the file: " + app.message());
   }
+
+  // the screenshot panel: screenshot mode, a shot, saved
+  window->sidebar()->select_only(window->sidebar()->find_item("Screenshot"), 1);
+  ScreenshotPanel * screenshot = window->screenshotPanel();
+  bool ready = WaitFor(15, [&] { return screenshot->isReady(); });
+  Check(ready && screenshot->visible() && screenshot->active() && screenshot->mTake->active(),
+        "dock: the screenshot panel: the Newton is ready: " + screenshot->instructions());
+  screenshot->mTake->do_callback();
+  bool taken = WaitFor(20, [&] { return screenshot->shot().width > 0 && !app.dock().busy(); });
+  Check(taken && screenshot->shot().width == 320 && screenshot->shot().height == 480 && screenshot->mSave->active(),
+        "dock: ... Take Screenshot: " + std::to_string(screenshot->shot().width) + " x "
+        + std::to_string(screenshot->shot().height));
+  std::filesystem::path png = AppDataFolder() / "screenshot.png";
+  Check(screenshot->save(png) && std::filesystem::file_size(png) > 100, "dock: ... saved as PNG");
+  Snapshot(window, "screenshot");
+  window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
+  Check(!screenshot->active(), "dock: ... another panel: screenshot mode ends");
 
   app.command(Command::kDisconnect, window);
   bool undocked = WaitFor(15, [&] { return !app.docked(); });
