@@ -25,6 +25,9 @@ std::unique_ptr<Importer> MakeNoteFromRTF();
 std::unique_ptr<Exporter> MakeWorksExporter();
 std::unique_ptr<Importer> MakeWorksFromText();
 std::unique_ptr<Importer> MakeWorksFromRTF();
+std::unique_ptr<Exporter> MakeNoteToAudio();
+std::unique_ptr<Exporter> MakeMP3Exporter();
+std::unique_ptr<Importer> MakeAudioFromMP3();
 
 
 const std::vector<ExportFormat> & ExportFormats()
@@ -44,6 +47,8 @@ const std::vector<ExportFormat> & ExportFormats()
     { "works", "paper", "rtf", "Rich Text (RTF)", MakeWorksExporter },
     { "works", "drawpaper", "png", "PNG image", MakeWorksExporter },
     { "works", "qfnewt:donv", "csv", "Spreadsheet (CSV)", MakeWorksExporter },
+    { "recording", "soundpaper:nsg", "wav", "Sound (WAV)", MakeNoteToAudio },
+    { "mp3", "mp3data", "mp3", "MP3", MakeMP3Exporter },
   };
   return formats;
 }
@@ -58,6 +63,7 @@ const std::vector<ImportFormat> & ImportFormats()
     { "Notes", { "rtf", "rtfd" }, "Notes", "Rich Text (RTF)", MakeNoteFromRTF },
     { "Newton Works", { "txt", "text" }, "NewtWorks", "Text", MakeWorksFromText },
     { "Newton Works", { "rtf", "rtfd" }, "NewtWorks", "Rich Text (RTF)", MakeWorksFromRTF },
+    { "MAD Max:40Hz", { "mp3" }, "Audio", "MP3", MakeAudioFromMP3 },
   };
   return formats;
 }

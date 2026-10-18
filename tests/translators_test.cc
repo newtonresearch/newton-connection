@@ -889,6 +889,100 @@ void TestWorks()
   Check(files.size() == 1 && ReadRTF(ReadFile(files[0])).text() == "First line\nSecond line", "works: and out again (its last line end ends the paragraph)");
 }
 
+/*-- audio -------------------------------------------------------------------*/
+
+Ref Recording(const std::string & inSamples, RefArg inRate, int inDataType, int inCompression, const char * inCodec)
+{
+  RefVar sound(AllocateFrame());
+  RefVar samples(AllocateBinary(SYMA(samples), inSamples.size()));
+  std::memcpy(BinaryData(samples), inSamples.data(), inSamples.size());
+  SetFrameSlot(sound, SYMA(samples), samples);
+  SetFrameSlot(sound, SYMA(samplingRate), inRate);
+  SetFrameSlot(sound, SYMA(dataType), MAKEINT(inDataType));
+  SetFrameSlot(sound, SYMA(compressionType), MAKEINT(inCompression));
+  if (inCodec)
+    SetFrameSlot(sound, SYMA(codecName), RefVar(Str(inCodec)));
+  RefVar sounds(MakeArray(1));
+  SetArraySlot(sounds, 0, sound);
+  RefVar soundData(AllocateFrame());
+  SetFrameSlot(soundData, MakeSymbol("sounds"), sounds);
+  RefVar paper(AllocateFrame());
+  SetFrameSlot(paper, MakeSymbol("soundData"), soundData);
+  RefVar entry(AllocateFrame());
+  SetFrameSlot(entry, SYMA(class), MakeSymbol("soundPaper:NSG"));
+  SetFrameSlot(entry, MakeSymbol("soundPaper:NSG"), paper);
+  SetFrameSlot(entry, SYMA(title), RefVar(Str("Memo")));
+  return entry;
+}
+
+uint32_t LE(const std::string & inData, size_t inAt, int inBytes)
+{
+  uint32_t value = 0;
+  for (int i = inBytes - 1; i >= 0; --i)
+    value = value << 8 | (unsigned char)inData[inAt + i];
+  return value;
+}
+
+void TestAudio()
+{
+  TempFolder folder("audio");
+  // 8 bits at 11025 Hz (a Fixed), 16 bits big-endian, mu-law, IMA
+  RefVar fixedRate(AllocateBinary(SYMA(binary), 4));
+  const unsigned char rate11025[] = { 0x2B, 0x11, 0x00, 0x00 };
+  std::memcpy(BinaryData(fixedRate), rate11025, 4);
+  RefVar eight(Recording(std::string("\x80\xFF\x00\x80", 4), fixedRate, 8, 0, nullptr));
+  RefVar sixteen(Recording(std::string("\x12\x34\xFF\xFE", 4), RefVar(MakeReal(22050.0)), 16, 6, nullptr));
+  RefVar muLaw(Recording(std::string("\xFF\x00", 2), RefVar(MAKEINT(8000)), 8, 1, "TMuLawCodec"));
+  RefVar ima(Recording(std::string(34, '\x11'), RefVar(MAKEINT(22026)), 16, 0, "TIMACodec"));
+  std::vector<fs::path> files = Export(folder.path, "Notes", { eight, sixteen, muLaw, ima });
+  std::vector<std::string> names;
+  for (const fs::path & f : files)
+    names.push_back(UTF8FromPath(f.filename()));
+  Check(names == std::vector<std::string>({ "Memo.wav", "Memo-2.wav", "Memo-3.wav", "Memo.aifc" }),
+        "audio: recordings as WAV, another codec's as AIFF-C");
+  if (files.size() != 4)
+    return;
+  std::string w8 = ReadFile(files[0]), w16 = ReadFile(files[1]), wmu = ReadFile(files[2]), aifc = ReadFile(files[3]);
+  Check(w8.compare(0, 4, "RIFF") == 0 && w8.compare(8, 8, "WAVEfmt ") == 0 && LE(w8, 24, 4) == 11025 && LE(w8, 34, 2) == 8
+        && w8.substr(44) == std::string("\x80\xFF\x00\x80", 4), "audio: 8 bits as they are, the Fixed rate");
+  Check(LE(w16, 24, 4) == 22050 && LE(w16, 34, 2) == 16 && w16.substr(44) == std::string("\x34\x12\xFE\xFF", 4),
+        "audio: 16 bits little-endian, a real rate");
+  Check(LE(wmu, 24, 4) == 8000 && LE(wmu, 34, 2) == 16 && LE(wmu, 40, 4) == 4 && (int16_t)LE(wmu, 44, 2) == 0
+        && (int16_t)LE(wmu, 46, 2) == -32124, "audio: mu-law decoded");
+  Check(aifc.compare(0, 4, "FORM") == 0 && aifc.compare(8, 4, "AIFC") == 0 && aifc.find("ima4\x09TIMACodec") != std::string::npos
+        && aifc.find("SSND") != std::string::npos, "audio: IMA as AIFF-C, the codec named");
+
+  // an MP3 for MAD Max: its bytes, its ID3v2.3 tags (title in UTF-16)
+  std::string id3 = "ID3\x03";
+  id3 += std::string("\0\0", 2);
+  std::string frames;
+  auto frame = [&](const char * inId, const std::string & inData) {
+    frames += inId;
+    uint32_t size = (uint32_t)inData.size();
+    for (int k = 3; k >= 0; --k)
+      frames += (char)(size >> (8 * k));
+    frames += std::string("\0\0", 2);
+    frames += inData;
+  };
+  frame("TIT2", std::string("\x01\xFF\xFE" "A\0d\0a\0", 9));
+  frame("TPE1", std::string("\x00" "Lovelace", 9));
+  frame("TALB", std::string("\x03" "Engines", 8));
+  uint32_t size = (uint32_t)frames.size();
+  for (int k = 3; k >= 0; --k)
+    id3 += (char)((size >> (7 * k)) & 0x7F);
+  std::string mp3 = id3 + frames + std::string("\xFF\xFB\x90\x00 audio", 10);
+  WriteFile(folder.path / "song.mp3", mp3);
+  Check(ImportAppsFor("x.mp3") == std::vector<std::string>({ "MAD Max:40Hz" }), "audio: MAD Max imports MP3s");
+  auto entries = Import("MAD Max:40Hz", folder.path / "song.mp3");
+  RefVar song(entries.size() == 1 ? (Ref)entries[0].second : (Ref)NILREF);
+  RefVar samples(GetFrameSlot(RefVar(GetFrameSlot(song, MakeSymbol("MP3Data"))), SYMA(samples)));
+  Check(entries.size() == 1 && entries[0].first == "Audio" && EQRef(GetFrameSlot(song, SYMA(class)), MakeSymbol("MP3Data"))
+        && IsBinary(samples) && Length(samples) == mp3.size() && Text(song, "title") == "Ada" && Text(song, "artist") == "Lovelace"
+        && Text(song, "album") == "Engines", "audio: an MP3 as MAD Max's entry, its ID3 tags");
+  files = Export(folder.path / "out", "MAD Max:40Hz", { song });
+  Check(files.size() == 1 && files[0].filename() == "Ada.mp3" && ReadFile(files[0]) == mp3, "audio: and back as the MP3");
+}
+
 } // namespace
 
 
@@ -902,7 +996,7 @@ int main(int argc, char * argv[])
   InitCore();
   struct { const char * name; void (*test)(); } sections[] = {
     { "lines", TestLines }, { "names", TestNames }, { "dates", TestDates }, { "notes", TestNotes },
-    { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "richtext", TestRichText },
+    { "builtin", TestBuiltin }, { "graphics", TestGraphics }, { "richtext", TestRichText }, { "audio", TestAudio },
     { "ink", TestInk }, { "notesrtf", TestNotesRTF }, { "works", TestWorks }, { "transfer", TestTransfer } };
   bool found = false;
   for (auto & s : sections) {

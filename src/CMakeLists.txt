@@ -76,6 +76,7 @@ add_library (ncx_core STATIC
   model/Restore.cc model/Restore.h
   platform/AppFolders.cc platform/AppFolders.h
   platform/SerialPorts.cc platform/SerialPorts.h
+  translators/Audio.cc
   translators/Builtin.cc
   translators/Canvas.cc translators/Canvas.h
   translators/ContentLines.cc translators/ContentLines.h

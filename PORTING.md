@@ -1045,6 +1045,20 @@ ctests, clean under ThreadSanitizer and ASan/UBSan.
   ID3 tags, converted to Newton sound frames and compressed with
   `FLBAllocCompressed`. That needs a store with large objects first:
   framework bug B55 (the internal store has none).
+  ✅ (no recording or MP3 entry in the fixtures: tested with ones made in
+  the test) `translators/Audio.cc`:
+  - Recordings ('|soundPaper:NSG|: soundData.sounds) as WAV: 8-bit
+    samples as they are (unsigned, as the Mac's), 16-bit turned
+    little-endian, mu-law decoded; another codec's (IMA, GSM) as AIFF-C
+    naming it, as the Cocoa app wrote them all. The rate as an integer, a
+    real or a Fixed.
+  - MP3: the Cocoa app didn't decode it, nor does NCX. An MP3 file becomes
+    an entry of the Newton's MAD Max player ('MP3Data: the file's bytes,
+    which the player plays; title, artist, album from its ID3v2.2/2.3/2.4
+    or v1 tags), into its Audio soup; such an entry exports as the MP3.
+    No dr_mp3 or minimp3. In the .newtondevice file the bytes are a binary
+    like any other (B55 matters only on a Newton store); whether a Newton
+    takes such a large entry over the dock is still to be seen.
 - **6.6 Golden-file tests:** export fixture entries and compare them with
   files saved from the current macOS NCX (text formats exactly, images by
   pixel tolerance).
