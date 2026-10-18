@@ -12,6 +12,7 @@
 #include "ui/Images.h"
 #include "ui/Inspector.h"
 #include "ui/panels/DevicePanel.h"
+#include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/ScreenshotPanel.h"
 #include "ui/panels/SoupPanel.h"
 #include "ui/panels/StorePanel.h"
@@ -141,6 +142,8 @@ DocumentWindow::DocumentWindow()
   mSoupPanel->hide();
   mScreenshotPanel = new ScreenshotPanel(mContent->x(), top, mContent->w(), tileHeight);
   mScreenshotPanel->hide();
+  mKeyboardPanel = new KeyboardPanel(mContent->x(), top, mContent->w(), tileHeight);
+  mKeyboardPanel->hide();
   mSoupPanel->setSelectionChanged([this] {
     App::get().selectionChanged();
     inspectSelection();
@@ -219,6 +222,8 @@ void DocumentWindow::hide()
   if (shown) {
     if (mScreenshotPanel->active())
       mScreenshotPanel->leave();
+    if (mKeyboardPanel->active())
+      mKeyboardPanel->leave();
     rememberLayout();
     App::get().windowClosed(this);
   }
@@ -321,6 +326,9 @@ void DocumentWindow::showSelection()
         case Node::kScreenshot:
           panel = mScreenshotPanel;
           break;
+        case Node::kKeyboard:
+          panel = mKeyboardPanel;
+          break;
         default:
           break;
       }
@@ -330,14 +338,20 @@ void DocumentWindow::showSelection()
     }
   }
   for (Fl_Group * each : { (Fl_Group *)mDevicePanel, (Fl_Group *)mStorePanel, (Fl_Group *)mSoupPanel,
-                           (Fl_Group *)mScreenshotPanel })
+                           (Fl_Group *)mScreenshotPanel, (Fl_Group *)mKeyboardPanel })
     if (each != panel)
       each->hide();
-  // screenshot mode while its panel shows
+  // screenshot mode, keyboard passthrough while their panels show
+  if (panel != mScreenshotPanel && mScreenshotPanel->active())
+    mScreenshotPanel->leave();
+  if (panel != mKeyboardPanel && mKeyboardPanel->active())
+    mKeyboardPanel->leave();
+  if (panel)
+    panel->show();
   if (panel == mScreenshotPanel)
     mScreenshotPanel->enter();
-  else if (mScreenshotPanel->active())
-    mScreenshotPanel->leave();
+  if (panel == mKeyboardPanel)
+    mKeyboardPanel->enter();
   mContent->redraw();
   inspectSelection();
   if (panel) {
@@ -356,9 +370,7 @@ void DocumentWindow::showSelection()
         case Node::kStore:
         case Node::kSoup:
         case Node::kScreenshot:
-          break;
         case Node::kKeyboard:
-          text = "Type on the Newton from this computer's keyboard (comes with PORTING.md 7.4).";
           break;
         case Node::kApp: {
           text = item->label() + std::string("\n\n");
@@ -388,6 +400,30 @@ void DocumentWindow::inspectSelection()
     mInspector->notApplicable();
   else if (!mSoupPanel->loading())
     mInspector->inspect(mFile, mSoupPanel->data().soupName, mSoupPanel->selectedEntries());
+}
+
+
+void DocumentWindow::showKeyboard()
+{
+  if (Fl_Tree_Item * item = mSidebar->find_item("Keyboard")) {
+    if (!mKeyboardPanel->visible()) {
+      mSidebar->select_only(item, 0);
+      showSelection();
+    } else
+      mKeyboardPanel->enter();
+  }
+}
+
+
+bool DocumentWindow::canPaste() const
+{
+  return mKeyboardPanel->canPaste();
+}
+
+
+void DocumentWindow::paste()
+{
+  mKeyboardPanel->paste();
 }
 
 

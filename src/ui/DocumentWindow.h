@@ -43,6 +43,7 @@ class DevicePanel;
 class StorePanel;
 class SoupPanel;
 class ScreenshotPanel;
+class KeyboardPanel;
 
 class DocumentWindow : public Fl_Double_Window
 {
@@ -88,6 +89,11 @@ public:
   SoupPanel * soupPanel() { return mSoupPanel; }
   Inspector * inspector() { return mInspector; }
   ScreenshotPanel * screenshotPanel() { return mScreenshotPanel; }
+  KeyboardPanel * keyboardPanel() { return mKeyboardPanel; }
+  /** The Newton started its keyboard: show the keyboard panel. */
+  void showKeyboard();
+  bool canPaste() const;
+  void paste();
   const char * messageText() const;
 
   /** Closed: the app forgets it. */
@@ -133,6 +139,7 @@ private:
   StorePanel * mStorePanel = nullptr;
   SoupPanel * mSoupPanel = nullptr;
   ScreenshotPanel * mScreenshotPanel = nullptr;
+  KeyboardPanel * mKeyboardPanel = nullptr;
   Inspector * mInspector = nullptr;
   Fl_Box * mMessage = nullptr;
   Fl_Box * mDockState = nullptr;

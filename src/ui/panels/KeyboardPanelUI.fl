@@ -1,0 +1,29 @@
+# data file for the Fltk User Interface Designer (fluid)
+version 1.0401
+header_name {.h}
+code_name {.cxx}
+comment {//
+// The keyboard panel's layout (PORTING.md 7.4; the Cocoa app's
+// Keyboard.storyboard). Its behaviour: KeyboardPanel.cc.
+//} {in_source in_header
+}
+decl {\#include "ui/panels/PassthroughArea.h"} {public global
+}
+widget_class KeyboardPanelUI {open
+  xywh {0 0 560 400}
+  class Fl_Group visible position_relative
+} {
+  Fl_Box mInstructions {
+    label {Not connected.}
+    xywh {16 10 412 40} align 212
+  }
+  Fl_Button mStart {
+    label {Start Typing}
+    xywh {436 16 108 28}
+  }
+  Fl_Box mArea {
+    label {Click here, then type: the text goes to the Newton's insertion point. Paste or drop text to send it.}
+    xywh {16 60 528 328} box DOWN_BOX color 7 labelcolor 39 align 144 resizable
+    class ncx::PassthroughArea
+  }
+}

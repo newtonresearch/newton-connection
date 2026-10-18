@@ -22,12 +22,15 @@
 #include "base/Core.h"
 #include "base/Prefs.h"
 #include "base/Threads.h"
+#include "dock/Keyboard.h"
 #include "platform/AppFolders.h"
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
 #include "ui/Drop.h"
 #include "ui/Inspector.h"
+#include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/PackageView.h"
+#include "ui/panels/PassthroughArea.h"
 #include "ui/panels/ScreenshotPanel.h"
 #include "ui/panels/DevicePanel.h"
 #include "ui/panels/SoupPanel.h"
@@ -323,6 +326,10 @@ void TestDrop()
         "drop: a file: URL (%-escaped), a path; what isn't there left out (" + std::to_string(files.size()) + ")");
   files = DroppedFiles(FileURL(c, "localhost"));
   Check(files.size() == 1 && files[0] == c, "drop: file://localhost/...");
+  // keys for the keyboard panel
+  Check(NewtonKeyFor(FL_BackSpace) == newtonkey::kBackspace && NewtonKeyFor(FL_Enter) == newtonkey::kReturn
+        && NewtonKeyFor(FL_Up) == newtonkey::kUp && NewtonKeyFor(FL_F + 3) == newtonkey::kF1 + 2
+        && NewtonKeyFor('a') == 0, "keys: the Newton's characters for keys that aren't text");
 }
 
 
@@ -399,6 +406,20 @@ void TestDock()
   window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
   Check(!screenshot->active(), "dock: ... another panel: screenshot mode ends");
 
+  // the keyboard panel: passthrough on, text pasted (as a drop or Edit > Paste
+  // brings it) goes to the Newton
+  window->sidebar()->select_only(window->sidebar()->find_item("Keyboard"), 1);
+  KeyboardPanel * keyboard = window->keyboardPanel();
+  bool on = WaitFor(15, [&] { return keyboard->on(); });
+  Check(on && keyboard->visible() && app.canDo(Command::kPaste, window),
+        "dock: the keyboard panel: passthrough on: " + keyboard->instructions());
+  std::string hello = "Hello";
+  Fl::e_text = &hello[0];
+  Fl::e_length = (int)hello.size();
+  keyboard->mArea->handle(FL_PASTE);
+  window->sidebar()->select_only(window->sidebar()->root()->child(0), 1);
+  Check(!keyboard->active() && !keyboard->on(), "dock: ... another panel: passthrough ends");
+
   app.command(Command::kDisconnect, window);
   bool undocked = WaitFor(15, [&] { return !app.docked(); });
   Check(undocked && app.message().find("The connection ended") == std::string::npos, "dock: Disconnect, quietly");
@@ -406,6 +427,10 @@ void TestDock()
   app.stop();
   fake.finish();
   Check(fake.deleted == std::vector<int64_t>({ 100 }), "dock: the fake Newton deleted Ada (100)");
+  bool typed = false;
+  for (const std::string & each : fake.typed)
+    typed = typed || each.find("Hello") != std::string::npos;
+  Check(typed, "dock: the fake Newton got the text typed (" + std::to_string(fake.typed.size()) + ")");
   Check(fake.why.empty() && !fake.received.empty() && fake.received.back() == "disc",
         "dock: the fake Newton saw it end with 'disc' " + fake.why);
 }

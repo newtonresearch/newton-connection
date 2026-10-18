@@ -132,7 +132,7 @@ else ()
   set (ncx_fluid fltk::fluid)
 endif ()
 set (ncx_fluid_sources "")
-foreach (fl DevicePanelUI ScreenshotPanelUI StorePanelUI)
+foreach (fl DevicePanelUI KeyboardPanelUI ScreenshotPanelUI StorePanelUI)
   set (out "${PROJECT_BINARY_DIR}/generated/ui/${fl}")
   add_custom_command (
     OUTPUT "${out}.cxx" "${out}.h"
@@ -158,14 +158,16 @@ add_library (ncx_ui STATIC
   ui/PackageInfo.cc
   ui/SoupData.cc
   ui/panels/DevicePanel.cc
+  ui/panels/KeyboardPanel.cc
   ui/panels/PackageView.cc
+  ui/panels/PassthroughArea.cc
   ui/panels/ScreenshotPanel.cc
   ui/panels/SoupPanel.cc
   ui/panels/StorePanel.cc
   ${ncx_fluid_sources}
   "${ncx_image_data}"
 )
-target_include_directories (ncx_ui PUBLIC "${PROJECT_BINARY_DIR}/generated/ui")
+target_include_directories (ncx_ui PUBLIC "${PROJECT_BINARY_DIR}/generated/ui" "${CMAKE_CURRENT_SOURCE_DIR}")
 target_link_libraries (ncx_ui PUBLIC ncx_core)    # FLTK comes with it
 add_executable (NCX WIN32 MACOSX_BUNDLE ui/main.cc ${ncx_icon})
 target_link_libraries (NCX PRIVATE ncx_ui)

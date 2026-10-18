@@ -63,6 +63,9 @@ public:
         not. */
     std::function<void(int inError)> screenshotReady;
     std::function<void(const Screenshot & inShot, int inError)> screenshotTaken;
+    /** Keyboard passthrough on (the Newton answered, or started it: Dock's
+        Keyboard) or off (ended, on the Newton or here). */
+    std::function<void(bool inOn)> keyboardChanged;
   };
 
   AppDock();
@@ -99,6 +102,13 @@ public:
   void beginScreenshots();
   void takeScreenshot();
   void endScreenshots();
+
+  /** Keyboard passthrough (Keyboard.h): any thread. */
+  void startKeyboard();
+  void typeOnKeyboard(const std::string & inUTF8);
+  void pressKey(char16_t inKey);
+  void stopKeyboard();
+  bool keyboardActive() const;
 
   /** Work with Newton objects on the dock thread (DockController::
       postObjectWork). False if the dock thread doesn't run. */

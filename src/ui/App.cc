@@ -6,6 +6,7 @@
 
 #include "ui/App.h"
 #include "ui/DocumentWindow.h"
+#include "ui/panels/KeyboardPanel.h"
 #include "ui/panels/ScreenshotPanel.h"
 
 #include "base/Log.h"
@@ -279,6 +280,17 @@ void App::startDock(const std::vector<std::string> & inTargets)
           window->screenshotPanel()->taken(inShot, inError);
     });
   };
+  hooks.keyboardChanged = [this](bool inOn) {
+    RunOnMainThread([this, inOn]() {
+      for (DocumentWindow * window : mWindows)
+        if (isDockedWindow(window)) {
+          if (inOn && !window->keyboardPanel()->active())
+            window->showKeyboard();       // the Newton started it
+          window->keyboardPanel()->changed(inOn);
+        }
+      stateChanged();
+    });
+  };
   std::string error;
   mDockStatus = "Waiting for a Newton";
   if (!mDock.start(hooks, error, inTargets))
@@ -351,6 +363,8 @@ bool App::canDo(Command inCommand, DocumentWindow * inTarget) const
       return inTarget && inTarget->canExport();
     case Command::kSelectAll:
       return inTarget && inTarget->canSelectAll();
+    case Command::kPaste:
+      return inTarget && inTarget->canPaste();
     case Command::kNewton1Sync:
     case Command::kNewton1Restore:
     case Command::kNewton1Install:
@@ -424,6 +438,9 @@ void App::command(Command inCommand, DocumentWindow * inTarget)
       break;
     case Command::kSelectAll:
       inTarget->selectAll();
+      break;
+    case Command::kPaste:
+      inTarget->paste();
       break;
     // the session a NewtonOS 1 Newton is offered when it docks (the Cocoa
     // app's Newton 1 menu); the flow comes with 7.7

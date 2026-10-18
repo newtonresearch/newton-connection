@@ -11,6 +11,7 @@
 #include "dock/Backup.h"
 #include "dock/DockController.h"
 #include "dock/FileBrowser.h"
+#include "dock/Keyboard.h"
 #include "dock/Packages.h"
 #include "dock/SoupEditor.h"
 #include "model/DeviceList.h"
@@ -29,6 +30,7 @@ struct AppDock::Impl
   mutable std::mutex lock;                    // progress
   std::shared_ptr<Progress> progress;
   std::unique_ptr<ScreenshotSession> screenshots;   // the dock thread's; while begun
+  std::unique_ptr<Keyboard> keyboard;               // its handlers registered before the dock starts
 
   /** inWork as an operation of the session it is posted in: with a
       Progress, started and finished told; not run if that session ended
@@ -196,6 +198,11 @@ bool AppDock::start(const Hooks & inHooks, std::string & outError, const std::ve
 
   // the Newton browses the desktop (Dock's Install), and backs itself up
   // (Dock's Backup)
+  impl.keyboard.reset(new Keyboard(*mDock));
+  impl.keyboard->setChanged([&impl](bool inOn) {
+    if (impl.hooks.keyboardChanged)
+      impl.hooks.keyboardChanged(inOn);
+  });
   impl.browser.reset(new FileBrowser(*mDock));
   impl.browser->setFolder(HomeFolder());
   mDock->handle(kDRequestToSync, [&impl](DockController & ioDock, const DockEvent &) {
@@ -406,6 +413,40 @@ void AppDock::endScreenshots()
       impl.screenshots->end();
     impl.screenshots.reset();
   });
+}
+
+
+void AppDock::startKeyboard()
+{
+  if (mImpl->keyboard)
+    mImpl->keyboard->start();
+}
+
+
+void AppDock::typeOnKeyboard(const std::string & inUTF8)
+{
+  if (mImpl->keyboard)
+    mImpl->keyboard->type(inUTF8);
+}
+
+
+void AppDock::pressKey(char16_t inKey)
+{
+  if (mImpl->keyboard)
+    mImpl->keyboard->key(inKey);
+}
+
+
+void AppDock::stopKeyboard()
+{
+  if (mImpl->keyboard)
+    mImpl->keyboard->stop();
+}
+
+
+bool AppDock::keyboardActive() const
+{
+  return mImpl->keyboard && mImpl->keyboard->active();
 }
 
 

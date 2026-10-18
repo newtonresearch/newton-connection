@@ -15,9 +15,9 @@ ASan/UBSan and ThreadSanitizer, CI green on all six builds). Tested against
 Einstein (screenshot, ROM and card dumps, backups, disconnect); still to do
 against a real Newton. Decisions D1 to D10 settled. Phase 7, the FLTK user
 interface: the shell is up (7.1 to 7.3: document windows, menus, the dock,
-Back Up and Install from the menu); the panels (7.4): device, store, soup
-(table, Delete, Export), package info, screenshot done; next the keyboard
-panel.
+Back Up and Install from the menu); the panels (7.4) are done (device,
+store, soup with Delete and Export, package info, screenshot, keyboard);
+next the inspector, 7.5.
 
 ---
 
@@ -1233,6 +1233,14 @@ and it):
     with progress), Save (PNG), Copy (`Fl_Copy_Surface`: to the
     clipboard). Without the Toolkit app the panel says so (the Cocoa app
     offered to install Toolkit.newtonpkg: NCX doesn't carry it).
+  - 7.4.6 keyboard panel: done. Shown while docked, passthrough starts
+    (`AppDock`'s `Keyboard`, made before the dock starts: it registers
+    'kybd' and 'opca'); its area (`PassthroughArea`, a custom class in the
+    Fluid layout) takes the focus, maps keys as NCXPassthruView did
+    (`NewtonKeyFor`: Delete/BackSpace, Tab, Return, arrows, F1 ... F15),
+    sends text, and pasted (Edit > Paste) and dropped text. The Newton may
+    end it (Start Typing starts it again) or start it (Dock's Keyboard: the
+    window shows the panel). Shortcuts stay the menus'.
   - Linux: a UI file must not include both FLTK's `platform.H` (X11's
     `GC`) and the framework's headers (its `GC`); framework headers stay
     in files without FLTK (`AppDock.cc`, `SoupData.cc`, `Edits.cc`,
